@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -23,6 +23,20 @@ describe('migrateVmuxConfigIfNeeded', () => {
       const migratedConfigPath = join(projectRoot, '.comux', 'comux.config.json');
       expect(JSON.parse(readFileSync(migratedConfigPath, 'utf-8'))).toEqual(legacyConfig);
       expect(result.migrated).toBe(true);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('returns legacy_config_missing without creating .comux/comux.config.json when no legacy config exists', async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'comux-vmux-migration-'));
+
+    try {
+      const result = await migrateVmuxConfigIfNeeded(projectRoot);
+      const migratedConfigPath = join(projectRoot, '.comux', 'comux.config.json');
+
+      expect(result).toMatchObject({ migrated: false, reason: 'legacy_config_missing' });
+      expect(existsSync(migratedConfigPath)).toBe(false);
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }

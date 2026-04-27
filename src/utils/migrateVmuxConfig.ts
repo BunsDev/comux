@@ -3,7 +3,7 @@ import path from 'path';
 
 export type VmuxMigrationResult = {
   migrated: boolean;
-  reason: 'comux-config-exists' | 'legacy-config-missing' | 'legacy-config-copied';
+  reason: 'comux-config-exists' | 'legacy_config_missing' | 'legacy-config-copied';
   sourcePath: string;
   targetPath: string;
 };
@@ -24,7 +24,7 @@ export async function migrateVmuxConfigIfNeeded(projectRoot: string): Promise<Vm
   if (!await fileExists(sourcePath)) {
     return {
       migrated: false,
-      reason: 'legacy-config-missing',
+      reason: 'legacy_config_missing',
       sourcePath,
       targetPath,
     };
