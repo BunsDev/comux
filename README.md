@@ -51,6 +51,6 @@ See [`docs/SMOKE.md`](./docs/SMOKE.md) for the current local verification loop.
 
 ## Status
 
-`comux@0.0.0` is currently a reserved public package and early product shell. The implementation is coming next.
+`comux` is in early public development. The current package contains the TypeScript CLI/core port and local smoke path for the project-scoped agent cockpit.
 
 See [`docs/PRODUCT-SPEC.md`](./docs/PRODUCT-SPEC.md) for the current direction.
