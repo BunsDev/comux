@@ -139,6 +139,9 @@ export interface ComuxSettings {
   baseBranch?: string;
   // Prefix for branch names (e.g. 'feat/' produces 'feat/fix-auth')
   branchPrefix?: string;
+  // Maximum number of comux-managed worktrees to keep per project.
+  // Old inactive managed worktrees are pruned after pane creation.
+  maxManagedWorktrees?: number;
   // Preferred minimum content pane width in characters
   minPaneWidth?: number;
   // Preferred maximum content pane width in characters

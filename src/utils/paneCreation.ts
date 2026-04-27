@@ -35,6 +35,7 @@ import {
 } from './promptStore.js';
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import { isValidBranchName } from './git.js';
+import { ensureComuxRuntimeIgnored } from './gitignore.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
 import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
 import {
@@ -460,6 +461,21 @@ export async function createPane(
 
       // Give a bit more time for git to finish setting up the worktree
       await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    try {
+      const { addedEntries } = ensureComuxRuntimeIgnored(worktreePath);
+      if (addedEntries.length > 0) {
+        LogService.getInstance().debug(
+          `Added ${addedEntries.join(', ')} to worktree .gitignore for ${slug}`,
+          'paneCreation'
+        );
+      }
+    } catch (gitignoreError) {
+      LogService.getInstance().warn(
+        `Failed to ensure comux runtime gitignore entries for ${slug}: ${gitignoreError}`,
+        'paneCreation'
+      );
     }
 
     try {

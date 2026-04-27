@@ -38,6 +38,7 @@ import {
 import { ensureTmuxRuntimeCompatibility } from './utils/tmuxRuntimeCompatibility.js';
 import { claimProcessShutdown } from './utils/processShutdown.js';
 import { sendTmuxShellCommand } from './utils/tmuxSendKeys.js';
+import { ensureComuxRuntimeIgnored } from './utils/gitignore.js';
 import {
   addSidebarProject,
   getAutoSidebarProjectColorTheme,
@@ -1252,39 +1253,12 @@ class Comux {
       await fs.mkdir(promptsDir, { recursive: true });
     }
 
-    // Check if .comux is ignored by either this repo's .gitignore or global gitignore
-    const isIgnored = spawnSync('git', ['check-ignore', '--quiet', comuxDir], {
-      cwd: this.projectRoot
-    }).status === 0;
-
-    if (isIgnored) {
-      return;
-    }
-
-    // Auto-add .comux to .gitignore if not already present
-    const gitignorePath = path.join(this.projectRoot, '.gitignore');
-    if (await this.fileExists(gitignorePath)) {
-      const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-      const lines = gitignoreContent.split('\n');
-
-      // Check if .comux is already in .gitignore (exact match or pattern match)
-      const hasComuxEntry = lines.some(line => {
-        const trimmed = line.trim();
-        return trimmed === '.comux/' || trimmed === '.comux' || trimmed === '/.comux/';
-      });
-
-      if (!hasComuxEntry) {
-        // Add .comux/ to .gitignore
-        const newGitignore = gitignoreContent.endsWith('\n')
-          ? gitignoreContent + '.comux/\n'
-          : gitignoreContent + '\n.comux/\n';
-        await fs.writeFile(gitignorePath, newGitignore);
-        LogService.getInstance().debug('Added .comux/ to .gitignore', 'Setup');
-      }
-    } else {
-      // No .gitignore exists, create one with .comux/ entry
-      await fs.writeFile(gitignorePath, '.comux/\n');
-      LogService.getInstance().debug('Created .gitignore with .comux/ entry', 'Setup');
+    const { addedEntries } = ensureComuxRuntimeIgnored(this.projectRoot);
+    if (addedEntries.length > 0) {
+      LogService.getInstance().debug(
+        `Added ${addedEntries.join(', ')} to .gitignore`,
+        'Setup'
+      );
     }
   }
 

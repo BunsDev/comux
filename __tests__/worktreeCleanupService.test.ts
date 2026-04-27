@@ -1,5 +1,8 @@
 import { EventEmitter } from 'events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, mkdirSync, rmSync, utimesSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import type { ComuxPane } from '../src/types.js';
 
 const spawnMock = vi.hoisted(() => vi.fn());
@@ -43,14 +46,27 @@ function createSuccessfulChildProcess(): MockChildProcess {
 }
 
 describe('WorktreeCleanupService', () => {
+  let tempDirs: string[] = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
+    tempDirs = [];
     spawnMock.mockImplementation(() => createSuccessfulChildProcess());
   });
 
   afterEach(() => {
+    for (const dir of tempDirs) {
+      rmSync(dir, { recursive: true, force: true });
+    }
     vi.resetModules();
   });
+
+  function createManagedWorktree(projectRoot: string, slug: string, mtime: Date): string {
+    const worktreePath = join(projectRoot, '.comux', 'worktrees', slug);
+    mkdirSync(join(worktreePath, '.comux'), { recursive: true });
+    utimesSync(worktreePath, mtime, mtime);
+    return worktreePath;
+  }
 
   it('removes nested worktrees and deletes the pane branch from every repo in a multi-repo workspace cleanup', async () => {
     detectAllWorktreesMock.mockReturnValue([
@@ -159,5 +175,77 @@ describe('WorktreeCleanupService', () => {
     ]));
 
     expect(triggerHookMock).toHaveBeenCalledWith('worktree_removed', '/test/project', pane);
+  });
+
+  it('prunes the oldest inactive managed worktrees when the configured cap is exceeded', async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'comux-prune-'));
+    tempDirs.push(projectRoot);
+    const older = createManagedWorktree(projectRoot, 'older', new Date('2026-01-01T00:00:00Z'));
+    const middle = createManagedWorktree(projectRoot, 'middle', new Date('2026-01-02T00:00:00Z'));
+    const active = createManagedWorktree(projectRoot, 'active', new Date('2026-01-03T00:00:00Z'));
+    const newest = createManagedWorktree(projectRoot, 'newest', new Date('2026-01-04T00:00:00Z'));
+
+    const { WorktreeCleanupService } = await import('../src/services/WorktreeCleanupService.js');
+    (WorktreeCleanupService as any).instance = undefined;
+
+    const service = WorktreeCleanupService.getInstance() as any;
+    await service.runPruneManagedWorktrees({
+      projectRoot,
+      activePanes: [
+        {
+          id: 'comux-active',
+          slug: 'active',
+          prompt: '',
+          paneId: '%2',
+          worktreePath: active,
+        },
+      ],
+      maxManagedWorktrees: 2,
+    });
+
+    const gitCalls = spawnMock.mock.calls.map((call) => ({
+      args: call[1],
+      cwd: call[2]?.cwd,
+    }));
+
+    expect(gitCalls).toEqual([
+      { args: ['worktree', 'remove', older], cwd: projectRoot },
+      { args: ['worktree', 'remove', middle], cwd: projectRoot },
+    ]);
+    expect(gitCalls).not.toContainEqual({
+      args: ['worktree', 'remove', active],
+      cwd: projectRoot,
+    });
+    expect(gitCalls).not.toContainEqual({
+      args: ['worktree', 'remove', newest],
+      cwd: projectRoot,
+    });
+  });
+
+  it('does not prune when active panes already occupy the configured cap', async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'comux-prune-'));
+    tempDirs.push(projectRoot);
+    const old = createManagedWorktree(projectRoot, 'old', new Date('2026-01-01T00:00:00Z'));
+    const activeA = createManagedWorktree(projectRoot, 'active-a', new Date('2026-01-02T00:00:00Z'));
+    const activeB = createManagedWorktree(projectRoot, 'active-b', new Date('2026-01-03T00:00:00Z'));
+
+    const { WorktreeCleanupService } = await import('../src/services/WorktreeCleanupService.js');
+    (WorktreeCleanupService as any).instance = undefined;
+
+    const service = WorktreeCleanupService.getInstance() as any;
+    await service.runPruneManagedWorktrees({
+      projectRoot,
+      activePanes: [
+        { id: 'a', slug: 'active-a', prompt: '', paneId: '%1', worktreePath: activeA },
+        { id: 'b', slug: 'active-b', prompt: '', paneId: '%2', worktreePath: activeB },
+      ],
+      maxManagedWorktrees: 2,
+    });
+
+    expect(spawnMock).not.toHaveBeenCalledWith(
+      'git',
+      ['worktree', 'remove', old],
+      expect.anything()
+    );
   });
 });

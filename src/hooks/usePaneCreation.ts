@@ -3,8 +3,10 @@ import * as os from 'os';
 import type { ComuxPane, MergeTargetReference } from '../types.js';
 import { createPane } from '../utils/paneCreation.js';
 import { LogService } from '../services/LogService.js';
+import { WorktreeCleanupService } from '../services/WorktreeCleanupService.js';
 import { getAgentSlugSuffix, type AgentName } from '../utils/agentLaunch.js';
 import { generateSlug } from '../utils/slug.js';
+import { SettingsManager } from '../utils/settingsManager.js';
 
 interface Params {
   panes: ComuxPane[];
@@ -53,6 +55,26 @@ function getParallelPaneCreationLimit(totalAgents: number): number {
     1,
     Math.min(totalAgents, MAX_PARALLEL_PANE_CREATIONS, conservativeLimit)
   );
+}
+
+function enqueueManagedWorktreePruning(
+  projectRoots: string[],
+  activePanes: ComuxPane[]
+): void {
+  const uniqueProjectRoots = Array.from(new Set(projectRoots));
+
+  for (const projectRoot of uniqueProjectRoots) {
+    const maxManagedWorktrees = new SettingsManager(projectRoot).getSettings().maxManagedWorktrees;
+    if (typeof maxManagedWorktrees !== 'number') {
+      continue;
+    }
+
+    WorktreeCleanupService.getInstance().enqueuePruneManagedWorktrees({
+      projectRoot,
+      activePanes,
+      maxManagedWorktrees,
+    });
+  }
 }
 
 export default function usePaneCreation({
@@ -133,6 +155,7 @@ export default function usePaneCreation({
       // Save the pane
       const updatedPanes = [...panesForCreation, pane];
       await savePanes(updatedPanes);
+      enqueueManagedWorktreePruning([pane.projectRoot || sessionProjectRoot], updatedPanes);
 
       await loadPanes();
       setStatusMessage("Pane created")
@@ -239,6 +262,10 @@ export default function usePaneCreation({
       if (createdPanes.length > 0) {
         const updatedPanes = [...panesForCreation, ...createdPanes];
         await savePanes(updatedPanes);
+        enqueueManagedWorktreePruning(
+          createdPanes.map((pane) => pane.projectRoot || sessionProjectRoot),
+          updatedPanes
+        );
         await loadPanes();
       }
 

@@ -23,12 +23,52 @@ describe('SettingsManager defaults', () => {
     expect(manager.getSettings()).toMatchObject({
       permissionMode: 'bypassPermissions',
       enableAutopilotByDefault: true,
+      maxManagedWorktrees: 12,
       minPaneWidth: 50,
       maxPaneWidth: 80,
       enabledNotificationSounds: ['default-system-sound'],
       showFooterTips: true,
       colorTheme: 'orange',
     });
+  });
+
+  it('allows overriding maxManagedWorktrees within safe bounds', async () => {
+    vi.mock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        readFileSync: vi.fn(),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+      };
+    });
+
+    const { SettingsManager } = await import('../src/utils/settingsManager.js');
+    const manager = new SettingsManager('/tmp/test-project');
+
+    manager.updateSetting('maxManagedWorktrees', 24, 'global');
+    expect(manager.getSettings().maxManagedWorktrees).toBe(24);
+  });
+
+  it('rejects out-of-range maxManagedWorktrees values', async () => {
+    vi.mock('fs', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('fs')>();
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        readFileSync: vi.fn(),
+        writeFileSync: vi.fn(),
+        mkdirSync: vi.fn(),
+      };
+    });
+
+    const { SettingsManager } = await import('../src/utils/settingsManager.js');
+    const manager = new SettingsManager('/tmp/test-project');
+
+    expect(() => manager.updateSetting('maxManagedWorktrees', 0, 'global')).toThrow('Invalid maxManagedWorktrees');
+    expect(() => manager.updateSetting('maxManagedWorktrees', 501, 'global')).toThrow('Invalid maxManagedWorktrees');
+    expect(() => manager.updateSetting('maxManagedWorktrees', 12.5, 'global')).toThrow('Invalid maxManagedWorktrees');
   });
 
   it('allows overriding showFooterTips', async () => {

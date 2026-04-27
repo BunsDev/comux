@@ -34,8 +34,20 @@ import {
 const GLOBAL_SETTINGS_PATH = join(homedir(), '.comux.global.json');
 const TEAM_DEFAULTS_FILENAME = '.comux.defaults.json';
 const PERMISSION_MODES = ['', 'plan', 'acceptEdits', 'bypassPermissions'] as const;
+const MIN_MAX_MANAGED_WORKTREES = 1;
+const MAX_MAX_MANAGED_WORKTREES = 500;
+const DEFAULT_MAX_MANAGED_WORKTREES = 12;
 function isPermissionMode(value: string): value is NonNullable<ComuxSettings['permissionMode']> {
   return (PERMISSION_MODES as readonly string[]).includes(value);
+}
+
+function isValidMaxManagedWorktrees(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= MIN_MAX_MANAGED_WORKTREES &&
+    value <= MAX_MAX_MANAGED_WORKTREES
+  );
 }
 
 function isValidMaxPaneWidth(value: unknown): value is number {
@@ -115,6 +127,10 @@ function sanitizeLoadedSettings(value: unknown): ComuxSettings {
     sanitized.branchPrefix = parsed.branchPrefix;
   }
 
+  if (isValidMaxManagedWorktrees(parsed.maxManagedWorktrees)) {
+    sanitized.maxManagedWorktrees = parsed.maxManagedWorktrees;
+  }
+
   if (isValidMinPaneWidth(parsed.minPaneWidth)) {
     sanitized.minPaneWidth = parsed.minPaneWidth;
   }
@@ -150,6 +166,7 @@ const DEFAULT_SETTINGS: ComuxSettings = {
   enabledNotificationSounds: getDefaultNotificationSoundSelection(),
   showFooterTips: true,
   colorTheme: DEFAULT_COMUX_THEME,
+  maxManagedWorktrees: DEFAULT_MAX_MANAGED_WORKTREES,
 };
 
 const AGENT_OPTIONS = getAgentDefinitions().map((agent) => ({
@@ -239,6 +256,16 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
       { value: 'fix/', label: 'fix/' },
       { value: 'chore/', label: 'chore/' },
     ],
+  },
+  {
+    key: 'maxManagedWorktrees',
+    label: 'Max Managed Worktrees',
+    description: 'Maximum comux-managed worktrees to keep per project. Old inactive worktrees are pruned after new panes are created.',
+    type: 'number',
+    min: MIN_MAX_MANAGED_WORKTREES,
+    max: MAX_MAX_MANAGED_WORKTREES,
+    step: 1,
+    shiftStep: 5,
   },
   {
     key: 'minPaneWidth',
@@ -429,6 +456,11 @@ export class SettingsManager {
         `Invalid maxPaneWidth: expected an integer between ${MIN_MAX_PANE_WIDTH} and ${MAX_MAX_PANE_WIDTH}`
       );
     }
+    if (key === 'maxManagedWorktrees' && !isValidMaxManagedWorktrees(value)) {
+      throw new Error(
+        `Invalid maxManagedWorktrees: expected an integer between ${MIN_MAX_MANAGED_WORKTREES} and ${MAX_MAX_MANAGED_WORKTREES}`
+      );
+    }
 
     // Pane width settings are always stored globally, regardless of requested scope.
     if (key === 'minPaneWidth' || key === 'maxPaneWidth') {
@@ -515,6 +547,11 @@ export class SettingsManager {
     if (settings.maxPaneWidth !== undefined && !isValidMaxPaneWidth(settings.maxPaneWidth)) {
       throw new Error(
         `Invalid maxPaneWidth: expected an integer between ${MIN_MAX_PANE_WIDTH} and ${MAX_MAX_PANE_WIDTH}`
+      );
+    }
+    if (settings.maxManagedWorktrees !== undefined && !isValidMaxManagedWorktrees(settings.maxManagedWorktrees)) {
+      throw new Error(
+        `Invalid maxManagedWorktrees: expected an integer between ${MIN_MAX_MANAGED_WORKTREES} and ${MAX_MAX_MANAGED_WORKTREES}`
       );
     }
 
