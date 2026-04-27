@@ -67,6 +67,10 @@ import {
   getNextFooterTipIndex,
   getRandomFooterTipIndex,
 } from "./utils/footerTips.js"
+import {
+  getSidePanelWidth,
+  shouldUseCompactSidePanel,
+} from "./utils/sidePanel.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -128,6 +132,15 @@ import {
   getNextComuxId,
 } from "./utils/shellPaneDetection.js"
 import type { InlineRenameState } from "./utils/inlineRename.js"
+
+const SidePanelRail: React.FC = () => (
+  <Box flexDirection="column" width={4} alignItems="center">
+    <Text color={COLORS.accent} bold>≡</Text>
+    <Text color={COLORS.border}>│</Text>
+    <Text color={COLORS.border}>│</Text>
+    <Text color={COLORS.accent}>›</Text>
+  </Box>
+)
 
 const ComuxApp: React.FC<ComuxAppProps> = ({
   panesFile,
@@ -215,6 +228,24 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
 
   // Track terminal dimensions for responsive layout
   const terminalWidth = useTerminalWidth()
+  const [sidePanelCollapsed, setSidePanelCollapsed] = useState(() =>
+    shouldUseCompactSidePanel(terminalWidth)
+  )
+  const sidePanelWidth = getSidePanelWidth(sidePanelCollapsed)
+  const toggleSidePanel = useCallback(() => {
+    setSidePanelCollapsed((current) => {
+      const next = !current
+      setStatusMessage(next ? "Side panel hidden" : "Side panel shown")
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+      return next
+    })
+  }, [setStatusMessage])
+
+  useEffect(() => {
+    if (shouldUseCompactSidePanel(terminalWidth)) {
+      setSidePanelCollapsed(true)
+    }
+  }, [terminalWidth])
 
   // Track unread error and warning counts for logs badge
   const [unreadErrorCount, setUnreadErrorCount] = useState(0)
@@ -444,7 +475,7 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
   // Initialize services
   const { popupManager } = useServices({
     // PopupManager config
-    sidebarWidth: SIDEBAR_WIDTH,
+    sidebarWidth: sidePanelWidth,
     projectRoot: projectRoot || process.cwd(),
     popupsSupported,
     isDevMode,
@@ -1575,6 +1606,7 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
   // Periodic enforcement of control pane size and content pane rebalancing (left sidebar at 40 chars)
   useLayoutManagement({
     controlPaneId,
+    sidebarWidth: sidePanelWidth,
     hasActiveDialog:
       actionSystem.actionState.showConfirmDialog ||
       actionSystem.actionState.showChoiceDialog ||
@@ -1752,6 +1784,9 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
     setInlineRename,
     bridgeDaemon,
     showPairBanner: (opts: { code: string; expiresAt: Date }) => setPairBanner(opts),
+    sidePanelCollapsed,
+    sidePanelWidth,
+    onToggleSidePanel: toggleSidePanel,
   })
 
   // Calculate available height for content (terminal height - footer lines - active status messages)
@@ -1765,7 +1800,7 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
   //   - Debug info: +1 line if DEBUG_COMUX
   //   - Status line: +1 line if updateAvailable/currentBranch/debugMessage
   //   - Status messages: +1 line per active message
-  const showFooterHelp = !showCommandPrompt
+  const showFooterHelp = !showCommandPrompt && !sidePanelCollapsed
   let footerLines = 2
   if (quitConfirmMode) {
     footerLines = 2
@@ -1825,21 +1860,25 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
     <Box key={`theme-${selectedThemeName}-${themeRefreshNonce}`} flexDirection="column" height={terminalHeight}>
       {/* Main content area - height dynamically adjusts for status messages */}
       <Box flexDirection="column" height={contentHeight} overflow="hidden">
-        <PanesGrid
-          panes={panes}
-          selectedIndex={selectedIndex}
-          activeProjectRoot={activeProjectRoot}
-          isLoading={isLoading}
-          themeName={selectedThemeName}
-          projectThemeByRoot={projectThemeByRoot}
-          agentStatuses={agentStatuses}
-          activeDevSourcePath={activeDevSourcePath}
-          sidebarProjects={sidebarProjects}
-          fallbackProjectRoot={projectRoot || process.cwd()}
-          fallbackProjectName={projectName}
-          isProjectBusy={isProjectHeaderBusy}
-          inlineRename={inlineRename}
-        />
+        {sidePanelCollapsed ? (
+          <SidePanelRail />
+        ) : (
+          <PanesGrid
+            panes={panes}
+            selectedIndex={selectedIndex}
+            activeProjectRoot={activeProjectRoot}
+            isLoading={isLoading}
+            themeName={selectedThemeName}
+            projectThemeByRoot={projectThemeByRoot}
+            agentStatuses={agentStatuses}
+            activeDevSourcePath={activeDevSourcePath}
+            sidebarProjects={sidebarProjects}
+            fallbackProjectRoot={projectRoot || process.cwd()}
+            fallbackProjectName={projectName}
+            isProjectBusy={isProjectHeaderBusy}
+            inlineRename={inlineRename}
+          />
+        )}
 
         <StartupPrimer show={showStartupPrimer} />
 

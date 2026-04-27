@@ -499,6 +499,7 @@ export const enforceControlPaneSize = async (
         force: options?.forceLayout === true,
         suppressLogs: options?.suppressLayoutLogs === true,
         disableSpacer: options?.disableSpacer === true,
+        sidebarWidth: width,
       }
     );
 

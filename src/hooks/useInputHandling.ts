@@ -86,6 +86,7 @@ import {
   resolveSidebarMouseTarget,
   type SidebarMouseTarget,
 } from "../utils/sidebarMouse.js"
+import { SIDE_PANEL_COLLAPSED_WIDTH } from "../utils/sidePanel.js"
 import {
   MAX_INLINE_NAME_LENGTH,
   type InlineRenameState,
@@ -178,6 +179,9 @@ interface UseInputHandlingParams {
   // Bridge daemon (optional, progressive enhancement)
   bridgeDaemon?: any
   showPairBanner?: (opts: { code: string; expiresAt: Date }) => void
+  sidePanelCollapsed?: boolean
+  sidePanelWidth?: number
+  onToggleSidePanel?: () => void
 }
 
 /**
@@ -240,6 +244,9 @@ export function useInputHandling(params: UseInputHandlingParams) {
     findCardInDirection,
     bridgeDaemon,
     showPairBanner,
+    sidePanelCollapsed = false,
+    sidePanelWidth = SIDEBAR_WIDTH,
+    onToggleSidePanel,
   } = params
 
   const layoutRefreshDebounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -276,7 +283,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
     layoutRefreshDebounceRef.current = setTimeout(async () => {
       layoutRefreshDebounceRef.current = null
       try {
-        await enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH, { forceLayout: true })
+        await enforceControlPaneSize(controlPaneId, sidePanelWidth, { forceLayout: true })
       } catch (error: any) {
         setStatusMessage(`Setting saved but layout refresh failed: ${error?.message || String(error)}`)
         setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
@@ -874,6 +881,19 @@ export function useInputHandling(params: UseInputHandlingParams) {
       return false
     }
 
+    if (
+      onToggleSidePanel &&
+      mouseEvent.row === 1 &&
+      mouseEvent.column <= SIDE_PANEL_COLLAPSED_WIDTH
+    ) {
+      onToggleSidePanel()
+      return true
+    }
+
+    if (sidePanelCollapsed) {
+      return true
+    }
+
     const layout = buildProjectActionLayout(
       panes,
       sidebarProjects,
@@ -1124,7 +1144,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
       return
     }
 
-    await enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH, {
+    await enforceControlPaneSize(controlPaneId, sidePanelWidth, {
       forceLayout: true,
       suppressLayoutLogs: true,
     })
@@ -1827,6 +1847,11 @@ export function useInputHandling(params: UseInputHandlingParams) {
       return
     }
 
+    if (input === "z" && onToggleSidePanel) {
+      onToggleSidePanel()
+      return
+    }
+
     // Handle quit confirm mode - ESC cancels it
     if (quitConfirmMode) {
       if (key.escape) {
@@ -2096,7 +2121,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
     } else if (input === "L" && controlPaneId) {
       // Reset layout to sidebar configuration (Shift+L)
       try {
-        await enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH, { forceLayout: true })
+        await enforceControlPaneSize(controlPaneId, sidePanelWidth, { forceLayout: true })
         setStatusMessage("Layout reset")
         setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
       } catch (error: any) {

@@ -6,6 +6,7 @@ import { LogService } from '../services/LogService.js';
 interface LayoutManagementOptions {
   controlPaneId: string | undefined;
   hasActiveDialog: boolean;
+  sidebarWidth?: number;
 }
 
 /**
@@ -15,6 +16,7 @@ interface LayoutManagementOptions {
 export function useLayoutManagement({
   controlPaneId,
   hasActiveDialog,
+  sidebarWidth = SIDEBAR_WIDTH,
 }: LayoutManagementOptions) {
   // Use refs to track state across resize events
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -30,7 +32,7 @@ export function useLayoutManagement({
     }
 
     // Enforce sidebar width immediately on mount (with error handling)
-    enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH).catch(error => {
+    enforceControlPaneSize(controlPaneId, sidebarWidth, { forceLayout: true }).catch(error => {
       LogService.getInstance().warn(
         `Initial layout enforcement failed: ${error}`,
         'ResizeDebug'
@@ -65,7 +67,7 @@ export function useLayoutManagement({
 
           try {
             // Only enforce sidebar width when terminal resizes
-            await enforceControlPaneSize(controlPaneId, SIDEBAR_WIDTH);
+            await enforceControlPaneSize(controlPaneId, sidebarWidth);
 
             // Check if still mounted before updating UI
             if (!isMountedRef.current) {
@@ -106,5 +108,5 @@ export function useLayoutManagement({
         clearTimeout(resizeTimeoutRef.current);
       }
     };
-  }, [controlPaneId, hasActiveDialog]);
+  }, [controlPaneId, hasActiveDialog, sidebarWidth]);
 }

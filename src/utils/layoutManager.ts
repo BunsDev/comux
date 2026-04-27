@@ -50,6 +50,7 @@ let lastLayoutDimensions: {
   width: number;
   height: number;
   paneCount: number;
+  sidebarWidth: number;
   minPaneWidth: number;
   maxPaneWidth: number;
 } | null = null;
@@ -127,7 +128,7 @@ export async function recalculateAndApplyLayout(
   terminalWidth: number,
   terminalHeight: number,
   config?: LayoutConfig,
-  options?: { force?: boolean; suppressLogs?: boolean; disableSpacer?: boolean }
+  options?: { force?: boolean; suppressLogs?: boolean; disableSpacer?: boolean; sidebarWidth?: number }
 ): Promise<void> {
   // Wrap entire function in try-catch to prevent crashes during resize
   try {
@@ -150,7 +151,11 @@ export async function recalculateAndApplyLayout(
       return;
     }
 
-    const effectiveConfig = resolveLayoutConfig(config);
+    const resolvedConfig = resolveLayoutConfig(config);
+    const effectiveConfig = {
+      ...resolvedConfig,
+      SIDEBAR_WIDTH: options?.sidebarWidth ?? resolvedConfig.SIDEBAR_WIDTH,
+    };
 
     // Create class instances with resolved config
     const calculator = new LayoutCalculator(effectiveConfig);
@@ -200,6 +205,7 @@ export async function recalculateAndApplyLayout(
       lastLayoutDimensions.width === terminalWidth &&
       lastLayoutDimensions.height === terminalHeight &&
       lastLayoutDimensions.paneCount === realContentPanes.length &&
+      lastLayoutDimensions.sidebarWidth === effectiveConfig.SIDEBAR_WIDTH &&
       lastLayoutDimensions.minPaneWidth === effectiveConfig.MIN_COMFORTABLE_WIDTH &&
       lastLayoutDimensions.maxPaneWidth === effectiveConfig.MAX_COMFORTABLE_WIDTH;
 
@@ -227,6 +233,7 @@ export async function recalculateAndApplyLayout(
       width: terminalWidth,
       height: terminalHeight,
       paneCount: realContentPanes.length,
+      sidebarWidth: effectiveConfig.SIDEBAR_WIDTH,
       minPaneWidth: effectiveConfig.MIN_COMFORTABLE_WIDTH,
       maxPaneWidth: effectiveConfig.MAX_COMFORTABLE_WIDTH,
     };
