@@ -38,6 +38,7 @@
     "comux",
     "README.md",
     "docs/PRODUCT-SPEC.md",
+    "docs/SMOKE.md",
     "LICENSE"
   ],
   "scripts": {
