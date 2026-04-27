@@ -1,7 +1,7 @@
 {
   "name": "comux",
   "version": "0.0.0",
-  "description": "A project-scoped agent cockpit for coordinating coding work across terminal sessions.",
+  "description": "Project-scoped agent cockpit for coordinating coding work across terminal sessions.",
   "type": "module",
   "bin": {
     "comux": "index.js"
@@ -12,7 +12,8 @@
   "files": [
     "index.js",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs/PRODUCT-SPEC.md"
   ],
   "keywords": [
     "agents",
