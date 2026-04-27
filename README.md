@@ -45,6 +45,10 @@ OpenMeow / CLI / future UI
 5. Cody reports back when work is blocked, ready, or needs approval.
 6. You can jump into comux for full terminal visibility.
 
+## Local smoke test
+
+See [`docs/SMOKE.md`](./docs/SMOKE.md) for the current local verification loop.
+
 ## Status
 
 `comux@0.0.0` is currently a reserved public package and early product shell. The implementation is coming next.
