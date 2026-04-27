@@ -91,6 +91,7 @@ process.stdin.on('end', () => {
     expectedTmuxPaneId: '${escapeForSingleQuotedJs(opts.tmuxPaneId)}',
     hookEventName: payload.hook_event_name || payload.hookEventName || '',
     turnId: payload.turn_id || payload.turnId || '',
+    sessionId: payload.session_id || payload.sessionId || payload.session?.id || '',
     lastAssistantMessage: payload.last_assistant_message || null,
     transcriptPath: payload.transcript_path || null,
     cwd: payload.cwd || process.cwd(),

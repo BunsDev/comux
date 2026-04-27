@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import type { ComuxPane, AgentStatus, OptionChoice, PotentialHarm } from '../types.js';
+import type { ComuxPane, AgentStatus, OptionChoice, PotentialHarm, AgentSessionReference } from '../types.js';
 import { WorkerMessageBus } from './WorkerMessageBus.js';
 import { PaneWorkerManager } from './PaneWorkerManager.js';
 import { PaneAnalyzer } from './PaneAnalyzer.js';
@@ -9,6 +9,7 @@ import type { CodexTurnStoppedPayload } from '../workers/WorkerMessages.js';
 import { StateManager } from '../shared/StateManager.js';
 import { LogService } from './LogService.js';
 import { getPaneDisplayName } from '../utils/paneTitle.js';
+import { buildCodexAgentSessionReference, persistPaneAgentSessionReference } from '../utils/agentSession.js';
 
 export interface StatusUpdateEvent {
   paneId: string;
@@ -19,6 +20,7 @@ export interface StatusUpdateEvent {
   potentialHarm?: PotentialHarm;
   summary?: string;
   analyzerError?: string;
+  agentSession?: AgentSessionReference;
 }
 
 export interface AttentionNeededEvent {
@@ -195,12 +197,36 @@ export class StatusDetector extends EventEmitter {
       attentionBody: summaryDetails.attentionBody,
     };
 
+    const agentSession = await buildCodexAgentSessionReference({
+      sessionId: payload.sessionId,
+      transcriptPath: payload.transcriptPath,
+      cwd: payload.cwd,
+      turnId: payload.turnId,
+      source: payload.source,
+      timestamp: payload.timestamp,
+    });
+
+    try {
+      await persistPaneAgentSessionReference(
+        StateManager.getInstance().getState().panesFile,
+        paneId,
+        agentSession,
+      );
+    } catch (error) {
+      LogService.getInstance().debug(
+        `Failed to persist Codex session reference for pane ${paneId}: ${error instanceof Error ? error.message : String(error)}`,
+        'statusDetector',
+        paneId
+      );
+    }
+
     this.emit('status-updated', {
       paneId,
       status: finalStatus,
       previousStatus,
       summary: analysis.summary,
       analyzerError: '',
+      agentSession,
     } satisfies StatusUpdateEvent);
 
     const attentionEvent = this.buildAttentionEvent(paneId, tmuxPaneId, finalStatus, analysis);

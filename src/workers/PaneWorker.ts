@@ -345,6 +345,18 @@ class PaneWorker {
     if (turnId) {
       payload.turnId = turnId;
     }
+    if (typeof event.sessionId === 'string' && event.sessionId.trim()) {
+      payload.sessionId = event.sessionId;
+    }
+    if (typeof event.transcriptPath === 'string' && event.transcriptPath.trim()) {
+      payload.transcriptPath = event.transcriptPath;
+    }
+    if (typeof event.cwd === 'string' && event.cwd.trim()) {
+      payload.cwd = event.cwd;
+    }
+    if (timestamp) {
+      payload.timestamp = timestamp;
+    }
     if (typeof event.lastAssistantMessage === 'string' && event.lastAssistantMessage.trim()) {
       payload.lastAssistantMessage = event.lastAssistantMessage;
     }
