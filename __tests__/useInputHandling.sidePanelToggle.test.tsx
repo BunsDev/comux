@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import { Text } from 'ink';
@@ -99,6 +99,30 @@ function Harness({
   return <Text>comux</Text>;
 }
 
+function StatefulHarness({
+  initialCollapsed = false,
+  onStateChange,
+}: {
+  initialCollapsed?: boolean;
+  onStateChange: ReturnType<typeof vi.fn>;
+}) {
+  const [sidePanelCollapsed, setSidePanelCollapsed] = useState(initialCollapsed);
+  const onToggleSidePanel = () => {
+    setSidePanelCollapsed((current) => {
+      const next = !current;
+      onStateChange(next);
+      return next;
+    });
+  };
+
+  return (
+    <Harness
+      onToggleSidePanel={vi.fn(onToggleSidePanel)}
+      sidePanelCollapsed={sidePanelCollapsed}
+    />
+  );
+}
+
 describe('useInputHandling side panel toggle', () => {
   it('toggles the side panel with the z shortcut', async () => {
     const onToggleSidePanel = vi.fn();
@@ -113,17 +137,59 @@ describe('useInputHandling side panel toggle', () => {
     unmount();
   });
 
-  it('expands a collapsed side panel when the compact rail is clicked', async () => {
+  it('expands a collapsed side panel when any compact rail row is clicked', async () => {
     const onToggleSidePanel = vi.fn();
     const { stdin, unmount } = render(
       <Harness onToggleSidePanel={onToggleSidePanel} sidePanelCollapsed />
     );
 
     await sleep(20);
-    stdin.write('\x1b[<0;1;1M');
+    stdin.write('\x1b[<0;1;3M');
     await sleep(40);
 
     expect(onToggleSidePanel).toHaveBeenCalledTimes(1);
+
+    unmount();
+  });
+
+  it('toggles open and closed freely with repeated shortcut presses', async () => {
+    const onStateChange = vi.fn();
+    const { stdin, unmount } = render(
+      <StatefulHarness initialCollapsed onStateChange={onStateChange} />
+    );
+
+    await sleep(20);
+    stdin.write('z');
+    await sleep(40);
+    stdin.write('z');
+    await sleep(40);
+    stdin.write('z');
+    await sleep(40);
+
+    expect(onStateChange).toHaveBeenNthCalledWith(1, false);
+    expect(onStateChange).toHaveBeenNthCalledWith(2, true);
+    expect(onStateChange).toHaveBeenNthCalledWith(3, false);
+
+    unmount();
+  });
+
+  it('toggles open and closed freely with repeated compact rail clicks', async () => {
+    const onStateChange = vi.fn();
+    const { stdin, unmount } = render(
+      <StatefulHarness initialCollapsed onStateChange={onStateChange} />
+    );
+
+    await sleep(20);
+    stdin.write('\x1b[<0;1;3M');
+    await sleep(40);
+    stdin.write('\x1b[<0;1;1M');
+    await sleep(40);
+    stdin.write('\x1b[<0;1;4M');
+    await sleep(40);
+
+    expect(onStateChange).toHaveBeenNthCalledWith(1, false);
+    expect(onStateChange).toHaveBeenNthCalledWith(2, true);
+    expect(onStateChange).toHaveBeenNthCalledWith(3, false);
 
     unmount();
   });
