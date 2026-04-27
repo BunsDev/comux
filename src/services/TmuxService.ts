@@ -318,7 +318,7 @@ export class TmuxService {
   }
 
   /**
-   * Get the pane currently selected in the active vmux window.
+   * Get the pane currently selected in the active comux window.
    *
    * This uses pane_active from list-panes instead of display-message so it
    * reflects tmux focus changes after this process was launched.
@@ -517,7 +517,7 @@ export class TmuxService {
 
       try {
         const title = await this.getPaneTitle(id);
-        if (title !== 'vmux-spacer') {
+        if (title !== 'comux-spacer') {
           contentPanes.push(id);
         }
       } catch {
@@ -996,7 +996,7 @@ export class TmuxService {
    *   - tmux automatically manages window size to fit client
    *   - window_height = client_height (tmux handles status bar internally)
    *
-   * When window-size is "manual" (vmux uses this):
+   * When window-size is "manual" (comux uses this):
    *   - You control window dimensions explicitly
    *   - total_terminal = window_height + status_bar_height
    *   - When setting window size: window_height = client_height - status_bar_height

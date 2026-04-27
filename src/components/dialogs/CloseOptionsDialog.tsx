@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { VmuxPane } from '../../types.js';
+import type { ComuxPane } from '../../types.js';
 
 interface CloseOptionsDialogProps {
-  pane: VmuxPane;
+  pane: ComuxPane;
   selectedIndex: number; // 0..3
 }
 

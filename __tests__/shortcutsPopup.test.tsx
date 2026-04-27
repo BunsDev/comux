@@ -8,7 +8,7 @@ describe('ShortcutsPopupApp', () => {
   it('shows the focused-pane menu shortcut as Alt+Shift+M', () => {
     const { lastFrame } = render(
       <ShortcutsPopupApp
-        resultFile="/tmp/vmux-shortcuts-result.json"
+        resultFile="/tmp/comux-shortcuts-result.json"
         hasSidebarLayout={true}
         isDevMode={false}
       />

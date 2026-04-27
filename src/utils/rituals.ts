@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { SidebarProject, VmuxPane } from '../types.js';
+import type { SidebarProject, ComuxPane } from '../types.js';
 import {
   isAgentName,
   type AgentName,
@@ -44,7 +44,7 @@ export interface ProjectRitualManifest {
 export interface CaptureRitualOptions {
   name: string;
   projectRoot: string;
-  panes: VmuxPane[];
+  panes: ComuxPane[];
   sidebarProjects: SidebarProject[];
 }
 
@@ -144,11 +144,11 @@ export function getBuiltInRituals(): RitualDefinition[] {
 }
 
 export function getProjectRitualsDir(projectRoot: string): string {
-  return path.join(projectRoot, '.vmux', 'rituals');
+  return path.join(projectRoot, '.comux', 'rituals');
 }
 
 export function getProjectRitualManifestPath(projectRoot: string): string {
-  return path.join(projectRoot, '.vmux', 'rituals.json');
+  return path.join(projectRoot, '.comux', 'rituals.json');
 }
 
 export function ritualIdFromName(name: string): string {

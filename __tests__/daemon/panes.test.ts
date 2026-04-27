@@ -8,11 +8,11 @@ import { updatePaneMeta } from '../../src/daemon/index.js';
 let tempRoots: string[] = [];
 
 async function writeConfig(config: unknown): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), 'vmux-daemon-panes-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'comux-daemon-panes-'));
   tempRoots.push(root);
-  const vmuxDir = path.join(root, '.vmux');
-  await mkdir(vmuxDir, { recursive: true });
-  await writeFile(path.join(vmuxDir, 'vmux.config.json'), JSON.stringify(config, null, 2));
+  const comuxDir = path.join(root, '.comux');
+  await mkdir(comuxDir, { recursive: true });
+  await writeFile(path.join(comuxDir, 'comux.config.json'), JSON.stringify(config, null, 2));
   return root;
 }
 
@@ -22,11 +22,11 @@ afterEach(async () => {
 });
 
 describe('daemon pane config helpers', () => {
-  it('lists tmux pane identifiers while preserving vmux ids as fallback titles', async () => {
+  it('lists tmux pane identifiers while preserving comux ids as fallback titles', async () => {
     const root = await writeConfig({
       panes: [
         {
-          id: 'vmux-2',
+          id: 'comux-2',
           paneId: '%3',
           worktreeDir: '/repo/worktree',
           branch: 'feature',
@@ -41,7 +41,7 @@ describe('daemon pane config helpers', () => {
         cwd: '/repo/worktree',
         branch: 'feature',
         agent: 'codex',
-        title: 'vmux-2',
+        title: 'comux-2',
         lastActivity: undefined,
       },
     ]);
@@ -51,7 +51,7 @@ describe('daemon pane config helpers', () => {
     const root = await writeConfig({
       panes: [
         {
-          id: 'vmux-2',
+          id: 'comux-2',
           paneId: '%3',
           title: 'old title',
           agent: 'codex',
@@ -61,9 +61,9 @@ describe('daemon pane config helpers', () => {
 
     await updatePaneMeta(root, '%3', { title: 'new title', agent: 'claude' });
 
-    const raw = await readFile(path.join(root, '.vmux', 'vmux.config.json'), 'utf8');
+    const raw = await readFile(path.join(root, '.comux', 'comux.config.json'), 'utf8');
     expect(JSON.parse(raw)).toMatchObject({
-      panes: [{ id: 'vmux-2', paneId: '%3', title: 'new title', agent: 'claude' }],
+      panes: [{ id: 'comux-2', paneId: '%3', title: 'new title', agent: 'claude' }],
     });
   });
 });

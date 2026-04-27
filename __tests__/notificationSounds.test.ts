@@ -26,7 +26,7 @@ describe('notification sounds', () => {
       pickNotificationSound(['default-system-sound', 'harp', 'war-horn'], 0.6)
     ).toMatchObject({
       id: 'harp',
-      resourceFileName: 'vmux-harp.caf',
+      resourceFileName: 'comux-harp.caf',
     });
   });
 

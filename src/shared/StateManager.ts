@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
-import type { VmuxPane, ProjectSettings, LogEntry } from '../types.js';
+import type { ComuxPane, ProjectSettings, LogEntry } from '../types.js';
 import { ConfigWatcher } from '../services/ConfigWatcher.js';
 import { LogService } from '../services/LogService.js';
 import { ToastService, type Toast } from '../services/ToastService.js';
 
-export interface VmuxState {
-  panes: VmuxPane[];
+export interface ComuxState {
+  panes: ComuxPane[];
   projectName: string;
   sessionName: string;
   projectRoot: string;
@@ -23,8 +23,8 @@ export interface VmuxState {
 
 export class StateManager extends EventEmitter {
   private static instance: StateManager;
-  private state: VmuxState;
-  private updateCallbacks: Set<(state: VmuxState) => void> = new Set();
+  private state: ComuxState;
+  private updateCallbacks: Set<(state: ComuxState) => void> = new Set();
   private configWatcher: ConfigWatcher | null = null;
   private debugMessageCallback: ((message: string) => void) | undefined;
   private logService: LogService;
@@ -90,11 +90,11 @@ export class StateManager extends EventEmitter {
     return StateManager.instance;
   }
 
-  getState(): VmuxState {
+  getState(): ComuxState {
     return { ...this.state };
   }
 
-  updatePanes(panes: VmuxPane[]): void {
+  updatePanes(panes: ComuxPane[]): void {
     this.state.panes = [...panes];
     this.notifyListeners();
   }
@@ -140,15 +140,15 @@ export class StateManager extends EventEmitter {
     this.notifyListeners();
   }
 
-  getPaneById(id: string): VmuxPane | undefined {
+  getPaneById(id: string): ComuxPane | undefined {
     return this.state.panes.find(pane => pane.id === id);
   }
 
-  getPanes(): VmuxPane[] {
+  getPanes(): ComuxPane[] {
     return [...this.state.panes];
   }
 
-  subscribe(callback: (state: VmuxState) => void): () => void {
+  subscribe(callback: (state: ComuxState) => void): () => void {
     this.updateCallbacks.add(callback);
     return () => {
       this.updateCallbacks.delete(callback);

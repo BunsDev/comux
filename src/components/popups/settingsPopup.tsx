@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import { readFileSync } from 'fs';
-import type { SettingDefinition, VmuxSettings } from '../../types.js';
+import type { SettingDefinition, ComuxSettings } from '../../types.js';
 import {
   DEFAULT_COLOR_THEME_SETTING_KEY,
   SettingsManager,
@@ -19,8 +19,8 @@ import { SIDEBAR_WIDTH } from '../../utils/layoutManager.js';
 import { resolveEnabledAgentsSelection } from '../../utils/agentLaunch.js';
 import { resolveNotificationSoundsSelection } from '../../utils/notificationSounds.js';
 import { SIDEBAR_PROJECT_COLOR_THEME_SETTING_KEY } from '../../utils/sidebarProjects.js';
-import { getVmuxThemeAccent } from '../../theme/colors.js';
-import { isVmuxThemeName } from '../../theme/themePalette.js';
+import { getComuxThemeAccent } from '../../theme/colors.js';
+import { isComuxThemeName } from '../../theme/themePalette.js';
 import { POPUP_CONFIG } from './config.js';
 import {
   PopupWrapper,
@@ -32,8 +32,8 @@ interface SettingsPopupProps {
   resultFile: string;
   settingDefinitions: SettingDefinition[];
   settings: SettingsPopupValues;
-  globalSettings: VmuxSettings;
-  projectSettings: VmuxSettings;
+  globalSettings: ComuxSettings;
+  projectSettings: ComuxSettings;
   projectRoot: string;
   controlPaneId?: string;
   selectedIndex?: number;
@@ -45,7 +45,7 @@ interface PendingSettingUpdate {
   scope: 'global' | 'project' | 'session';
 }
 
-type SettingsPopupValues = VmuxSettings & Record<string, unknown>;
+type SettingsPopupValues = ComuxSettings & Record<string, unknown>;
 
 const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
   resultFile,
@@ -60,8 +60,8 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
   const [mode, setMode] = useState<'list' | 'edit' | 'scope'>('list');
   const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);
   const [currentSettings, setCurrentSettings] = useState<SettingsPopupValues>({ ...settings });
-  const [currentGlobalSettings, setCurrentGlobalSettings] = useState<VmuxSettings>({ ...globalSettings });
-  const [currentProjectSettings, setCurrentProjectSettings] = useState<VmuxSettings>({ ...projectSettings });
+  const [currentGlobalSettings, setCurrentGlobalSettings] = useState<ComuxSettings>({ ...globalSettings });
+  const [currentProjectSettings, setCurrentProjectSettings] = useState<ComuxSettings>({ ...projectSettings });
   const pendingUpdatesRef = useRef<PendingSettingUpdate[]>([]);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingPreviewUpdateRef = useRef<PendingSettingUpdate | null>(null);
@@ -105,8 +105,8 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
       definition.key === DEFAULT_COLOR_THEME_SETTING_KEY
       || definition.key === SIDEBAR_PROJECT_COLOR_THEME_SETTING_KEY
     ) {
-      return isVmuxThemeName(optionValue)
-        ? getVmuxThemeAccent(optionValue)
+      return isComuxThemeName(optionValue)
+        ? getComuxThemeAccent(optionValue)
         : POPUP_CONFIG.titleColor;
     }
 
@@ -156,8 +156,8 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
 
   const applyLocalUpdate = (update: PendingSettingUpdate) => {
     const nextSettings: SettingsPopupValues = { ...currentSettings };
-    const nextGlobalSettings: VmuxSettings = { ...currentGlobalSettings };
-    const nextProjectSettings: VmuxSettings = { ...currentProjectSettings };
+    const nextGlobalSettings: ComuxSettings = { ...currentGlobalSettings };
+    const nextProjectSettings: ComuxSettings = { ...currentProjectSettings };
 
     if (update.key === 'minPaneWidth' || update.key === 'maxPaneWidth') {
       let minPaneWidth = typeof nextSettings.minPaneWidth === 'number' ? nextSettings.minPaneWidth : 50;
@@ -216,13 +216,13 @@ const SettingsPopupApp: React.FC<SettingsPopupProps> = ({
   const persistWidthUpdate = async (update: PendingSettingUpdate): Promise<PendingSettingUpdate> => {
     try {
       const manager = new SettingsManager(projectRoot || process.cwd());
-      manager.updateSetting(update.key as keyof VmuxSettings, update.value, 'global');
+      manager.updateSetting(update.key as keyof ComuxSettings, update.value, 'global');
       const merged = manager.getSettings() as SettingsPopupValues;
       setCurrentSettings(merged);
       setCurrentGlobalSettings(manager.getGlobalSettings());
       setCurrentProjectSettings(manager.getProjectSettings());
 
-      const resolvedValue = merged[update.key as keyof VmuxSettings];
+      const resolvedValue = merged[update.key as keyof ComuxSettings];
       if (typeof resolvedValue === 'number') {
         const resolvedUpdate = {
           ...update,
@@ -757,8 +757,8 @@ function main() {
   let data: {
     settingDefinitions: SettingDefinition[];
     settings: SettingsPopupValues;
-    globalSettings: VmuxSettings;
-    projectSettings: VmuxSettings;
+    globalSettings: ComuxSettings;
+    projectSettings: ComuxSettings;
     projectRoot: string;
     controlPaneId?: string;
     selectedIndex?: number;

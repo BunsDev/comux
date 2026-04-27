@@ -262,7 +262,7 @@ describe('createPullRequestAction', () => {
       fallbackFrom: {
         slug: 'feature-parent',
         branchName: 'feature-parent',
-        worktreePath: '/test/project/.vmux/worktrees/feature-parent',
+        worktreePath: '/test/project/.comux/worktrees/feature-parent',
       },
     });
 

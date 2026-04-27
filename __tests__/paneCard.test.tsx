@@ -39,7 +39,7 @@ describe('PaneCard', () => {
       type: 'shell',
       shellType: 'fb',
       agent: undefined,
-      browserPath: '/test/project/.vmux/worktrees/test-pane',
+      browserPath: '/test/project/.comux/worktrees/test-pane',
       worktreePath: undefined,
     });
 

@@ -1,21 +1,21 @@
-interface VmuxProcessShutdownState {
+interface ComuxProcessShutdownState {
   claimed: boolean;
   owner?: string;
 }
 
-type GlobalWithVmuxShutdownState = typeof globalThis & {
-  __vmuxProcessShutdownState?: VmuxProcessShutdownState;
+type GlobalWithComuxShutdownState = typeof globalThis & {
+  __comuxProcessShutdownState?: ComuxProcessShutdownState;
 };
 
-function getShutdownState(): VmuxProcessShutdownState {
-  const globalWithState = globalThis as GlobalWithVmuxShutdownState;
-  if (!globalWithState.__vmuxProcessShutdownState) {
-    globalWithState.__vmuxProcessShutdownState = {
+function getShutdownState(): ComuxProcessShutdownState {
+  const globalWithState = globalThis as GlobalWithComuxShutdownState;
+  if (!globalWithState.__comuxProcessShutdownState) {
+    globalWithState.__comuxProcessShutdownState = {
       claimed: false,
     };
   }
 
-  return globalWithState.__vmuxProcessShutdownState;
+  return globalWithState.__comuxProcessShutdownState;
 }
 
 export function claimProcessShutdown(owner: string): boolean {

@@ -1,6 +1,6 @@
-import type { VmuxThemeName } from '../types.js';
+import type { ComuxThemeName } from '../types.js';
 
-export const VMUX_THEME_NAMES = [
+export const COMUX_THEME_NAMES = [
   'red',
   'blue',
   'yellow',
@@ -9,11 +9,11 @@ export const VMUX_THEME_NAMES = [
   'purple',
   'cyan',
   'magenta',
-] as const satisfies readonly VmuxThemeName[];
+] as const satisfies readonly ComuxThemeName[];
 
-export const DEFAULT_VMUX_THEME: VmuxThemeName = 'orange';
+export const DEFAULT_COMUX_THEME: ComuxThemeName = 'orange';
 
-export const VMUX_THEME_LABELS: Record<VmuxThemeName, string> = {
+export const COMUX_THEME_LABELS: Record<ComuxThemeName, string> = {
   red: 'Crimson',
   blue: 'Indigo',
   yellow: 'Gold',
@@ -24,14 +24,14 @@ export const VMUX_THEME_LABELS: Record<VmuxThemeName, string> = {
   magenta: 'Orchid',
 };
 
-export function isVmuxThemeName(value: unknown): value is VmuxThemeName {
-  return typeof value === 'string' && (VMUX_THEME_NAMES as readonly string[]).includes(value);
+export function isComuxThemeName(value: unknown): value is ComuxThemeName {
+  return typeof value === 'string' && (COMUX_THEME_NAMES as readonly string[]).includes(value);
 }
 
-export function normalizeVmuxTheme(value: unknown): VmuxThemeName {
-  return isVmuxThemeName(value) ? value : DEFAULT_VMUX_THEME;
+export function normalizeComuxTheme(value: unknown): ComuxThemeName {
+  return isComuxThemeName(value) ? value : DEFAULT_COMUX_THEME;
 }
 
-export function getVmuxThemeLabel(value: unknown): string {
-  return VMUX_THEME_LABELS[normalizeVmuxTheme(value)];
+export function getComuxThemeLabel(value: unknown): string {
+  return COMUX_THEME_LABELS[normalizeComuxTheme(value)];
 }

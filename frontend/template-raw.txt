@@ -1,6 +1,6 @@
   template: \`
     <header>
-      <img src="https://cdn.formk.it/vmux/vmux.png" alt="vmux" class="logo" />
+      <img src="https://cdn.formk.it/comux/comux.png" alt="comux" class="logo" />
       <h1>{{ projectName }}</h1>
       <div class="session-info">
         <button @click="toggleTheme" class="theme-toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
@@ -28,8 +28,8 @@
         </div>
 
         <div v-if="panes.length === 0" class="no-panes">
-          <p>No vmux panes active</p>
-          <p class="hint">Click "Create New Pane" above or press 'n' in vmux</p>
+          <p>No comux panes active</p>
+          <p class="hint">Click "Create New Pane" above or press 'n' in comux</p>
         </div>
 
         <div v-else class="panes-grid">
@@ -236,7 +236,7 @@
                 :disabled="creatingPane"
               >
                 <img
-                  :src="'https://cdn.formk.it/vmux/' + agent + '.svg'"
+                  :src="'https://cdn.formk.it/comux/' + agent + '.svg'"
                   :alt="agent"
                   class="agent-logo"
                 />
@@ -282,7 +282,7 @@
   methods: {
     toggleTheme() {
       this.theme = this.theme === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('vmux-theme', this.theme);
+      localStorage.setItem('comux-theme', this.theme);
       document.documentElement.setAttribute('data-theme', this.theme);
     },
     togglePrompt(paneId) {

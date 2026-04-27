@@ -158,7 +158,7 @@ export const NotificationSoundsPopupApp: React.FC<NotificationSoundsPopupProps> 
           <Box flexDirection="column">
             <Box marginBottom={1} flexDirection="column">
               <Text dimColor>
-                vmux randomizes between the enabled sounds for each macOS background alert.
+                comux randomizes between the enabled sounds for each macOS background alert.
               </Text>
               <Text dimColor>
                 Keep at least one sound enabled.

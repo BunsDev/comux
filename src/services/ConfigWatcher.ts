@@ -1,15 +1,15 @@
 import { watch, type FSWatcher } from 'chokidar';
 import { EventEmitter } from 'events';
 import { readFile } from 'fs/promises';
-import type { VmuxPane } from '../types.js';
+import type { ComuxPane } from '../types.js';
 import { LogService } from './LogService.js';
 
 export interface ConfigData {
-  panes: VmuxPane[];
+  panes: ComuxPane[];
 }
 
 /**
- * Watches the vmux.config.json file for changes and emits events
+ * Watches the comux.config.json file for changes and emits events
  * when the file is modified. Only emits when actual changes occur.
  */
 export class ConfigWatcher extends EventEmitter {

@@ -28,14 +28,14 @@ export interface GitStatus {
   summary: string;
 }
 
-const VMUX_HOOK_SCAFFOLD_PATHS = new Set([
-  '.vmux-hooks',
-  '.vmux-hooks/',
-  '.vmux-hooks/AGENTS.md',
-  '.vmux-hooks/CLAUDE.md',
-  '.vmux-hooks/README.md',
-  '.vmux-hooks/examples',
-  '.vmux-hooks/examples/',
+const COMUX_HOOK_SCAFFOLD_PATHS = new Set([
+  '.comux-hooks',
+  '.comux-hooks/',
+  '.comux-hooks/AGENTS.md',
+  '.comux-hooks/CLAUDE.md',
+  '.comux-hooks/README.md',
+  '.comux-hooks/examples',
+  '.comux-hooks/examples/',
 ]);
 
 function parseGitStatusLine(line: string): { statusCode: string; filename: string } {
@@ -51,9 +51,9 @@ function parseGitStatusLine(line: string): { statusCode: string; filename: strin
 
 function shouldIgnoreGitStatusEntry(statusCode: string, filename: string): boolean {
   if (
-    filename === '.vmux'
-    || filename === '.vmux/'
-    || filename.startsWith('.vmux/')
+    filename === '.comux'
+    || filename === '.comux/'
+    || filename.startsWith('.comux/')
   ) {
     return true;
   }
@@ -63,8 +63,8 @@ function shouldIgnoreGitStatusEntry(statusCode: string, filename: string): boole
   }
 
   return (
-    VMUX_HOOK_SCAFFOLD_PATHS.has(filename)
-    || filename.startsWith('.vmux-hooks/examples/')
+    COMUX_HOOK_SCAFFOLD_PATHS.has(filename)
+    || filename.startsWith('.comux-hooks/examples/')
   );
 }
 
@@ -417,7 +417,7 @@ export function commitChanges(
  */
 export function stashChanges(repoPath: string): { success: boolean; error?: string } {
   try {
-    execSync('git stash push -u -m "vmux: auto-stash before merge"', {
+    execSync('git stash push -u -m "comux: auto-stash before merge"', {
       cwd: repoPath,
       stdio: 'pipe',
     });

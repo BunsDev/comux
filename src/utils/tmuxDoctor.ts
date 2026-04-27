@@ -10,24 +10,24 @@ import {
   getTmuxConfigCandidatePaths,
 } from './tmuxConfigOnboarding.js';
 import {
-  hasVmuxManagedTmuxConfigBlock,
-  writeVmuxManagedTmuxConfig,
+  hasComuxManagedTmuxConfigBlock,
+  writeComuxManagedTmuxConfig,
 } from './tmuxManagedConfig.js';
 import { buildTmuxSessionThemeOptions } from './tmuxThemeOptions.js';
 import {
   buildRemotePaneActionBindingCommandArgs,
   buildRemotePaneActionCleanupCommandArgs,
-  VMUX_CONTROL_PANE_OPTION,
-  VMUX_CONTROLLER_PID_OPTION,
+  COMUX_CONTROL_PANE_OPTION,
+  COMUX_CONTROLLER_PID_OPTION,
 } from './remotePaneActions.js';
 import {
   TMUX_PANE_TITLE_LABEL_FORMAT,
   TMUX_PANE_TITLE_PREFIX_FORMAT,
 } from './paneTitlePrefix.js';
 import {
-  syncVmuxThemeFromSettings,
+  syncComuxThemeFromSettings,
 } from '../theme/colors.js';
-import type { VmuxThemeName } from '../types.js';
+import type { ComuxThemeName } from '../types.js';
 
 export type TmuxDoctorSeverity = 'ok' | 'warning' | 'error';
 
@@ -71,14 +71,14 @@ export interface TmuxDoctorRuntime {
   env?: NodeJS.ProcessEnv;
   run?: (command: string, args: string[]) => CommandResult;
   projectRoot?: string;
-  themeName?: VmuxThemeName;
+  themeName?: ComuxThemeName;
 }
 
 interface ResolvedTmuxDoctorRuntime {
   homeDir: string;
   env: NodeJS.ProcessEnv;
   run: (command: string, args: string[]) => CommandResult;
-  themeName: VmuxThemeName;
+  themeName: ComuxThemeName;
 }
 
 export interface RunTmuxDoctorOptions {
@@ -87,11 +87,11 @@ export interface RunTmuxDoctorOptions {
 }
 
 function buildExpectedSessionOptions(
-  themeName: VmuxThemeName
+  themeName: ComuxThemeName
 ): Array<readonly [option: string, value: string]> {
   return [
     ['pane-border-status', 'top'],
-    ['pane-border-format', ` #{?@vmux_attention,#[bold]![ready] #[default],}${TMUX_PANE_TITLE_PREFIX_FORMAT}${TMUX_PANE_TITLE_LABEL_FORMAT} `],
+    ['pane-border-format', ` #{?@comux_attention,#[bold]![ready] #[default],}${TMUX_PANE_TITLE_PREFIX_FORMAT}${TMUX_PANE_TITLE_LABEL_FORMAT} `],
     ...buildTmuxSessionThemeOptions(themeName),
   ];
 }
@@ -105,8 +105,8 @@ function defaultRun(command: string, args: string[]): CommandResult {
   };
 }
 
-function resolveDoctorTheme(runtime?: TmuxDoctorRuntime): VmuxThemeName {
-  return runtime?.themeName || syncVmuxThemeFromSettings(runtime?.projectRoot || process.cwd());
+function resolveDoctorTheme(runtime?: TmuxDoctorRuntime): ComuxThemeName {
+  return runtime?.themeName || syncComuxThemeFromSettings(runtime?.projectRoot || process.cwd());
 }
 
 function getRuntime(options?: RunTmuxDoctorOptions): ResolvedTmuxDoctorRuntime {
@@ -321,7 +321,7 @@ export async function runTmuxDoctor(
   ));
 
   const configContents = await readConfigContents(runtime.homeDir);
-  const managedConfig = configContents.find((entry) => hasVmuxManagedTmuxConfigBlock(entry.content));
+  const managedConfig = configContents.find((entry) => hasComuxManagedTmuxConfigBlock(entry.content));
   const existingConfig = configContents.find((entry) => entry.content.trim().length > 0);
 
   if (managedConfig) {
@@ -330,7 +330,7 @@ export async function runTmuxDoctor(
       id: 'tmux-managed-config',
       label: 'tmux config',
       severity: 'ok',
-      message: `vmux managed config block found in ${managedConfig.path}`,
+      message: `comux managed config block found in ${managedConfig.path}`,
     });
   } else {
     checks.push({
@@ -338,13 +338,13 @@ export async function runTmuxDoctor(
       label: 'tmux config',
       severity: 'warning',
       message: existingConfig
-        ? `tmux config exists at ${existingConfig.path}, but vmux managed block is missing`
-        : 'No tmux config with a vmux managed block was found',
-      fix: 'Run vmux doctor --fix to add the vmux managed block',
+        ? `tmux config exists at ${existingConfig.path}, but comux managed block is missing`
+        : 'No tmux config with a comux managed block was found',
+      fix: 'Run comux doctor --fix to add the comux managed block',
     });
 
     if (options.fix) {
-      const writeResult = await writeVmuxManagedTmuxConfig(runtime.homeDir, 'dark');
+      const writeResult = await writeComuxManagedTmuxConfig(runtime.homeDir, 'dark');
       configPath = writeResult.configPath;
       backupPath = writeResult.backupPath;
       fixed = writeResult.changed || fixed;
@@ -352,7 +352,7 @@ export async function runTmuxDoctor(
       checks[checks.length - 1] = {
         ...checks[checks.length - 1],
         severity: 'ok',
-        message: `vmux managed config block ${writeResult.action} at ${writeResult.configPath}`,
+        message: `comux managed config block ${writeResult.action} at ${writeResult.configPath}`,
         fixed: writeResult.changed,
       };
     }
@@ -383,7 +383,7 @@ export async function runTmuxDoctor(
       'tmux mouse',
       mouse,
       'on',
-      'Run vmux doctor --fix to enable mouse mode'
+      'Run comux doctor --fix to enable mouse mode'
     ));
 
     const setClipboard = readTmuxOption(runtime, ['show-options', '-v', '-t', sessionName, 'set-clipboard']);
@@ -392,7 +392,7 @@ export async function runTmuxDoctor(
       'tmux clipboard',
       setClipboard,
       'on',
-      'Run vmux doctor --fix to enable tmux clipboard passthrough'
+      'Run comux doctor --fix to enable tmux clipboard passthrough'
     ));
 
     const allowPassthrough = readTmuxOption(runtime, ['show-options', '-v', '-t', sessionName, 'allow-passthrough']);
@@ -401,7 +401,7 @@ export async function runTmuxDoctor(
       'tmux passthrough',
       allowPassthrough,
       'all',
-      'Run vmux doctor --fix to enable tmux passthrough'
+      'Run comux doctor --fix to enable tmux passthrough'
     ));
 
     const extendedKeys = readTmuxOption(runtime, ['show-options', '-gv', 'extended-keys']);
@@ -410,7 +410,7 @@ export async function runTmuxDoctor(
       'tmux extended keys',
       extendedKeys,
       'on',
-      'Run vmux doctor --fix to enable extended keys'
+      'Run comux doctor --fix to enable extended keys'
     ));
 
     for (const [option, expected] of expectedSessionOptions) {
@@ -420,20 +420,20 @@ export async function runTmuxDoctor(
         option,
         actual,
         expected,
-        'Run vmux doctor --fix to apply vmux session styling'
+        'Run comux doctor --fix to apply comux session styling'
       ));
     }
 
-    if (sessionName.startsWith('vmux-')) {
-      const controllerPid = readTmuxOption(runtime, ['show-options', '-v', '-t', sessionName, VMUX_CONTROLLER_PID_OPTION]);
-      const controlPane = readTmuxOption(runtime, ['show-options', '-v', '-t', sessionName, VMUX_CONTROL_PANE_OPTION]);
+    if (sessionName.startsWith('comux-')) {
+      const controllerPid = readTmuxOption(runtime, ['show-options', '-v', '-t', sessionName, COMUX_CONTROLLER_PID_OPTION]);
+      const controlPane = readTmuxOption(runtime, ['show-options', '-v', '-t', sessionName, COMUX_CONTROL_PANE_OPTION]);
       checks.push({
-        id: 'vmux-session-options',
-        label: 'vmux session metadata',
+        id: 'comux-session-options',
+        label: 'comux session metadata',
         severity: controllerPid && controlPane ? 'ok' : 'warning',
         message: controllerPid && controlPane
-          ? 'vmux controller metadata is present'
-          : 'vmux controller metadata is missing; remote pane shortcuts may not work until vmux is running',
+          ? 'comux controller metadata is present'
+          : 'comux controller metadata is missing; remote pane shortcuts may not work until comux is running',
       });
     }
 
@@ -475,7 +475,7 @@ export function getTmuxDoctorExitCode(result: TmuxDoctorResult): number {
 
 export function formatTmuxDoctorText(result: TmuxDoctorResult): string {
   const lines = [
-    chalk.hex('#a78bfa').bold('vmux doctor'),
+    chalk.hex('#a78bfa').bold('comux doctor'),
     '',
     ...result.checks.map((check) => {
       const marker = check.severity === 'ok'
@@ -493,9 +493,9 @@ export function formatTmuxDoctorText(result: TmuxDoctorResult): string {
   }
 
   if (!result.healthy && result.canRun && !result.fixed) {
-    lines.push('', chalk.yellow('Run vmux doctor --fix to apply safe repairs.'));
+    lines.push('', chalk.yellow('Run comux doctor --fix to apply safe repairs.'));
   } else if (!result.healthy && result.canRun && result.fixed) {
-    lines.push('', chalk.yellow('Some warnings remain because they require vmux to be running in this session.'));
+    lines.push('', chalk.yellow('Some warnings remain because they require comux to be running in this session.'));
   }
 
   return lines.join('\n');

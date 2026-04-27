@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { VmuxPane } from '../types.js';
+import type { ComuxPane } from '../types.js';
 import { rebindPaneByTitle } from '../utils/paneRebinding.js';
 import { LogService } from '../services/LogService.js';
 import { TmuxService } from '../services/TmuxService.js';
 import { PaneLifecycleManager } from '../services/PaneLifecycleManager.js';
 import { TMUX_COMMAND_TIMEOUT } from '../constants/timing.js';
-import type { VmuxConfig } from './usePaneLoading.js';
+import type { ComuxConfig } from './usePaneLoading.js';
 import { atomicWriteJson } from '../utils/atomicWrite.js';
 import { getPaneTmuxTitle } from '../utils/paneTitle.js';
 import { StateManager } from '../shared/StateManager.js';
@@ -18,7 +18,7 @@ import { syncPaneColorThemes } from '../utils/paneColors.js';
  * This keeps rebinding stable while allowing a separate user-facing display name.
  */
 export async function enforcePaneTitles(
-  panes: VmuxPane[],
+  panes: ComuxPane[],
   allPaneIds: string[],
   controlPaneId?: string
 ): Promise<void> {
@@ -35,13 +35,13 @@ export async function enforcePaneTitles(
     // Fall back to per-pane title lookups below.
   }
 
-  // Enforce control pane title stays "vmux"
+  // Enforce control pane title stays "comux"
   if (controlPaneId) {
     try {
       const controlTitle = titleByPaneId.get(controlPaneId)
         ?? await tmuxService.getPaneTitle(controlPaneId);
-      if (controlTitle !== 'vmux') {
-        await tmuxService.setPaneTitle(controlPaneId, 'vmux');
+      if (controlTitle !== 'comux') {
+        await tmuxService.setPaneTitle(controlPaneId, 'comux');
       }
     } catch {
       // Ignore - control pane might not exist yet
@@ -82,9 +82,9 @@ export async function enforcePaneTitles(
  */
 export async function savePanesToFile(
   panesFile: string,
-  panes: VmuxPane[],
+  panes: ComuxPane[],
   withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>
-): Promise<VmuxPane[]> {
+): Promise<ComuxPane[]> {
   return withWriteLock(async () => {
     let activePanes = panes;
 
@@ -99,7 +99,7 @@ export async function savePanesToFile(
           pane.paneId &&
           pane.paneId.startsWith('%') &&
           pane.title &&
-          pane.title !== 'vmux-spacer'
+          pane.title !== 'comux-spacer'
         ) {
           titleToId.set(pane.title.trim(), pane.paneId);
         }
@@ -120,7 +120,7 @@ export async function savePanesToFile(
     }
 
     // Read existing config to preserve other fields
-    let config: VmuxConfig = { panes: [] };
+    let config: ComuxConfig = { panes: [] };
     try {
       const content = await fs.readFile(panesFile, 'utf-8');
       const parsed = JSON.parse(content);
@@ -160,15 +160,15 @@ export async function savePanesToFile(
  *
  * CRITICAL FIX: On initial load, shell panes with stale IDs are immediately removed.
  * Shell panes cannot be recreated (they have no worktreePath), so keeping them
- * with stale IDs causes vmux to hang when trying to interact with non-existent panes.
+ * with stale IDs causes comux to hang when trying to interact with non-existent panes.
  */
 export function rebindAndFilterPanes(
-  loadedPanes: VmuxPane[],
+  loadedPanes: ComuxPane[],
   titleToId: Map<string, string>,
   allPaneIds: string[],
   isInitialLoad: boolean
-): { activePanes: VmuxPane[]; shellPanesRemoved: boolean; worktreePanesToRecreate: VmuxPane[] } {
-  const worktreePanesToRecreate: VmuxPane[] = [];
+): { activePanes: ComuxPane[]; shellPanesRemoved: boolean; worktreePanesToRecreate: ComuxPane[] } {
+  const worktreePanesToRecreate: ComuxPane[] = [];
   const lifecycleManager = PaneLifecycleManager.getInstance();
 
   // LogService.getInstance().debug(
@@ -209,7 +209,7 @@ export function rebindAndFilterPanes(
 
       // CRITICAL FIX: Remove shell panes that are no longer present
       // Shell panes have no worktreePath, so they cannot be recreated.
-      // Keeping them with stale paneIds causes vmux to hang when:
+      // Keeping them with stale paneIds causes comux to hang when:
       // 1. Trying to send keys to non-existent panes
       // 2. Trying to get pane status/content
       // 3. Trying to apply layouts with stale pane IDs
@@ -261,12 +261,12 @@ export function rebindAndFilterPanes(
  */
 export async function saveUpdatedPaneConfig(
   panesFile: string,
-  activePanes: VmuxPane[],
+  activePanes: ComuxPane[],
   withWriteLock: <T>(operation: () => Promise<T>) => Promise<T>
 ): Promise<void> {
   await withWriteLock(async () => {
     // Re-read config in case it changed
-    let currentConfig: VmuxConfig = { panes: [] };
+    let currentConfig: ComuxConfig = { panes: [] };
     try {
       const content = await fs.readFile(panesFile, 'utf-8');
       const parsed = JSON.parse(content);

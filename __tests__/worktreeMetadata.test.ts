@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe('worktree metadata persistence', () => {
   it('round-trips branch and merge-target metadata for reopened worktrees', () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vmux-worktree-meta-'));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'comux-worktree-meta-'));
     tempDirs.push(tempDir);
 
     writeWorktreeMetadata(tempDir, {
@@ -33,7 +33,7 @@ describe('worktree metadata persistence', () => {
           displayName: 'Feature Parent',
           slug: 'feature-parent',
           branchName: 'feature-parent',
-          worktreePath: '/repo/.vmux/worktrees/feature-parent',
+          worktreePath: '/repo/.comux/worktrees/feature-parent',
         },
         {
           slug: 'main',
@@ -53,7 +53,7 @@ describe('worktree metadata persistence', () => {
           displayName: 'Feature Parent',
           slug: 'feature-parent',
           branchName: 'feature-parent',
-          worktreePath: '/repo/.vmux/worktrees/feature-parent',
+          worktreePath: '/repo/.comux/worktrees/feature-parent',
         },
         {
           slug: 'main',

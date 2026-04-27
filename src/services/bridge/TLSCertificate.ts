@@ -22,7 +22,7 @@ export async function loadOrCreateTLS(): Promise<TLSMaterial> {
 }
 
 async function generateAndStore(): Promise<TLSMaterial> {
-  const attrs = [{ name: "commonName", value: "vmux" }];
+  const attrs = [{ name: "commonName", value: "comux" }];
   const opts = {
     keySize: 2048,
     days: 3650,

@@ -99,7 +99,7 @@ export class AutoUpdater {
   async getCachedUpdateInfo(): Promise<UpdateInfo | null> {
     const settings = await this.loadSettings();
 
-    // Ignore stale cache after the running vmux version changes.
+    // Ignore stale cache after the running comux version changes.
     if (settings.cachedCurrentVersion !== packageJson.version) {
       return null;
     }
@@ -177,7 +177,7 @@ export class AutoUpdater {
 
   async detectInstallMethod(): Promise<{ packageManager: 'npm' | 'pnpm' | 'yarn' | null, installMethod: 'global' | 'local' | 'unknown' }> {
     try {
-      // Check if vmux is globally installed and how
+      // Check if comux is globally installed and how
       
       // Method 1: Check npm global packages
       try {
@@ -221,25 +221,25 @@ export class AutoUpdater {
         // Expected - yarn might not be available or package not globally installed
       }
 
-      // Method 4: Check where vmux is installed by looking at the executable path
+      // Method 4: Check where comux is installed by looking at the executable path
       try {
-        const vmuxPath = execSync('which vmux', {
+        const comuxPath = execSync('which comux', {
           encoding: 'utf-8',
           stdio: 'pipe'
         }).trim();
         
-        if (vmuxPath.includes('/.npm/') || vmuxPath.includes('/npm/')) {
+        if (comuxPath.includes('/.npm/') || comuxPath.includes('/npm/')) {
           return { packageManager: 'npm', installMethod: 'global' };
-        } else if (vmuxPath.includes('/.pnpm/')) {
+        } else if (comuxPath.includes('/.pnpm/')) {
           return { packageManager: 'pnpm', installMethod: 'global' };
-        } else if (vmuxPath.includes('/.yarn/')) {
+        } else if (comuxPath.includes('/.yarn/')) {
           return { packageManager: 'yarn', installMethod: 'global' };
-        } else if (vmuxPath.includes('/node_modules/.bin/')) {
+        } else if (comuxPath.includes('/node_modules/.bin/')) {
           // Local installation
           return { packageManager: null, installMethod: 'local' };
         }
       } catch {
-        // Expected - which command might not be available or vmux not in PATH
+        // Expected - which command might not be available or comux not in PATH
       }
 
       return { packageManager: null, installMethod: 'unknown' };

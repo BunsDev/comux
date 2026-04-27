@@ -1,12 +1,12 @@
 /**
- * Mock VmuxPane fixtures for testing
+ * Mock ComuxPane fixtures for testing
  */
 
-import type { VmuxPane } from '../../src/types.js';
+import type { ComuxPane } from '../../src/types.js';
 
-export function createMockPane(overrides?: Partial<VmuxPane>): VmuxPane {
+export function createMockPane(overrides?: Partial<ComuxPane>): ComuxPane {
   return {
-    id: 'vmux-1',
+    id: 'comux-1',
     slug: 'test-pane',
     prompt: 'test prompt',
     paneId: '%42',
@@ -18,7 +18,7 @@ export function createMockPane(overrides?: Partial<VmuxPane>): VmuxPane {
   };
 }
 
-export function createShellPane(overrides?: Partial<VmuxPane>): VmuxPane {
+export function createShellPane(overrides?: Partial<ComuxPane>): ComuxPane {
   return createMockPane({
     type: 'shell',
     worktreePath: undefined,
@@ -26,17 +26,17 @@ export function createShellPane(overrides?: Partial<VmuxPane>): VmuxPane {
   });
 }
 
-export function createWorktreePane(overrides?: Partial<VmuxPane>): VmuxPane {
+export function createWorktreePane(overrides?: Partial<ComuxPane>): ComuxPane {
   return createMockPane({
     type: 'worktree',
-    worktreePath: '/test/project/.vmux/worktrees/test-pane',
+    worktreePath: '/test/project/.comux/worktrees/test-pane',
     ...overrides,
   });
 }
 
-export function createMultiplePanes(count: number): VmuxPane[] {
+export function createMultiplePanes(count: number): ComuxPane[] {
   return Array.from({ length: count }, (_, i) => createMockPane({
-    id: `vmux-${i + 1}`,
+    id: `comux-${i + 1}`,
     slug: `test-pane-${i + 1}`,
     paneId: `%${40 + i}`,
   }));

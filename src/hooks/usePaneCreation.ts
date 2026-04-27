@@ -1,14 +1,14 @@
 import path from 'path';
 import * as os from 'os';
-import type { VmuxPane, MergeTargetReference } from '../types.js';
+import type { ComuxPane, MergeTargetReference } from '../types.js';
 import { createPane } from '../utils/paneCreation.js';
 import { LogService } from '../services/LogService.js';
 import { getAgentSlugSuffix, type AgentName } from '../utils/agentLaunch.js';
 import { generateSlug } from '../utils/slug.js';
 
 interface Params {
-  panes: VmuxPane[];
-  savePanes: (p: VmuxPane[]) => Promise<void>;
+  panes: ComuxPane[];
+  savePanes: (p: ComuxPane[]) => Promise<void>;
   projectName: string;
   sessionProjectRoot: string;
   panesFile: string;
@@ -19,7 +19,7 @@ interface Params {
 }
 
 interface CreateNewPaneOptions {
-  existingPanes?: VmuxPane[];
+  existingPanes?: ComuxPane[];
   slugSuffix?: string;
   slugBase?: string;
   targetProjectRoot?: string;
@@ -35,7 +35,7 @@ function getParallelPaneCreationLimit(totalAgents: number): number {
     return 1;
   }
 
-  const overrideRaw = process.env.VMUX_PANE_CREATE_CONCURRENCY;
+  const overrideRaw = process.env.COMUX_PANE_CREATE_CONCURRENCY;
   if (overrideRaw) {
     const override = Number.parseInt(overrideRaw, 10);
     if (Number.isFinite(override) && override > 0) {
@@ -69,7 +69,7 @@ export default function usePaneCreation({
   const openInEditor = async (currentPrompt: string, setPrompt: (v: string) => void) => {
     try {
       const fs = await import('fs');
-      const tmpFile = path.join(os.tmpdir(), `vmux-prompt-${Date.now()}.md`);
+      const tmpFile = path.join(os.tmpdir(), `comux-prompt-${Date.now()}.md`);
       fs.writeFileSync(tmpFile, currentPrompt || '# Enter your Claude prompt here\n\n');
       const editor = process.env.EDITOR || process.env.VISUAL || 'nano';
       process.stdout.write('\x1b[2J\x1b[H');
@@ -90,7 +90,7 @@ export default function usePaneCreation({
     prompt: string,
     agent?: AgentName,
     options: CreateNewPaneOptions = {}
-  ): Promise<VmuxPane> => {
+  ): Promise<ComuxPane> => {
     const panesForCreation = options.existingPanes ?? panes;
     const result = await createPane(
       {
@@ -121,7 +121,7 @@ export default function usePaneCreation({
     prompt: string,
     agent?: AgentName,
     options: CreateNewPaneOptions = {}
-  ): Promise<VmuxPane | null> => {
+  ): Promise<ComuxPane | null> => {
     const panesForCreation = options.existingPanes ?? panes;
 
     try {
@@ -156,7 +156,7 @@ export default function usePaneCreation({
       CreateNewPaneOptions,
       'existingPanes' | 'targetProjectRoot' | 'startPointBranch' | 'mergeTargetChain'
     > = {}
-  ): Promise<VmuxPane[]> => {
+  ): Promise<ComuxPane[]> => {
     const panesForCreation = options.existingPanes ?? panes;
     const dedupedAgents = selectedAgents.filter(
       (agent, index) => selectedAgents.indexOf(agent) === index
@@ -180,7 +180,7 @@ export default function usePaneCreation({
         setStatusMessage(`Creating ${dedupedAgents.length} pane${dedupedAgents.length === 1 ? '' : 's'}...`);
       }
 
-      const createdByIndex: Array<VmuxPane | null> = new Array(dedupedAgents.length).fill(null);
+      const createdByIndex: Array<ComuxPane | null> = new Array(dedupedAgents.length).fill(null);
 
       const firstAgent = dedupedAgents[0];
       const firstPane = await createPaneInternal(prompt, firstAgent, {
@@ -207,7 +207,7 @@ export default function usePaneCreation({
 
           try {
             const createdSoFar = createdByIndex.filter(
-              (pane): pane is VmuxPane => pane !== null
+              (pane): pane is ComuxPane => pane !== null
             );
             const pane = await createPaneInternal(prompt, selectedAgent, {
               existingPanes: [...panesForCreation, ...createdSoFar],
@@ -233,7 +233,7 @@ export default function usePaneCreation({
       await Promise.all(workers);
 
       const createdPanes = createdByIndex.filter(
-        (pane): pane is VmuxPane => pane !== null
+        (pane): pane is ComuxPane => pane !== null
       );
 
       if (createdPanes.length > 0) {

@@ -1,20 +1,20 @@
 import React, { memo } from 'react';
 import { Box, Text } from 'ink';
 import stringWidth from 'string-width';
-import type { VmuxPane, VmuxThemeName } from '../../types.js';
+import type { ComuxPane, ComuxThemeName } from '../../types.js';
 import { COLORS } from '../../theme/colors.js';
-import { getVmuxThemeAccent } from '../../theme/colors.js';
+import { getComuxThemeAccent } from '../../theme/colors.js';
 import { getAgentShortLabel } from '../../utils/agentLaunch.js';
 import { getPaneDisplayName } from '../../utils/paneTitle.js';
 import InlineNameEditor from '../ui/InlineNameEditor.js';
 import type { InlineRenameState } from '../../utils/inlineRename.js';
 
 interface PaneCardProps {
-  pane: VmuxPane;
+  pane: ComuxPane;
   isDevSource: boolean;
   selected: boolean;
   themeName?: string;
-  projectThemeName?: VmuxThemeName;
+  projectThemeName?: ComuxThemeName;
   inlineRename?: InlineRenameState | null;
 }
 
@@ -86,10 +86,10 @@ const PaneCard: React.FC<PaneCardProps> = memo(({
   const maxSlugWidth = Math.max(0, LEFT_COLUMN_WIDTH - fixedLeftWidth);
   const slugText = clipToWidth(paneName, maxSlugWidth);
   const projectSelectedColor = projectThemeName
-    ? getVmuxThemeAccent(projectThemeName)
+    ? getComuxThemeAccent(projectThemeName)
     : COLORS.selected;
   const paneSelectedColor = pane.colorTheme
-    ? getVmuxThemeAccent(pane.colorTheme)
+    ? getComuxThemeAccent(pane.colorTheme)
     : projectSelectedColor;
   const slugColor = isFileBrowserPane
     ? COLORS.accent

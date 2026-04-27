@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { VmuxPane } from '../src/types.js';
+import type { ComuxPane } from '../src/types.js';
 
 const spawnMock = vi.hoisted(() => vi.fn());
 const triggerHookMock = vi.hoisted(() => vi.fn(async () => {}));
@@ -55,7 +55,7 @@ describe('WorktreeCleanupService', () => {
   it('removes nested worktrees and deletes the pane branch from every repo in a multi-repo workspace cleanup', async () => {
     detectAllWorktreesMock.mockReturnValue([
       {
-        worktreePath: '/test/project/.vmux/worktrees/react',
+        worktreePath: '/test/project/.comux/worktrees/react',
         parentRepoPath: '/test/project',
         repoName: 'project',
         branch: 'react',
@@ -65,7 +65,7 @@ describe('WorktreeCleanupService', () => {
         depth: 0,
       },
       {
-        worktreePath: '/test/project/.vmux/worktrees/react/docs-ui',
+        worktreePath: '/test/project/.comux/worktrees/react/docs-ui',
         parentRepoPath: '/test/project/docs-ui',
         repoName: 'docs-ui',
         branch: 'react',
@@ -75,7 +75,7 @@ describe('WorktreeCleanupService', () => {
         depth: 1,
       },
       {
-        worktreePath: '/test/project/.vmux/worktrees/react/theme-schemas',
+        worktreePath: '/test/project/.comux/worktrees/react/theme-schemas',
         parentRepoPath: '/test/project/theme-schemas',
         repoName: 'theme-schemas',
         branch: 'react',
@@ -89,13 +89,13 @@ describe('WorktreeCleanupService', () => {
     const { WorktreeCleanupService } = await import('../src/services/WorktreeCleanupService.js');
     (WorktreeCleanupService as any).instance = undefined;
 
-    const pane: VmuxPane = {
-      id: 'vmux-1',
+    const pane: ComuxPane = {
+      id: 'comux-1',
       slug: 'react',
       branchName: 'react',
       prompt: '',
       paneId: '%1',
-      worktreePath: '/test/project/.vmux/worktrees/react',
+      worktreePath: '/test/project/.comux/worktrees/react',
     };
 
     const service = WorktreeCleanupService.getInstance() as any;
@@ -114,20 +114,20 @@ describe('WorktreeCleanupService', () => {
     const worktreeRemovalCalls = gitCalls.filter((call) => call.args[0] === 'worktree');
     expect(worktreeRemovalCalls).toEqual(expect.arrayContaining([
       {
-        args: ['worktree', 'remove', '/test/project/.vmux/worktrees/react/docs-ui', '--force'],
+        args: ['worktree', 'remove', '/test/project/.comux/worktrees/react/docs-ui', '--force'],
         cwd: '/test/project/docs-ui',
       },
       {
-        args: ['worktree', 'remove', '/test/project/.vmux/worktrees/react/theme-schemas', '--force'],
+        args: ['worktree', 'remove', '/test/project/.comux/worktrees/react/theme-schemas', '--force'],
         cwd: '/test/project/theme-schemas',
       },
       {
-        args: ['worktree', 'remove', '/test/project/.vmux/worktrees/react', '--force'],
+        args: ['worktree', 'remove', '/test/project/.comux/worktrees/react', '--force'],
         cwd: '/test/project',
       },
     ]));
     expect(worktreeRemovalCalls.at(-1)).toEqual({
-      args: ['worktree', 'remove', '/test/project/.vmux/worktrees/react', '--force'],
+      args: ['worktree', 'remove', '/test/project/.comux/worktrees/react', '--force'],
       cwd: '/test/project',
     });
 

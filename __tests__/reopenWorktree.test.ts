@@ -6,7 +6,7 @@ const fsMock = vi.hoisted(() => ({
 
 const tmuxServiceMock = vi.hoisted(() => ({
   getCurrentPaneIdSync: vi.fn(() => '%0'),
-  getCurrentSessionNameSync: vi.fn(() => 'vmux-test'),
+  getCurrentSessionNameSync: vi.fn(() => 'comux-test'),
   paneExists: vi.fn(async () => true),
   setSessionOptionSync: vi.fn(),
   setPaneTitle: vi.fn(async () => {}),
@@ -112,21 +112,21 @@ describe('reopenWorktree', () => {
 
     const result = await reopenWorktree({
       slug: 'reopen-me',
-      worktreePath: '/repo/.vmux/worktrees/reopen-me',
+      worktreePath: '/repo/.comux/worktrees/reopen-me',
       projectRoot: '/repo',
       existingPanes: [],
       sessionProjectRoot: '/repo',
-      sessionConfigPath: '/repo/.vmux/vmux.config.json',
+      sessionConfigPath: '/repo/.comux/comux.config.json',
     });
 
     expect(tmuxServiceMock.sendShellCommand).toHaveBeenCalledWith(
       '%1',
       expect.stringMatching(
-        /^export VMUX_PANE_ID='vmux-\d+'; export VMUX_TMUX_PANE_ID='%1'; codex --enable codex_hooks resume --last --dangerously-bypass-approvals-and-sandbox$/
+        /^export COMUX_PANE_ID='comux-\d+'; export COMUX_TMUX_PANE_ID='%1'; codex --enable codex_hooks resume --last --dangerously-bypass-approvals-and-sandbox$/
       )
     );
     expect(tmuxServiceMock.setSessionOptionSync).toHaveBeenCalledWith(
-      'vmux-test',
+      'comux-test',
       'pane-border-status',
       'top'
     );
@@ -139,11 +139,11 @@ describe('reopenWorktree', () => {
 
     await reopenWorktree({
       slug: 'reopen-me',
-      worktreePath: '/repo/.vmux/worktrees/reopen-me',
+      worktreePath: '/repo/.comux/worktrees/reopen-me',
       projectRoot: '/repo',
       existingPanes: [
         {
-          id: 'vmux-1',
+          id: 'comux-1',
           slug: 'shell-1',
           prompt: '',
           paneId: '%9',
@@ -152,7 +152,7 @@ describe('reopenWorktree', () => {
         },
       ],
       sessionProjectRoot: '/repo',
-      sessionConfigPath: '/repo/.vmux/vmux.config.json',
+      sessionConfigPath: '/repo/.comux/comux.config.json',
     });
 
     expect(destroyWelcomePaneCoordinatedMock).toHaveBeenCalledWith('/repo');
@@ -170,11 +170,11 @@ describe('reopenWorktree', () => {
 
     const result = await reopenWorktree({
       slug: 'reopen-me',
-      worktreePath: '/repo/.vmux/worktrees/reopen-me',
+      worktreePath: '/repo/.comux/worktrees/reopen-me',
       projectRoot: '/repo',
       existingPanes: [],
       sessionProjectRoot: '/repo',
-      sessionConfigPath: '/repo/.vmux/vmux.config.json',
+      sessionConfigPath: '/repo/.comux/comux.config.json',
     });
 
     expect(result.pane.projectName).toBe('Renamed Repo');

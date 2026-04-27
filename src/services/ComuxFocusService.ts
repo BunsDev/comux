@@ -16,10 +16,10 @@ import {
   buildTerminalTitleSequence,
   mapTerminalProgramToBundleId,
   parseTmuxSocketPath,
-  supportsNativeVmuxHelper,
-  type VmuxHelperFocusStateMessage,
-  type VmuxHelperNotifyMessage,
-  type VmuxHelperSubscribeMessage,
+  supportsNativeComuxHelper,
+  type ComuxHelperFocusStateMessage,
+  type ComuxHelperNotifyMessage,
+  type ComuxHelperSubscribeMessage,
 } from '../utils/focusDetection.js';
 import {
   getBundledNotificationSoundDefinitions,
@@ -34,17 +34,17 @@ const ATTENTION_FLASH_STEP_MS = 250;
 const ATTENTION_FLASH_SEQUENCE_LENGTH = 12;
 const ATTENTION_FLASH_FALLBACK_BG = 'colour237';
 
-interface VmuxFocusServiceOptions {
+interface ComuxFocusServiceOptions {
   projectName: string;
   projectRoot?: string;
 }
 
-export interface VmuxFocusChangedEvent {
+export interface ComuxFocusChangedEvent {
   fullyFocusedPaneId: string | null;
   helperFocused: boolean;
 }
 
-export interface VmuxAttentionNotificationRequest {
+export interface ComuxAttentionNotificationRequest {
   title: string;
   subtitle?: string;
   body: string;
@@ -75,27 +75,27 @@ function getHelperRuntimePaths(): {
   versionPath: string;
   socketPath: string;
 } {
-  const helperBaseDir = path.join(os.homedir(), '.vmux', 'native-helper');
-  const packagedAppPath = resolvePackagePath('native', 'macos', 'prebuilt', 'vmux-helper.app');
+  const helperBaseDir = path.join(os.homedir(), '.comux', 'native-helper');
+  const packagedAppPath = resolvePackagePath('native', 'macos', 'prebuilt', 'comux-helper.app');
   const packagedContentsPath = path.join(packagedAppPath, 'Contents');
-  const appPath = path.join(helperBaseDir, 'vmux-helper.app');
+  const appPath = path.join(helperBaseDir, 'comux-helper.app');
   const contentsPath = path.join(appPath, 'Contents');
   const resourcesPath = path.join(contentsPath, 'Resources');
   return {
-    sourcePath: resolvePackagePath('native', 'macos', 'vmux-helper.swift'),
-    infoPlistSourcePath: resolvePackagePath('native', 'macos', 'vmux-helper-Info.plist'),
-    iconSourcePath: resolvePackagePath('native', 'macos', 'vmux-helper-icon.png'),
+    sourcePath: resolvePackagePath('native', 'macos', 'comux-helper.swift'),
+    infoPlistSourcePath: resolvePackagePath('native', 'macos', 'comux-helper-Info.plist'),
+    iconSourcePath: resolvePackagePath('native', 'macos', 'comux-helper-icon.png'),
     soundSourceDir: resolvePackagePath('native', 'macos', 'sounds'),
     packagedAppPath,
-    packagedExecutablePath: path.join(packagedContentsPath, 'MacOS', 'vmux-helper'),
+    packagedExecutablePath: path.join(packagedContentsPath, 'MacOS', 'comux-helper'),
     appPath,
-    executablePath: path.join(contentsPath, 'MacOS', 'vmux-helper'),
+    executablePath: path.join(contentsPath, 'MacOS', 'comux-helper'),
     resourcesPath,
     infoPlistPath: path.join(contentsPath, 'Info.plist'),
-    bundleIconPngPath: path.join(resourcesPath, 'vmux-helper.png'),
-    bundleIconIcnsPath: path.join(resourcesPath, 'vmux-helper.icns'),
+    bundleIconPngPath: path.join(resourcesPath, 'comux-helper.png'),
+    bundleIconIcnsPath: path.join(resourcesPath, 'comux-helper.icns'),
     versionPath: path.join(helperBaseDir, 'version.txt'),
-    socketPath: path.join(helperBaseDir, 'run', 'vmux-helper.sock'),
+    socketPath: path.join(helperBaseDir, 'run', 'comux-helper.sock'),
   };
 }
 
@@ -111,13 +111,13 @@ interface HelperBundleSnapshot {
 
 const HELPER_BUNDLE_BUILD_VERSION = '1';
 const LSREGISTER_PATH = '/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister';
-const LEGACY_NOTIFIER_BASE_DIR = path.join(os.homedir(), '.vmux', 'macos-notifier');
-const LEGACY_NOTIFIER_APP_PATH = path.join(LEGACY_NOTIFIER_BASE_DIR, 'vmux-notifier.app');
+const LEGACY_NOTIFIER_BASE_DIR = path.join(os.homedir(), '.comux', 'macos-notifier');
+const LEGACY_NOTIFIER_APP_PATH = path.join(LEGACY_NOTIFIER_BASE_DIR, 'comux-notifier.app');
 
 export function supportsRuntimeHelperSourceBuild(
   packageRoot: string = resolvePackagePath(),
 ): boolean {
-  return existsSync(path.join(packageRoot, 'src', 'services', 'VmuxFocusService.ts'));
+  return existsSync(path.join(packageRoot, 'src', 'services', 'ComuxFocusService.ts'));
 }
 
 function readTmuxGlobalEnvironment(name: string): string | undefined {
@@ -232,7 +232,7 @@ function helperBundleNeedsSync(
 }
 
 async function removeLegacyMacosNotifierArtifacts(): Promise<void> {
-  if (!supportsNativeVmuxHelper() || !existsSync(LEGACY_NOTIFIER_BASE_DIR)) {
+  if (!supportsNativeComuxHelper() || !existsSync(LEGACY_NOTIFIER_BASE_DIR)) {
     return;
   }
 
@@ -310,8 +310,8 @@ function runBuildTool(executable: string, args: string[]): { ok: boolean; output
 }
 
 async function buildHelperBundleIcon(iconSourcePath: string, iconIcnsPath: string): Promise<void> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-helper-icon-'));
-  const iconsetDir = path.join(tempDir, 'vmux-helper.iconset');
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-helper-icon-'));
+  const iconsetDir = path.join(tempDir, 'comux-helper.iconset');
 
   try {
     await fs.mkdir(iconsetDir, { recursive: true });
@@ -452,13 +452,13 @@ async function ensureHelperBundle(
   await fs.mkdir(helperBaseDir, { recursive: true });
 
   const tempRoot = await fs.mkdtemp(path.join(helperBaseDir, 'build-'));
-  const tempAppPath = path.join(tempRoot, 'vmux-helper.app');
+  const tempAppPath = path.join(tempRoot, 'comux-helper.app');
   const tempContentsPath = path.join(tempAppPath, 'Contents');
   const tempResourcesPath = path.join(tempContentsPath, 'Resources');
-  const tempExecutablePath = path.join(tempContentsPath, 'MacOS', 'vmux-helper');
+  const tempExecutablePath = path.join(tempContentsPath, 'MacOS', 'comux-helper');
   const tempInfoPlistPath = path.join(tempContentsPath, 'Info.plist');
-  const tempBundleIconPngPath = path.join(tempResourcesPath, 'vmux-helper.png');
-  const tempBundleIconIcnsPath = path.join(tempResourcesPath, 'vmux-helper.icns');
+  const tempBundleIconPngPath = path.join(tempResourcesPath, 'comux-helper.png');
+  const tempBundleIconIcnsPath = path.join(tempResourcesPath, 'comux-helper.icns');
 
   try {
     await fs.mkdir(path.dirname(tempExecutablePath), { recursive: true });
@@ -624,7 +624,7 @@ async function ensureHelperRunning(
   const binaryStatus = await ensureHelperBundle(helperPaths);
 
   if (!binaryStatus.ready) {
-    logger.warn('vmux helper app bundle is unavailable on this system', 'focus-helper');
+    logger.warn('comux helper app bundle is unavailable on this system', 'focus-helper');
     return null;
   }
 
@@ -636,7 +636,7 @@ async function ensureHelperRunning(
   if (alreadyRunning && binaryStatus.rebuilt) {
     const stopped = await stopRunningHelper(socketPath);
     if (!stopped) {
-      logger.warn('Failed to restart vmux helper after rebuilding it', 'focus-helper');
+      logger.warn('Failed to restart comux helper after rebuilding it', 'focus-helper');
       return socketPath;
     }
   }
@@ -650,23 +650,23 @@ async function ensureHelperRunning(
 
   const started = await waitForHelperSocket(socketPath, HELPER_SOCKET_WAIT_TIMEOUT_MS);
   if (!started) {
-    logger.warn('Timed out waiting for vmux helper to start', 'focus-helper');
+    logger.warn('Timed out waiting for comux helper to start', 'focus-helper');
     return null;
   }
 
   return socketPath;
 }
 
-export class VmuxFocusService extends EventEmitter {
+export class ComuxFocusService extends EventEmitter {
   private readonly logger = LogService.getInstance();
   private readonly tmuxService = TmuxService.getInstance();
   private readonly instanceId = randomUUID();
   private readonly token = buildFocusToken(this.instanceId);
-  private readonly terminalProgram = supportsNativeVmuxHelper()
+  private readonly terminalProgram = supportsNativeComuxHelper()
     ? resolveTerminalProgram()
     : undefined;
   private readonly bundleId = mapTerminalProgramToBundleId(this.terminalProgram);
-  private readonly tmuxSocketPath = supportsNativeVmuxHelper()
+  private readonly tmuxSocketPath = supportsNativeComuxHelper()
     ? resolveTmuxSocketPath()
     : undefined;
   private readonly terminalTitle: string;
@@ -682,9 +682,9 @@ export class VmuxFocusService extends EventEmitter {
   private fullyFocusedPaneId: string | null = null; // tmux pane id
   private readonly flashingTmuxPaneIds = new Set<string>();
 
-  constructor(private readonly options: VmuxFocusServiceOptions) {
+  constructor(private readonly options: ComuxFocusServiceOptions) {
     super();
-    this.baseTitle = `vmux ${options.projectName}`;
+    this.baseTitle = `comux ${options.projectName}`;
     this.terminalTitle = buildFocusWindowTitle(options.projectName, this.token);
   }
 
@@ -697,7 +697,7 @@ export class VmuxFocusService extends EventEmitter {
   }
 
   async start(): Promise<void> {
-    if (!supportsNativeVmuxHelper() || !process.env.TMUX || isTestEnvironment()) {
+    if (!supportsNativeComuxHelper() || !process.env.TMUX || isTestEnvironment()) {
       return;
     }
 
@@ -755,7 +755,7 @@ export class VmuxFocusService extends EventEmitter {
     this.helperSocket = socket;
 
     socket.on('connect', () => {
-      const subscribeMessage: VmuxHelperSubscribeMessage = {
+      const subscribeMessage: ComuxHelperSubscribeMessage = {
         type: 'subscribe',
         instanceId: this.instanceId,
         titleToken: this.token,
@@ -790,7 +790,7 @@ export class VmuxFocusService extends EventEmitter {
 
   private handleHelperMessage(line: string): void {
     try {
-      const message = JSON.parse(line) as VmuxHelperFocusStateMessage;
+      const message = JSON.parse(line) as ComuxHelperFocusStateMessage;
       if (message.type !== 'focus-state' || message.instanceId !== this.instanceId) {
         return;
       }
@@ -831,11 +831,11 @@ export class VmuxFocusService extends EventEmitter {
 
   setPaneAttentionIndicator(tmuxPaneId: string, enabled: boolean): void {
     if (enabled) {
-      this.tmuxService.setPaneOptionSync(tmuxPaneId, '@vmux_attention', '1');
+      this.tmuxService.setPaneOptionSync(tmuxPaneId, '@comux_attention', '1');
       return;
     }
 
-    this.tmuxService.unsetPaneOptionSync(tmuxPaneId, '@vmux_attention');
+    this.tmuxService.unsetPaneOptionSync(tmuxPaneId, '@comux_attention');
   }
 
   async getPaneAttentionSurface(tmuxPaneId: string): Promise<PaneAttentionSurface> {
@@ -906,9 +906,9 @@ export class VmuxFocusService extends EventEmitter {
   }
 
   async sendAttentionNotification(
-    request: VmuxAttentionNotificationRequest
+    request: ComuxAttentionNotificationRequest
   ): Promise<boolean> {
-    if (!supportsNativeVmuxHelper() || isTestEnvironment()) {
+    if (!supportsNativeComuxHelper() || isTestEnvironment()) {
       return false;
     }
 
@@ -917,7 +917,7 @@ export class VmuxFocusService extends EventEmitter {
       return false;
     }
 
-    const payload: VmuxHelperNotifyMessage = {
+    const payload: ComuxHelperNotifyMessage = {
       type: 'notify',
       title: request.title,
       subtitle: request.subtitle,
@@ -999,7 +999,7 @@ export class VmuxFocusService extends EventEmitter {
     this.emit('focus-changed', {
       fullyFocusedPaneId: paneId,
       helperFocused: this.helperFocused,
-    } satisfies VmuxFocusChangedEvent);
+    } satisfies ComuxFocusChangedEvent);
   }
 
   private writeTerminalTitle(title: string): void {

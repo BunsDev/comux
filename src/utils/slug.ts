@@ -19,7 +19,7 @@ export const callClaudeCode = async (prompt: string): Promise<string | null> => 
 };
 
 export const generateSlug = async (prompt: string): Promise<string> => {
-  if (!prompt) return `vmux-${Date.now()}`;
+  if (!prompt) return `comux-${Date.now()}`;
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey) {
@@ -67,5 +67,5 @@ export const generateSlug = async (prompt: string): Promise<string> => {
     if (slug) return slug;
   }
 
-  return `vmux-${Date.now()}`;
+  return `comux-${Date.now()}`;
 };

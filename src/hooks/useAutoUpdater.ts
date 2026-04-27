@@ -104,12 +104,12 @@ export default function useAutoUpdater(autoUpdater: any | undefined, setStatusMe
 
     try {
       setIsUpdating(true);
-      setStatusMessage('Updating vmux...');
+      setStatusMessage('Updating comux...');
 
       const success = await autoUpdater.performUpdate(updateInfo);
 
       if (success) {
-        setStatusMessage('Update completed successfully! Please restart vmux.');
+        setStatusMessage('Update completed successfully! Please restart comux.');
         setTimeout(() => {
           process.exit(0);
         }, 3000);

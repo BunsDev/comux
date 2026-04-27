@@ -5,7 +5,7 @@ import {
   buildTerminalTitleSequence,
   mapTerminalProgramToBundleId,
   parseTmuxSocketPath,
-  supportsNativeVmuxHelper,
+  supportsNativeComuxHelper,
 } from '../src/utils/focusDetection.js';
 
 describe('focusDetection utils', () => {
@@ -14,12 +14,12 @@ describe('focusDetection utils', () => {
   });
 
   it('builds a focus window title including the token', () => {
-    expect(buildFocusWindowTitle('vmux', 'dmx-abc123')).toBe('vmux vmux [dmx-abc123]');
+    expect(buildFocusWindowTitle('comux', 'dmx-abc123')).toBe('comux comux [dmx-abc123]');
   });
 
   it('wraps terminal titles for tmux passthrough when needed', () => {
-    expect(buildTerminalTitleSequence('vmux demo', false)).toBe('\u001b]2;vmux demo\u0007');
-    expect(buildTerminalTitleSequence('vmux demo', true)).toContain('\u001bPtmux;');
+    expect(buildTerminalTitleSequence('comux demo', false)).toBe('\u001b]2;comux demo\u0007');
+    expect(buildTerminalTitleSequence('comux demo', true)).toContain('\u001bPtmux;');
   });
 
   it('maps known terminal programs to bundle ids', () => {
@@ -36,9 +36,9 @@ describe('focusDetection utils', () => {
     expect(parseTmuxSocketPath(undefined)).toBeUndefined();
   });
 
-  it('only enables the native vmux helper on macOS', () => {
-    expect(supportsNativeVmuxHelper('darwin')).toBe(true);
-    expect(supportsNativeVmuxHelper('linux')).toBe(false);
-    expect(supportsNativeVmuxHelper('win32')).toBe(false);
+  it('only enables the native comux helper on macOS', () => {
+    expect(supportsNativeComuxHelper('darwin')).toBe(true);
+    expect(supportsNativeComuxHelper('linux')).toBe(false);
+    expect(supportsNativeComuxHelper('win32')).toBe(false);
   });
 });

@@ -4,7 +4,7 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import { resolveDistPath } from "./runtimePaths.js"
-import { getActiveVmuxTheme } from "../theme/colors.js"
+import { getActiveComuxTheme } from "../theme/colors.js"
 
 export interface RenderAsciiArtOptions {
   paneId: string
@@ -70,7 +70,7 @@ export async function renderAsciiArt(
     : path.resolve(scriptPath)
   await tmuxService.sendKeys(
     paneId,
-    `'VMUX_THEME=${getActiveVmuxTheme()} node "${absolutePath}"' Enter`
+    `'COMUX_THEME=${getActiveComuxTheme()} node "${absolutePath}"' Enter`
   )
   await new Promise((resolve) => setTimeout(resolve, 150))
 }
@@ -79,7 +79,7 @@ export async function renderAsciiArt(
  * Predefined ASCII art designs
  */
 export const ASCII_ART = {
-  vmuxWelcome: `
+  comuxWelcome: `
 ╭─────────────────────────────────────────────────────────╮
 │                                                         │
 │                                                         │

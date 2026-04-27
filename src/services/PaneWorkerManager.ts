@@ -1,6 +1,6 @@
 import { Worker } from 'worker_threads';
 import { randomUUID } from 'crypto';
-import type { VmuxPane } from '../types.js';
+import type { ComuxPane } from '../types.js';
 import type { WorkerMessageBus } from './WorkerMessageBus.js';
 import type {
   InboundMessage,
@@ -15,14 +15,14 @@ interface WorkerInfo {
   worker: Worker;
   paneId: string;
   tmuxPaneId: string;
-  paneType?: VmuxPane['type'];
-  agent?: VmuxPane['agent'];
+  paneType?: ComuxPane['type'];
+  agent?: ComuxPane['agent'];
   startTime: number;
   restartCount: number;
 }
 
 export function shouldMonitorPaneForStatusTracking(
-  pane: Pick<VmuxPane, 'type' | 'agent'>
+  pane: Pick<ComuxPane, 'type' | 'agent'>
 ): boolean {
   return pane.type !== 'shell' && Boolean(pane.agent);
 }
@@ -44,7 +44,7 @@ export class PaneWorkerManager {
   /**
    * Create a new worker for a pane
    */
-  createWorker(pane: VmuxPane): void {
+  createWorker(pane: ComuxPane): void {
     // Don't create if already exists or shutting down
     if (this.workers.has(pane.id) || this.isShuttingDown || !shouldMonitorPaneForStatusTracking(pane)) {
       return;
@@ -213,7 +213,7 @@ export class PaneWorkerManager {
   /**
    * Update workers based on current panes
    */
-  async updateWorkers(panes: VmuxPane[]): Promise<void> {
+  async updateWorkers(panes: ComuxPane[]): Promise<void> {
     const monitoredPanes = panes.filter(shouldMonitorPaneForStatusTracking);
     const currentPaneIds = new Set(monitoredPanes.map(p => p.id));
 
@@ -313,7 +313,7 @@ export class PaneWorkerManager {
         prompt: '',
         type: workerInfo.paneType,
         agent: workerInfo.agent,
-      } as VmuxPane);
+      } as ComuxPane);
 
       const newWorkerInfo = this.workers.get(paneId);
       if (newWorkerInfo) {

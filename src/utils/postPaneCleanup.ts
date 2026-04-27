@@ -5,7 +5,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import type { VmuxConfig } from '../types.js';
+import type { ComuxConfig } from '../types.js';
 import { LogService } from '../services/LogService.js';
 import { TmuxService } from '../services/TmuxService.js';
 

@@ -8,7 +8,7 @@ import {
   splitPane,
 } from './tmux.js';
 import { SIDEBAR_WIDTH, recalculateAndApplyLayout } from './layoutManager.js';
-import type { VmuxPane, VmuxConfig } from '../types.js';
+import type { ComuxPane, ComuxConfig } from '../types.js';
 import { atomicWriteJsonSync } from './atomicWrite.js';
 import { buildWorktreePaneTitle } from './paneTitle.js';
 import {
@@ -34,13 +34,13 @@ export interface ReopenWorktreeOptions {
   slug: string;
   worktreePath: string;
   projectRoot: string; // Target repo root for the reopened pane
-  sessionConfigPath?: string; // Shared vmux config path for this session
+  sessionConfigPath?: string; // Shared comux config path for this session
   sessionProjectRoot?: string; // Session root for welcome pane/layout state
-  existingPanes: VmuxPane[];
+  existingPanes: ComuxPane[];
 }
 
 export interface ReopenWorktreeResult {
-  pane: VmuxPane;
+  pane: ComuxPane;
 }
 
 /**
@@ -70,13 +70,13 @@ export async function reopenWorktree(
 
   // Load config to get control pane info
   const configPath = optionsSessionConfigPath
-    || path.join(sessionProjectRoot, '.vmux', 'vmux.config.json');
+    || path.join(sessionProjectRoot, '.comux', 'comux.config.json');
   let controlPaneId: string | undefined;
   let configSidebarProjects: SidebarProject[] = [];
 
   try {
     const configContent = fs.readFileSync(configPath, 'utf-8');
-    const config: VmuxConfig = JSON.parse(configContent);
+    const config: ComuxConfig = JSON.parse(configContent);
     controlPaneId = config.controlPaneId;
     configSidebarProjects = Array.isArray(config.sidebarProjects) ? config.sidebarProjects : [];
     paneProjectName = getSidebarProjectDisplayName(
@@ -124,8 +124,8 @@ export async function reopenWorktree(
     await new Promise((resolve) => setTimeout(resolve, 300));
   } else {
     // Subsequent panes - always split horizontally
-    const vmuxPaneIds = existingPanes.map(p => p.paneId);
-    const targetPane = vmuxPaneIds[vmuxPaneIds.length - 1];
+    const comuxPaneIds = existingPanes.map(p => p.paneId);
+    const targetPane = comuxPaneIds[comuxPaneIds.length - 1];
     paneInfo = splitPane({ targetPane });
   }
 
@@ -181,7 +181,7 @@ export async function reopenWorktree(
       ? configuredAgent
       : preferredOrder.find((candidate) => candidateAgents.includes(candidate)));
   const permissionMode = metadata?.permissionMode ?? settings.permissionMode;
-  const vmuxPaneId = `vmux-${Date.now()}`;
+  const comuxPaneId = `comux-${Date.now()}`;
 
   // Resume the agent session (or start interactive mode when no resume command is available).
   if (agent) {
@@ -195,7 +195,7 @@ export async function reopenWorktree(
       try {
         codexHookEventFile = installCodexPaneHooks({
           worktreePath,
-          vmuxPaneId,
+          comuxPaneId,
           tmuxPaneId: paneInfo,
         }).eventFile;
       } catch {
@@ -203,7 +203,7 @@ export async function reopenWorktree(
       }
 
       resumeCommand = buildCodexHookedCommand(resumeCommand, {
-        vmuxPaneId,
+        comuxPaneId,
         tmuxPaneId: paneInfo,
         eventFile: codexHookEventFile,
       });
@@ -219,8 +219,8 @@ export async function reopenWorktree(
   // Create the pane object
   const currentBranch = getCurrentBranch(worktreePath);
 
-  const newPane: VmuxPane = {
-    id: vmuxPaneId,
+  const newPane: ComuxPane = {
+    id: comuxPaneId,
     slug,
     displayName: metadata?.displayName,
     branchName: (metadata?.branchName || currentBranch) !== slug
@@ -243,7 +243,7 @@ export async function reopenWorktree(
   if (isFirstContentPane) {
     try {
       const configContent = fs.readFileSync(configPath, 'utf-8');
-      const config: VmuxConfig = JSON.parse(configContent);
+      const config: ComuxConfig = JSON.parse(configContent);
 
       config.panes = [...existingPanes, newPane];
       config.lastUpdated = new Date().toISOString();

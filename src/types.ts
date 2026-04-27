@@ -1,7 +1,7 @@
 import type { AgentName, PermissionMode } from './utils/agentLaunch.js';
 import type { NotificationSoundId } from './utils/notificationSounds.js';
 
-export type VmuxThemeName =
+export type ComuxThemeName =
   | 'red'
   | 'blue'
   | 'yellow'
@@ -35,25 +35,25 @@ export interface MergeTargetReference {
 export interface SidebarProject {
   projectRoot: string;
   projectName: string;
-  colorTheme?: VmuxThemeName;
+  colorTheme?: ComuxThemeName;
   colorThemeSource?: 'auto' | 'manual';
 }
 
-export interface VmuxPane {
+export interface ComuxPane {
   id: string;
   slug: string;
   displayName?: string; // User-facing pane name (independent from worktree slug/branch)
   branchName?: string; // Git branch name (may differ from slug when branchPrefix is set)
   prompt: string;
   paneId: string;
-  hidden?: boolean; // Pane is detached from the active vmux window but still running
+  hidden?: boolean; // Pane is detached from the active comux window but still running
   projectRoot?: string; // Main repository root this pane belongs to
   projectName?: string; // Display name for pane's project
-  colorTheme?: VmuxThemeName; // Cached effective project accent for fast focus/theme switches
+  colorTheme?: ComuxThemeName; // Cached effective project accent for fast focus/theme switches
   type?: 'worktree' | 'shell';  // Type of pane (defaults to 'worktree' for backward compat)
   shellType?: string;  // Shell type for shell panes (bash, zsh, fish, fb, etc)
   worktreePath?: string;
-  browserPath?: string; // Root path when a shell pane is a vmux file browser
+  browserPath?: string; // Root path when a shell pane is a comux file browser
   testWindowId?: string;  // Background window for tests
   testStatus?: 'running' | 'passed' | 'failed';
   testOutput?: string;
@@ -101,7 +101,7 @@ export interface ProjectSettings {
   firstDevRun?: boolean;   // Track if dev has been run before
 }
 
-export interface VmuxSettings {
+export interface ComuxSettings {
   // Agent permission mode
   // '' = agent default behavior (usually prompts for permissions)
   // plan = Claude plan mode only (read/plan focused)
@@ -116,10 +116,10 @@ export interface VmuxSettings {
   enabledAgents?: AgentName[];
   // Which macOS helper notification sounds are eligible for random selection
   enabledNotificationSounds?: NotificationSoundId[];
-  // Rotate short vmux tips in the footer
+  // Rotate short comux tips in the footer
   showFooterTips?: boolean;
   // Accent color theme used across the TUI and welcome pane
-  colorTheme?: VmuxThemeName;
+  colorTheme?: ComuxThemeName;
   // Tmux hooks for event-driven updates (low CPU)
   // true = use hooks, false = use polling, undefined = not yet asked
   useTmuxHooks?: boolean;
@@ -138,7 +138,7 @@ export type SettingsScope = 'global' | 'project';
 export type EffectiveSettingsScope = SettingsScope | 'team';
 
 export interface SettingDefinition {
-  key: keyof VmuxSettings | string;
+  key: keyof ComuxSettings | string;
   label: string;
   description: string;
   type: 'boolean' | 'select' | 'text' | 'number' | 'action';
@@ -150,25 +150,25 @@ export interface SettingDefinition {
   shiftStep?: number;
 }
 
-export interface VmuxAppProps {
+export interface ComuxAppProps {
   panesFile: string;
   projectName: string;
   sessionName: string;
   projectRoot?: string;
   settingsFile: string;
   autoUpdater?: any; // AutoUpdater instance
-  controlPaneId?: string; // Pane ID running vmux TUI (left sidebar)
+  controlPaneId?: string; // Pane ID running comux TUI (left sidebar)
   bridgeDaemon?: any; // BridgeDaemon instance (optional, macOS-only progressive enhancement)
 }
 
-export interface VmuxConfig {
+export interface ComuxConfig {
   projectName: string;
   projectRoot: string;
-  panes: VmuxPane[];
+  panes: ComuxPane[];
   sidebarProjects?: SidebarProject[];
-  settings: VmuxSettings;
+  settings: ComuxSettings;
   lastUpdated: string;
-  controlPaneId?: string; // Pane ID running vmux TUI (left sidebar)
+  controlPaneId?: string; // Pane ID running comux TUI (left sidebar)
   controlPaneSize?: number; // Fixed sidebar width (40 chars)
   welcomePaneId?: string; // Pane ID for the welcome/placeholder pane
 }

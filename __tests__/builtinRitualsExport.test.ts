@@ -10,9 +10,9 @@ const exportedPath = path.join(
   projectRoot,
   'native',
   'macos',
-  'vmux-app',
+  'comux-app',
   'Sources',
-  'VmuxApp',
+  'ComuxApp',
   'Resources',
   'builtin-rituals.json',
 );

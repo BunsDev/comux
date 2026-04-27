@@ -20,7 +20,7 @@ describe('copyPathAction', () => {
 
   it('should copy worktree path to clipboard successfully', async () => {
     const mockPane = createMockPane({
-      worktreePath: '/test/project/.vmux/worktrees/my-feature',
+      worktreePath: '/test/project/.comux/worktrees/my-feature',
     });
     const mockContext = createMockContext([mockPane]);
 
@@ -30,12 +30,12 @@ describe('copyPathAction', () => {
 
     // Verify clipboard copy command
     expect(execSync).toHaveBeenCalledWith(
-      'echo "/test/project/.vmux/worktrees/my-feature" | pbcopy',
+      'echo "/test/project/.comux/worktrees/my-feature" | pbcopy',
       { stdio: 'pipe' }
     );
 
     // Verify success result with path in message
-    expectSuccess(result, '/test/project/.vmux/worktrees/my-feature');
+    expectSuccess(result, '/test/project/.comux/worktrees/my-feature');
   });
 
   it('should return error for shell pane without worktree', async () => {
@@ -75,7 +75,7 @@ describe('copyPathAction', () => {
 
   it('should handle paths with special characters', async () => {
     const mockPane = createMockPane({
-      worktreePath: '/test/project name with spaces/.vmux/worktrees/my-feature',
+      worktreePath: '/test/project name with spaces/.comux/worktrees/my-feature',
     });
     const mockContext = createMockContext([mockPane]);
 

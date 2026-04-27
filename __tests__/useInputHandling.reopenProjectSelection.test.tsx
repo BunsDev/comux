@@ -118,7 +118,7 @@ function Harness({
     loadPanes: vi.fn(),
     cleanExit: vi.fn(),
     getAvailableAgentsForProject: vi.fn(() => []),
-    panesFile: '/tmp/vmux.config.json',
+    panesFile: '/tmp/comux.config.json',
     projectRoot: '/repo-root',
     projectActionItems,
     completeStartupPrimer,
@@ -126,7 +126,7 @@ function Harness({
     findCardInDirection: vi.fn(() => null),
   });
 
-  return <Text>vmux</Text>;
+  return <Text>comux</Text>;
 }
 
 describe('useInputHandling reopen project selection', () => {
@@ -209,7 +209,7 @@ describe('useInputHandling reopen project selection', () => {
       {
         branchName: 'feature-a',
         slug: 'feature-a',
-        path: '/repo-selected/.vmux/worktrees/feature-a',
+        path: '/repo-selected/.comux/worktrees/feature-a',
         lastModified: new Date('2026-03-12T12:00:00.000Z'),
         hasUncommittedChanges: false,
         hasWorktree: true,
@@ -276,7 +276,7 @@ describe('useInputHandling reopen project selection', () => {
       {
         branchName: 'feature-a',
         slug: 'feature-a',
-        path: '/repo-selected/.vmux/worktrees/feature-a',
+        path: '/repo-selected/.comux/worktrees/feature-a',
         lastModified: new Date('2026-03-12T12:00:00.000Z'),
         hasUncommittedChanges: false,
         hasWorktree: true,

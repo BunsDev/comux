@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { VmuxPane } from '../src/types.js';
+import type { ComuxPane } from '../src/types.js';
 import {
   captureRitualFromSession,
   getBuiltInRituals,
@@ -18,7 +18,7 @@ import {
 let tempDir: string;
 
 beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vmux-rituals-'));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'comux-rituals-'));
 });
 
 afterEach(() => {
@@ -79,19 +79,19 @@ describe('rituals', () => {
   });
 
   it('captures current session intent without tmux pane IDs', () => {
-    const panes: VmuxPane[] = [
+    const panes: ComuxPane[] = [
       {
-        id: 'vmux-1',
+        id: 'comux-1',
         paneId: '%1',
         slug: 'feature-a',
         prompt: 'Implement feature A',
         agent: 'codex',
         projectRoot: tempDir,
         projectName: 'project',
-        worktreePath: path.join(tempDir, '.vmux/worktrees/feature-a'),
+        worktreePath: path.join(tempDir, '.comux/worktrees/feature-a'),
       },
       {
-        id: 'vmux-2',
+        id: 'comux-2',
         paneId: '%2',
         slug: 'shell-2',
         prompt: '',
@@ -123,6 +123,6 @@ describe('rituals', () => {
       },
     ]);
     expect(JSON.stringify(ritual)).not.toContain('%1');
-    expect(JSON.stringify(ritual)).not.toContain('.vmux/worktrees');
+    expect(JSON.stringify(ritual)).not.toContain('.comux/worktrees');
   });
 });

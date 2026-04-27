@@ -1,6 +1,6 @@
-import type { VmuxThemeName } from '../types.js';
+import type { ComuxThemeName } from '../types.js';
 import {
-  getVmuxThemePalette,
+  getComuxThemePalette,
   TMUX_COLORS,
 } from '../theme/colors.js';
 
@@ -10,9 +10,9 @@ export type TmuxSessionThemeOption = readonly [
 ];
 
 export function buildTmuxSessionThemeOptions(
-  themeName: VmuxThemeName
+  themeName: ComuxThemeName
 ): TmuxSessionThemeOption[] {
-  const activeBorder = getVmuxThemePalette(themeName).activeBorder;
+  const activeBorder = getComuxThemePalette(themeName).activeBorder;
 
   return [
     ['window-style', 'fg=default,bg=default'],

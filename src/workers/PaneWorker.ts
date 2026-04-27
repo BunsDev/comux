@@ -280,7 +280,7 @@ class PaneWorker {
       return undefined;
     }
 
-    return path.join(this.worktreePath, '.codex', 'vmux', `${this.paneId}.json`);
+    return path.join(this.worktreePath, '.codex', 'comux', `${this.paneId}.json`);
   }
 
   private maybeHandleCodexTurnStopped(output: string, fingerprint: string): boolean {
@@ -312,7 +312,7 @@ class PaneWorker {
       return false;
     }
 
-    if (event.vmuxPaneId !== this.paneId) {
+    if (event.comuxPaneId !== this.paneId) {
       return false;
     }
 

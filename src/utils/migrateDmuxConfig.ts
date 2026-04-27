@@ -4,26 +4,26 @@ import os from 'os';
 import { createInterface } from 'node:readline/promises';
 
 /**
- * Migrates legacy dmux configuration to vmux on first run.
+ * Migrates legacy dmux configuration to comux on first run.
  * Detects .dmux/ project config and ~/.dmux/ global state,
- * and offers to copy them to .vmux/ and ~/.vmux/ respectively.
+ * and offers to copy them to .comux/ and ~/.comux/ respectively.
  */
 export async function migrateDmuxConfigIfNeeded(projectRoot: string): Promise<void> {
   const projectDmuxDir = path.join(projectRoot, '.dmux');
-  const projectVmuxDir = path.join(projectRoot, '.vmux');
+  const projectComuxDir = path.join(projectRoot, '.comux');
   const globalDmuxDir = path.join(os.homedir(), '.dmux');
-  const globalVmuxDir = path.join(os.homedir(), '.vmux');
+  const globalComuxDir = path.join(os.homedir(), '.comux');
 
-  const [projectDmuxExists, projectVmuxExists, globalDmuxExists, globalVmuxExists] =
+  const [projectDmuxExists, projectComuxExists, globalDmuxExists, globalComuxExists] =
     await Promise.all([
       dirExists(projectDmuxDir),
-      dirExists(projectVmuxDir),
+      dirExists(projectComuxDir),
       dirExists(globalDmuxDir),
-      dirExists(globalVmuxDir),
+      dirExists(globalComuxDir),
     ]);
 
-  const needsProjectMigration = projectDmuxExists && !projectVmuxExists;
-  const needsGlobalMigration = globalDmuxExists && !globalVmuxExists;
+  const needsProjectMigration = projectDmuxExists && !projectComuxExists;
+  const needsGlobalMigration = globalDmuxExists && !globalComuxExists;
 
   if (!needsProjectMigration && !needsGlobalMigration) {
     return;
@@ -34,23 +34,23 @@ export async function migrateDmuxConfigIfNeeded(projectRoot: string): Promise<vo
   try {
     if (needsProjectMigration) {
       const answer = await rl.question(
-        `vmux detected a legacy .dmux/ directory in this project.\n` +
-        `Migrate config to .vmux/? (y/N): `
+        `comux detected a legacy .dmux/ directory in this project.\n` +
+        `Migrate config to .comux/? (y/N): `
       );
       if (answer.trim().toLowerCase() === 'y') {
-        await copyDir(projectDmuxDir, projectVmuxDir);
-        console.log(`Migrated .dmux/ → .vmux/`);
+        await copyDir(projectDmuxDir, projectComuxDir);
+        console.log(`Migrated .dmux/ → .comux/`);
       }
     }
 
     if (needsGlobalMigration) {
       const answer = await rl.question(
-        `vmux detected a legacy ~/.dmux/ directory.\n` +
-        `Migrate global state to ~/.vmux/? (y/N): `
+        `comux detected a legacy ~/.dmux/ directory.\n` +
+        `Migrate global state to ~/.comux/? (y/N): `
       );
       if (answer.trim().toLowerCase() === 'y') {
-        await copyDir(globalDmuxDir, globalVmuxDir);
-        console.log(`Migrated ~/.dmux/ → ~/.vmux/`);
+        await copyDir(globalDmuxDir, globalComuxDir);
+        console.log(`Migrated ~/.dmux/ → ~/.comux/`);
       }
     }
   } finally {

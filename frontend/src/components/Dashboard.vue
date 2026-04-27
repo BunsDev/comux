@@ -11,7 +11,7 @@ const timeSinceUpdate = ref('Never');
 const promptInputs = ref<Record<string, string>>({});
 const sendingPrompts = ref(new Set<string>());
 const queuedMessages = ref<Record<string, string>>({});
-const theme = ref(localStorage.getItem('vmux-theme') || 'dark');
+const theme = ref(localStorage.getItem('comux-theme') || 'dark');
 const expandedPrompts = ref(new Set<string>());
 const loadingOptions = ref(new Set<string>());
 const showCreateDialog = ref(false);
@@ -68,7 +68,7 @@ const stopPolling = () => {
 
 const toggleTheme = () => {
   theme.value = theme.value === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('vmux-theme', theme.value);
+  localStorage.setItem('comux-theme', theme.value);
   document.documentElement.setAttribute('data-theme', theme.value);
 };
 
@@ -161,7 +161,7 @@ const selectAgent = (agent: string) => {
 };
 
 const updatePanesFromData = (data: any) => {
-  projectName.value = data.projectName || 'vmux';
+  projectName.value = data.projectName || 'comux';
   sessionName.value = data.sessionName || '';
   connected.value = true;
   panes.value = data.panes || [];
@@ -621,7 +621,7 @@ const closeHooksSection = () => {
 };
 
 const editHooksWithAgent = async () => {
-  const prompt = "I would like to edit my vmux hooks in .vmux-hooks, please read the instructions in there and ask me what I want to edit";
+  const prompt = "I would like to edit my comux hooks in .comux-hooks, please read the instructions in there and ask me what I want to edit";
 
   // Close dialogs
   closeHooksSection();
@@ -670,7 +670,7 @@ onBeforeUnmount(() => {
 
 <template>
   <header>
-    <a href="/" class="logo-wordmark" aria-label="vmux dashboard">vmux</a>
+    <a href="/" class="logo-wordmark" aria-label="comux dashboard">comux</a>
     <h1>{{ projectName }}</h1>
     <div class="session-info">
       <button @click="toggleTheme" class="theme-toggle" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
@@ -704,8 +704,8 @@ onBeforeUnmount(() => {
       </div>
 
       <div v-if="panes.length === 0" class="no-panes">
-        <p>No vmux panes active</p>
-        <p class="hint">Click "Create New Pane" above or press 'n' in vmux</p>
+        <p>No comux panes active</p>
+        <p class="hint">Click "Create New Pane" above or press 'n' in comux</p>
       </div>
 
       <div v-else class="panes-grid">

@@ -1,12 +1,12 @@
 import { spawn } from 'child_process';
-import type { VmuxPane } from '../types.js';
+import type { ComuxPane } from '../types.js';
 import { triggerHook } from '../utils/hooks.js';
 import { getPaneBranchName } from '../utils/git.js';
 import { detectAllWorktrees } from '../utils/worktreeDiscovery.js';
 import { LogService } from './LogService.js';
 
 interface WorktreeCleanupJob {
-  pane: VmuxPane;
+  pane: ComuxPane;
   paneProjectRoot: string;
   mainRepoPath: string;
   deleteBranch: boolean;
@@ -30,7 +30,7 @@ interface WorktreeRemovalTarget {
 
 /**
  * Queues worktree deletions in the background so large filesystem cleanup
- * never blocks the main vmux event loop.
+ * never blocks the main comux event loop.
  */
 export class WorktreeCleanupService {
   private static instance: WorktreeCleanupService;
@@ -130,7 +130,7 @@ export class WorktreeCleanupService {
   }
 
   private getBranchDeletionTargets(
-    pane: VmuxPane,
+    pane: ComuxPane,
     mainRepoPath: string
   ): BranchDeletionTarget[] {
     const branchName = getPaneBranchName(pane);
@@ -158,7 +158,7 @@ export class WorktreeCleanupService {
   }
 
   private getWorktreeRemovalTargets(
-    pane: VmuxPane,
+    pane: ComuxPane,
     mainRepoPath: string
   ): WorktreeRemovalTarget[] {
     if (!pane.worktreePath) {

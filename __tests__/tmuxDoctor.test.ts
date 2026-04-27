@@ -9,7 +9,7 @@ import {
   runTmuxDoctor,
   type TmuxDoctorRuntime,
 } from '../src/utils/tmuxDoctor.js';
-import { buildVmuxManagedTmuxConfigBlock } from '../src/utils/tmuxManagedConfig.js';
+import { buildComuxManagedTmuxConfigBlock } from '../src/utils/tmuxManagedConfig.js';
 
 function createRuntime(overrides: Partial<TmuxDoctorRuntime> = {}): TmuxDoctorRuntime {
   return {
@@ -29,12 +29,12 @@ function createRuntime(overrides: Partial<TmuxDoctorRuntime> = {}): TmuxDoctorRu
 
 describe('tmux doctor', () => {
   it('reports healthy when dependencies and managed config are present', async () => {
-    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-doctor-'));
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
 
     try {
       await fs.writeFile(
         path.join(homeDir, '.tmux.conf'),
-        buildVmuxManagedTmuxConfigBlock('dark'),
+        buildComuxManagedTmuxConfigBlock('dark'),
         'utf-8'
       );
 
@@ -52,7 +52,7 @@ describe('tmux doctor', () => {
   });
 
   it('returns a blocking error when tmux is missing', async () => {
-    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-doctor-'));
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
 
     try {
       const result = await runTmuxDoctor({
@@ -79,7 +79,7 @@ describe('tmux doctor', () => {
   });
 
   it('fixes missing managed config and live session options', async () => {
-    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-doctor-'));
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
     const commands: string[] = [];
 
     try {
@@ -97,7 +97,7 @@ describe('tmux doctor', () => {
               return { status: 0, stdout: 'git version 2.45.0\n', stderr: '' };
             }
             if (command === 'tmux' && args.join(' ') === 'display-message -p #S') {
-              return { status: 0, stdout: 'vmux-test\n', stderr: '' };
+              return { status: 0, stdout: 'comux-test\n', stderr: '' };
             }
             return { status: 1, stdout: '', stderr: '' };
           },
@@ -106,27 +106,27 @@ describe('tmux doctor', () => {
 
       expect(result.fixed).toBe(true);
       expect(result.canRun).toBe(true);
-      expect(await fs.readFile(path.join(homeDir, '.tmux.conf'), 'utf-8')).toContain('# >>> vmux');
-      expect(commands.some((command) => command.includes('set-option -q -t vmux-test status-style'))).toBe(true);
+      expect(await fs.readFile(path.join(homeDir, '.tmux.conf'), 'utf-8')).toContain('# >>> comux');
+      expect(commands.some((command) => command.includes('set-option -q -t comux-test status-style'))).toBe(true);
       expect(commands.some((command) => command.includes('set-option -g mouse on'))).toBe(true);
       expect(commands.some((command) => command.includes('set-option -gq extended-keys on'))).toBe(true);
       expect(commands.some((command) => command.includes('source-file'))).toBe(true);
       expect(commands.some((command) => command.includes('terminal-overrides ,xterm-256color'))).toBe(true);
       expect(commands.some((command) => command.includes('bind-key -n M-M'))).toBe(true);
       expect(formatTmuxDoctorText(result)).toContain('Some warnings remain');
-      expect(formatTmuxDoctorText(result)).not.toContain('Run vmux doctor --fix to apply safe repairs.');
+      expect(formatTmuxDoctorText(result)).not.toContain('Run comux doctor --fix to apply safe repairs.');
     } finally {
       await fs.rm(homeDir, { recursive: true, force: true });
     }
   });
 
   it('does not mark all tmux checks fixed when only binding repair succeeds', async () => {
-    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-doctor-'));
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
 
     try {
       await fs.writeFile(
         path.join(homeDir, '.tmux.conf'),
-        buildVmuxManagedTmuxConfigBlock('dark'),
+        buildComuxManagedTmuxConfigBlock('dark'),
         'utf-8'
       );
 
@@ -144,7 +144,7 @@ describe('tmux doctor', () => {
               return { status: 0, stdout: 'git version 2.45.0\n', stderr: '' };
             }
             if (command === 'tmux' && joinedArgs === 'display-message -p #S') {
-              return { status: 0, stdout: 'vmux-test\n', stderr: '' };
+              return { status: 0, stdout: 'comux-test\n', stderr: '' };
             }
             if (command === 'tmux' && joinedArgs.includes('bind-key -n M-M')) {
               return { status: 0, stdout: '', stderr: '' };
@@ -163,14 +163,14 @@ describe('tmux doctor', () => {
     }
   });
 
-  it('uses the configured vmux theme for live session style fixes', async () => {
-    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-doctor-'));
+  it('uses the configured comux theme for live session style fixes', async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
     const commands: string[] = [];
 
     try {
       await fs.writeFile(
         path.join(homeDir, '.tmux.conf'),
-        buildVmuxManagedTmuxConfigBlock('dark'),
+        buildComuxManagedTmuxConfigBlock('dark'),
         'utf-8'
       );
 
@@ -189,7 +189,7 @@ describe('tmux doctor', () => {
               return { status: 0, stdout: 'git version 2.45.0\n', stderr: '' };
             }
             if (command === 'tmux' && args.join(' ') === 'display-message -p #S') {
-              return { status: 0, stdout: 'vmux-test\n', stderr: '' };
+              return { status: 0, stdout: 'comux-test\n', stderr: '' };
             }
             return { status: 1, stdout: '', stderr: '' };
           },

@@ -2,14 +2,14 @@
  * Hooks System
  *
  * Executes user-defined scripts at key lifecycle events.
- * Hook scripts are stored in .vmux/hooks/ and receive context via environment variables.
+ * Hook scripts are stored in .comux/hooks/ and receive context via environment variables.
  */
 
 import { execSync, spawn } from 'child_process';
 import { existsSync, accessSync, constants, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import os from 'os';
-import type { VmuxPane } from '../types.js';
+import type { ComuxPane } from '../types.js';
 import { HOOKS_DOCUMENTATION, HOOKS_README, EXAMPLE_HOOKS } from './hooksDocs.js';
 import { LogService } from '../services/LogService.js';
 
@@ -34,22 +34,22 @@ export type HookType =
  */
 export interface HookEnvironment {
   // Always present
-  VMUX_ROOT: string;
-  VMUX_SERVER_PORT?: string;
+  COMUX_ROOT: string;
+  COMUX_SERVER_PORT?: string;
 
   // Pane-specific (present for most hooks)
-  VMUX_PANE_ID?: string;
-  VMUX_SLUG?: string;
-  VMUX_PROMPT?: string;
-  VMUX_AGENT?: string;
-  VMUX_TMUX_PANE_ID?: string;
+  COMUX_PANE_ID?: string;
+  COMUX_SLUG?: string;
+  COMUX_PROMPT?: string;
+  COMUX_AGENT?: string;
+  COMUX_TMUX_PANE_ID?: string;
 
   // Worktree-specific
-  VMUX_WORKTREE_PATH?: string;
-  VMUX_BRANCH?: string;
+  COMUX_WORKTREE_PATH?: string;
+  COMUX_BRANCH?: string;
 
   // Merge-specific
-  VMUX_TARGET_BRANCH?: string;
+  COMUX_TARGET_BRANCH?: string;
 
   // Additional custom data
   [key: string]: string | undefined;
@@ -57,15 +57,15 @@ export interface HookEnvironment {
 
 /**
  * Find a hook script with priority resolution:
- * 1. .vmux-hooks/ (version controlled, team hooks)
- * 2. .vmux/hooks/ (gitignored, local overrides)
- * 3. ~/.vmux/hooks/ (global user hooks)
+ * 1. .comux-hooks/ (version controlled, team hooks)
+ * 2. .comux/hooks/ (gitignored, local overrides)
+ * 3. ~/.comux/hooks/ (global user hooks)
  */
 export function findHook(projectRoot: string, hookName: HookType): string | null {
   const searchPaths = [
-    path.join(projectRoot, '.vmux-hooks', hookName),        // Team hooks (VC)
-    path.join(projectRoot, '.vmux', 'hooks', hookName),     // Local override
-    path.join(os.homedir(), '.vmux', 'hooks', hookName),    // Global hooks
+    path.join(projectRoot, '.comux-hooks', hookName),        // Team hooks (VC)
+    path.join(projectRoot, '.comux', 'hooks', hookName),     // Local override
+    path.join(os.homedir(), '.comux', 'hooks', hookName),    // Global hooks
   ];
 
   for (const hookPath of searchPaths) {
@@ -91,11 +91,11 @@ export function findHook(projectRoot: string, hookName: HookType): string | null
  */
 export async function buildHookEnvironment(
   projectRoot: string,
-  pane?: VmuxPane,
+  pane?: ComuxPane,
   extraData?: Record<string, string>
 ): Promise<HookEnvironment> {
   const env: HookEnvironment = {
-    VMUX_ROOT: projectRoot,
+    COMUX_ROOT: projectRoot,
     ...process.env, // Inherit parent environment
   };
 
@@ -103,20 +103,20 @@ export async function buildHookEnvironment(
   const { StateManager } = await import('../shared/StateManager.js');
   const state = StateManager.getInstance().getState();
   if (state.serverPort) {
-    env.VMUX_SERVER_PORT = String(state.serverPort);
+    env.COMUX_SERVER_PORT = String(state.serverPort);
   }
 
   // Add pane-specific data
   if (pane) {
-    env.VMUX_PANE_ID = pane.id;
-    env.VMUX_SLUG = pane.slug;
-    env.VMUX_PROMPT = pane.prompt;
-    env.VMUX_AGENT = pane.agent || 'unknown';
-    env.VMUX_TMUX_PANE_ID = pane.paneId;
+    env.COMUX_PANE_ID = pane.id;
+    env.COMUX_SLUG = pane.slug;
+    env.COMUX_PROMPT = pane.prompt;
+    env.COMUX_AGENT = pane.agent || 'unknown';
+    env.COMUX_TMUX_PANE_ID = pane.paneId;
 
     if (pane.worktreePath) {
-      env.VMUX_WORKTREE_PATH = pane.worktreePath;
-      env.VMUX_BRANCH = pane.branchName || pane.slug; // Branch name (may differ from slug with prefix)
+      env.COMUX_WORKTREE_PATH = pane.worktreePath;
+      env.COMUX_BRANCH = pane.branchName || pane.slug; // Branch name (may differ from slug with prefix)
     }
   }
 
@@ -131,13 +131,13 @@ export async function buildHookEnvironment(
 /**
  * Execute a hook script asynchronously
  *
- * Hooks run in the background and don't block vmux operations.
+ * Hooks run in the background and don't block comux operations.
  * Errors are logged but don't crash the application.
  */
 export async function triggerHook(
   hookName: HookType,
   projectRoot: string,
-  pane?: VmuxPane,
+  pane?: ComuxPane,
   extraData?: Record<string, string>
 ): Promise<void> {
   // Initialize hooks directory on first use (lazy init)
@@ -204,7 +204,7 @@ export async function triggerHook(
 export async function triggerHookSync(
   hookName: HookType,
   projectRoot: string,
-  pane?: VmuxPane,
+  pane?: ComuxPane,
   extraData?: Record<string, string>,
   timeoutMs: number = 30000
 ): Promise<{ success: boolean; output?: string; error?: string }> {
@@ -275,11 +275,11 @@ export function listAvailableHooks(projectRoot: string): HookType[] {
 }
 
 /**
- * Initialize .vmux-hooks/ directory with documentation and examples
+ * Initialize .comux-hooks/ directory with documentation and examples
  * This gets called the first time hooks are accessed or when user explicitly initializes
  */
 export function initializeHooksDirectory(projectRoot: string): void {
-  const hooksDir = path.join(projectRoot, '.vmux-hooks');
+  const hooksDir = path.join(projectRoot, '.comux-hooks');
   const agentsPath = path.join(hooksDir, 'AGENTS.md');
   const claudePath = path.join(hooksDir, 'CLAUDE.md');
   const readmePath = path.join(hooksDir, 'README.md');
@@ -299,7 +299,7 @@ export function initializeHooksDirectory(projectRoot: string): void {
     return;
   }
 
-  const initMsg = 'Initializing .vmux-hooks/ directory (or repairing missing docs)...';
+  const initMsg = 'Initializing .comux-hooks/ directory (or repairing missing docs)...';
   LogService.getInstance().debug(initMsg, 'hooks');
 
   try {
@@ -371,13 +371,13 @@ export function initializeHooksDirectory(projectRoot: string): void {
     }
 
     if (madeChanges) {
-      const completeMsg = '✅ Initialized .vmux-hooks/ with documentation and examples';
+      const completeMsg = '✅ Initialized .comux-hooks/ with documentation and examples';
       const readmeMsg = '📝 Read AGENTS.md or CLAUDE.md to get started';
       LogService.getInstance().debug(completeMsg, 'hooks');
       LogService.getInstance().debug(readmeMsg, 'hooks');
     }
   } catch (error) {
-    const errMsg = `Failed to initialize .vmux-hooks/ directory: ${error instanceof Error ? error.message : String(error)}`;
+    const errMsg = `Failed to initialize .comux-hooks/ directory: ${error instanceof Error ? error.message : String(error)}`;
     LogService.getInstance().warn(errMsg, 'hooks');
     // Don't throw - hooks initialization is not critical
   }

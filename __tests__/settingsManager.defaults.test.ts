@@ -325,12 +325,12 @@ describe('SettingsManager defaults', () => {
       return {
         ...actual,
         existsSync: vi.fn((path: string) => (
-          path.endsWith('.vmux.defaults.json')
-          || path.endsWith('.vmux.global.json')
-          || path.endsWith('/.vmux/settings.json')
+          path.endsWith('.comux.defaults.json')
+          || path.endsWith('.comux.global.json')
+          || path.endsWith('/.comux/settings.json')
         )),
         readFileSync: vi.fn((path: string) => {
-          if (path.endsWith('.vmux.defaults.json')) {
+          if (path.endsWith('.comux.defaults.json')) {
             return JSON.stringify({
               defaultAgent: 'codex',
               branchPrefix: 'feat/',
@@ -338,13 +338,13 @@ describe('SettingsManager defaults', () => {
             });
           }
 
-          if (path.endsWith('.vmux.global.json')) {
+          if (path.endsWith('.comux.global.json')) {
             return JSON.stringify({
               colorTheme: 'red',
             });
           }
 
-          if (path.endsWith('/.vmux/settings.json')) {
+          if (path.endsWith('/.comux/settings.json')) {
             return JSON.stringify({
               branchPrefix: 'fix/',
             });
@@ -380,7 +380,7 @@ describe('SettingsManager defaults', () => {
       const actual = await importOriginal<typeof import('fs')>();
       return {
         ...actual,
-        existsSync: vi.fn((path: string) => path.endsWith('.vmux.defaults.json')),
+        existsSync: vi.fn((path: string) => path.endsWith('.comux.defaults.json')),
         readFileSync: vi.fn(() => JSON.stringify({
           permissionMode: 'fullAuto',
           enableAutopilotByDefault: true,
@@ -427,7 +427,7 @@ describe('SettingsManager defaults', () => {
       const actual = await importOriginal<typeof import('fs')>();
       return {
         ...actual,
-        existsSync: vi.fn((path: string) => path.endsWith('.vmux.defaults.json')),
+        existsSync: vi.fn((path: string) => path.endsWith('.comux.defaults.json')),
         readFileSync: vi.fn(() => '{ invalid json'),
         writeFileSync: vi.fn(),
         mkdirSync: vi.fn(),

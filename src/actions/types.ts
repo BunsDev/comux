@@ -1,12 +1,12 @@
 /**
- * Standardized Action System for vmux
+ * Standardized Action System for comux
  *
  * This module defines the core action types and response structures used across
- * all vmux interfaces (TUI, Web UI, Native Apps, etc.). By standardizing action
+ * all comux interfaces (TUI, Web UI, Native Apps, etc.). By standardizing action
  * responses, we ensure consistent behavior and UI patterns across all interfaces.
  */
 
-import type { VmuxPane } from '../types.js';
+import type { ComuxPane } from '../types.js';
 import {
   getBulkVisibilityAction,
   getProjectVisibilityAction,
@@ -88,14 +88,14 @@ export interface ActionResult {
  * Context provided to action functions
  */
 export interface ActionContext {
-  panes: VmuxPane[];
+  panes: ComuxPane[];
   currentPaneId?: string;
   sessionName: string;
   projectName: string;
-  savePanes: (panes: VmuxPane[]) => Promise<void>;
+  savePanes: (panes: ComuxPane[]) => Promise<void>;
 
   // Optional callbacks for specific actions
-  onPaneUpdate?: (pane: VmuxPane) => void;
+  onPaneUpdate?: (pane: ComuxPane) => void;
   onPaneRemove?: (paneId: string) => void | Promise<void>;
   onActionResult?: (result: ActionResult) => Promise<void>;
 }
@@ -104,7 +104,7 @@ export interface ActionContext {
  * Standard action function signature
  */
 export type ActionFunction = (
-  pane: VmuxPane,
+  pane: ComuxPane,
   context: ActionContext,
   params?: any
 ) => Promise<ActionResult>;
@@ -310,7 +310,7 @@ const HIDDEN_MENU_ACTIONS = new Set<PaneAction>([
  * Get available actions for a pane based on its state
  */
 export function getAvailableActions(
-  pane: VmuxPane,
+  pane: ComuxPane,
   projectSettings?: any,
   isDevMode: boolean = false
 ): ActionMetadata[] {
@@ -367,8 +367,8 @@ function getProjectVisibilityMenuAction(
 }
 
 export function getPaneMenuActions(
-  pane: VmuxPane,
-  panes: VmuxPane[],
+  pane: ComuxPane,
+  panes: ComuxPane[],
   projectSettings?: any,
   isDevMode: boolean = false,
   projectRoot: string = pane.projectRoot || ''

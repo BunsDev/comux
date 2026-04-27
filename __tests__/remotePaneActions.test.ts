@@ -23,7 +23,7 @@ afterEach(async () => {
 });
 
 async function createTempHomeDir(): Promise<string> {
-  tempHomeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-remote-pane-actions-'));
+  tempHomeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-remote-pane-actions-'));
   return tempHomeDir;
 }
 
@@ -31,10 +31,10 @@ describe('remotePaneActions', () => {
   it('round-trips queued pane action requests without losing order', async () => {
     const homeDir = await createTempHomeDir();
 
-    await enqueueRemotePaneAction('vmux-test', '%10', 'x', homeDir);
-    await enqueueRemotePaneAction('vmux-test', '%11', 'm', homeDir);
+    await enqueueRemotePaneAction('comux-test', '%10', 'x', homeDir);
+    await enqueueRemotePaneAction('comux-test', '%11', 'm', homeDir);
 
-    const drained = await drainRemotePaneActions('vmux-test', homeDir);
+    const drained = await drainRemotePaneActions('comux-test', homeDir);
 
     expect(drained).toHaveLength(2);
     expect(drained[0]).toMatchObject({
@@ -48,12 +48,12 @@ describe('remotePaneActions', () => {
       shortcut: 'm',
     });
 
-    expect(await drainRemotePaneActions('vmux-test', homeDir)).toEqual([]);
+    expect(await drainRemotePaneActions('comux-test', homeDir)).toEqual([]);
   });
 
   it('ignores malformed queue entries while keeping valid actions', async () => {
     const homeDir = await createTempHomeDir();
-    const queuePath = getRemotePaneActionQueuePath('vmux-test', homeDir);
+    const queuePath = getRemotePaneActionQueuePath('comux-test', homeDir);
 
     await fs.mkdir(path.dirname(queuePath), { recursive: true });
     await fs.writeFile(
@@ -66,7 +66,7 @@ describe('remotePaneActions', () => {
       'utf-8'
     );
 
-    const drained = await drainRemotePaneActions('vmux-test', homeDir);
+    const drained = await drainRemotePaneActions('comux-test', homeDir);
 
     expect(drained).toHaveLength(1);
     expect(drained[0]).toMatchObject({
@@ -78,10 +78,10 @@ describe('remotePaneActions', () => {
   it('clears the queue file explicitly', async () => {
     const homeDir = await createTempHomeDir();
 
-    await enqueueRemotePaneAction('vmux-test', '%42', 'P', homeDir);
-    await clearRemotePaneActions('vmux-test', homeDir);
+    await enqueueRemotePaneAction('comux-test', '%42', 'P', homeDir);
+    await clearRemotePaneActions('comux-test', homeDir);
 
-    expect(await drainRemotePaneActions('vmux-test', homeDir)).toEqual([]);
+    expect(await drainRemotePaneActions('comux-test', homeDir)).toEqual([]);
   });
 
   it('builds trigger and cleanup commands for focused-pane mouse shortcuts', () => {
@@ -104,11 +104,11 @@ describe('remotePaneActions', () => {
     expect(cleanupCommands.some((command) => command.includes('unbind-key -n M-M'))).toBe(true);
     expect(cleanupCommands.some((command) => command.includes('unbind-key -n DoubleClick1Pane'))).toBe(true);
     expect(cleanupCommands.some((command) => command.includes('unbind-key -n M-D'))).toBe(true);
-    expect(cleanupCommands.some((command) => command.includes('unbind-key -T vmux-pane-action e'))).toBe(true);
-    expect(cleanupCommands.some((command) => command.includes('unbind-key -T vmux-pane-action x'))).toBe(true);
+    expect(cleanupCommands.some((command) => command.includes('unbind-key -T comux-pane-action e'))).toBe(true);
+    expect(cleanupCommands.some((command) => command.includes('unbind-key -T comux-pane-action x'))).toBe(true);
     expect(cleanupCommandArgs.some((command) => command.join(' ').includes('unbind-key -n M-M'))).toBe(true);
     expect(cleanupCommandArgs.some((command) => command.join(' ').includes('unbind-key -n DoubleClick1Pane'))).toBe(true);
-    expect(cleanupCommandArgs.some((command) => command.join(' ').includes('unbind-key -T vmux-pane-action e'))).toBe(true);
-    expect(cleanupCommandArgs.some((command) => command.join(' ').includes('unbind-key -T vmux-pane-action x'))).toBe(true);
+    expect(cleanupCommandArgs.some((command) => command.join(' ').includes('unbind-key -T comux-pane-action e'))).toBe(true);
+    expect(cleanupCommandArgs.some((command) => command.join(' ').includes('unbind-key -T comux-pane-action x'))).toBe(true);
   });
 });

@@ -13,7 +13,7 @@ function escapeForSingleQuotedJs(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
-function mergeVmuxStopHook(hooksPath: string, hookCommand: string): void {
+function mergeComuxStopHook(hooksPath: string, hookCommand: string): void {
   let hooksConfig: any = {};
   if (fs.existsSync(hooksPath)) {
     try {
@@ -36,7 +36,7 @@ function mergeVmuxStopHook(hooksPath: string, hookCommand: string): void {
     const handlers = Array.isArray(group?.hooks) ? group.hooks : [];
     return !handlers.some((handler: any) => (
       typeof handler?.command === 'string'
-      && handler.command.includes('vmux-stop-hook.cjs')
+      && handler.command.includes('comux-stop-hook.cjs')
     ));
   });
   nextStopHooks.push({
@@ -45,7 +45,7 @@ function mergeVmuxStopHook(hooksPath: string, hookCommand: string): void {
         type: 'command',
         command: hookCommand,
         timeout: 5,
-        statusMessage: 'Notifying vmux',
+        statusMessage: 'Notifying comux',
       },
     ],
   });
@@ -56,17 +56,17 @@ function mergeVmuxStopHook(hooksPath: string, hookCommand: string): void {
 
 export function installCodexPaneHooks(opts: {
   worktreePath: string;
-  vmuxPaneId: string;
+  comuxPaneId: string;
   tmuxPaneId: string;
 }): CodexHookInstallResult {
   const codexDir = path.join(opts.worktreePath, '.codex');
   const hookDir = path.join(codexDir, 'hooks');
-  const stateDir = path.join(codexDir, 'vmux');
+  const stateDir = path.join(codexDir, 'comux');
   fs.mkdirSync(hookDir, { recursive: true });
   fs.mkdirSync(stateDir, { recursive: true });
 
-  const eventFile = path.join(stateDir, `${opts.vmuxPaneId}.json`);
-  const hookScriptPath = path.join(hookDir, 'vmux-stop-hook.cjs');
+  const eventFile = path.join(stateDir, `${opts.comuxPaneId}.json`);
+  const hookScriptPath = path.join(hookDir, 'comux-stop-hook.cjs');
   const hookScript = `#!/usr/bin/env node
 const fs = require('fs');
 
@@ -85,9 +85,9 @@ process.stdin.on('end', () => {
 
   const event = {
     source: 'codex-stop-hook',
-    vmuxPaneId: process.env.VMUX_PANE_ID || '',
-    tmuxPaneId: process.env.VMUX_TMUX_PANE_ID || '',
-    expectedVmuxPaneId: '${escapeForSingleQuotedJs(opts.vmuxPaneId)}',
+    comuxPaneId: process.env.COMUX_PANE_ID || '',
+    tmuxPaneId: process.env.COMUX_TMUX_PANE_ID || '',
+    expectedComuxPaneId: '${escapeForSingleQuotedJs(opts.comuxPaneId)}',
     expectedTmuxPaneId: '${escapeForSingleQuotedJs(opts.tmuxPaneId)}',
     hookEventName: payload.hook_event_name || payload.hookEventName || '',
     turnId: payload.turn_id || payload.turnId || '',
@@ -101,7 +101,7 @@ process.stdin.on('end', () => {
     process.exit(0);
   }
 
-  if (event.vmuxPaneId !== event.expectedVmuxPaneId) {
+  if (event.comuxPaneId !== event.expectedComuxPaneId) {
     process.exit(0);
   }
 
@@ -118,30 +118,30 @@ process.stdin.on('end', () => {
   fs.chmodSync(hookScriptPath, 0o755);
 
   const hooksPath = path.join(codexDir, 'hooks.json');
-  mergeVmuxStopHook(hooksPath, `node ${shellQuote(hookScriptPath)}`);
+  mergeComuxStopHook(hooksPath, `node ${shellQuote(hookScriptPath)}`);
 
   return { eventFile };
 }
 
 function buildCodexPaneAssignments(opts: {
-  vmuxPaneId: string;
+  comuxPaneId: string;
   tmuxPaneId: string;
   eventFile?: string;
 }): ShellAssignment[] {
   const assignments: ShellAssignment[] = [
-    ['VMUX_PANE_ID', opts.vmuxPaneId],
-    ['VMUX_TMUX_PANE_ID', opts.tmuxPaneId],
+    ['COMUX_PANE_ID', opts.comuxPaneId],
+    ['COMUX_TMUX_PANE_ID', opts.tmuxPaneId],
   ];
 
   if (opts.eventFile) {
-    assignments.push(['VMUX_CODEX_HOOK_EVENT_FILE', opts.eventFile]);
+    assignments.push(['COMUX_CODEX_HOOK_EVENT_FILE', opts.eventFile]);
   }
 
   return assignments;
 }
 
 export function buildCodexPaneEnvironmentPrefix(opts: {
-  vmuxPaneId: string;
+  comuxPaneId: string;
   tmuxPaneId: string;
   eventFile?: string;
 }): string {
@@ -151,7 +151,7 @@ export function buildCodexPaneEnvironmentPrefix(opts: {
 }
 
 export function buildCodexPaneExportSnippet(opts: {
-  vmuxPaneId: string;
+  comuxPaneId: string;
   tmuxPaneId: string;
   eventFile?: string;
 }): string {
@@ -168,7 +168,7 @@ export function enableCodexHooksFlag(command: string): string {
 export function buildCodexHookedCommand(
   command: string,
   opts: {
-    vmuxPaneId: string;
+    comuxPaneId: string;
     tmuxPaneId: string;
     eventFile?: string;
   }

@@ -1,4 +1,4 @@
-export interface VmuxHelperSubscribeMessage {
+export interface ComuxHelperSubscribeMessage {
   type: 'subscribe';
   instanceId: string;
   titleToken: string;
@@ -6,7 +6,7 @@ export interface VmuxHelperSubscribeMessage {
   terminalProgram?: string;
 }
 
-export interface VmuxHelperNotifyMessage {
+export interface ComuxHelperNotifyMessage {
   type: 'notify';
   title: string;
   subtitle?: string;
@@ -18,12 +18,12 @@ export interface VmuxHelperNotifyMessage {
   tmuxSocketPath?: string;
 }
 
-export interface VmuxHelperPreviewSoundMessage {
+export interface ComuxHelperPreviewSoundMessage {
   type: 'preview-sound';
   soundName?: string;
 }
 
-export interface VmuxHelperFocusStateMessage {
+export interface ComuxHelperFocusStateMessage {
   type: 'focus-state';
   instanceId: string;
   fullyFocused: boolean;
@@ -39,8 +39,8 @@ export function buildFocusToken(instanceId: string): string {
 }
 
 export function buildFocusWindowTitle(projectName: string, token: string): string {
-  const cleanProjectName = projectName.trim() || 'vmux';
-  return `vmux ${cleanProjectName} [${token}]`;
+  const cleanProjectName = projectName.trim() || 'comux';
+  return `comux ${cleanProjectName} [${token}]`;
 }
 
 export function buildTerminalTitleSequence(title: string, insideTmux: boolean): string {
@@ -94,6 +94,6 @@ export function parseTmuxSocketPath(tmuxEnv?: string): string | undefined {
   return socketPath || undefined;
 }
 
-export function supportsNativeVmuxHelper(platform: NodeJS.Platform = process.platform): boolean {
+export function supportsNativeComuxHelper(platform: NodeJS.Platform = process.platform): boolean {
   return platform === 'darwin';
 }

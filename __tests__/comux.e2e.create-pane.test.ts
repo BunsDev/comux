@@ -43,8 +43,8 @@ function computePanesFilePath(homeDir: string): string {
   const projectName = path.basename(gitRoot);
   const projectHash = createHash('md5').update(gitRoot).digest('hex').substring(0, 8);
   const projectIdentifier = `${projectName}-${projectHash}`;
-  const vmuxDir = path.join(homeDir, '.vmux');
-  return path.join(vmuxDir, `${projectIdentifier}-panes.json`);
+  const comuxDir = path.join(homeDir, '.comux');
+  return path.join(comuxDir, `${projectIdentifier}-panes.json`);
 }
 
 async function poll<T>(fn: () => T | Promise<T>, predicate: (v: T) => boolean, timeoutMs = 15000, intervalMs = 200): Promise<T> {
@@ -59,17 +59,17 @@ async function poll<T>(fn: () => T | Promise<T>, predicate: (v: T) => boolean, t
 
 // Only run if tmux and a runner are available
 const runner = detectRunner();
-const runE2E = process.env.VMUX_E2E === '1';
+const runE2E = process.env.COMUX_E2E === '1';
 const canRun = runE2E && hasTmux() && !!runner;
 
-describe.sequential('vmux e2e: create pane', () => {
-  it.runIf(canRun)('starts vmux in tmux and initializes panes file', async () => {
+describe.sequential('comux e2e: create pane', () => {
+  it.runIf(canRun)('starts comux in tmux and initializes panes file', async () => {
     // Unique tmux server and session to isolate from user environment
-    const server = `vmux-e2e-${Date.now()}`;
-    const session = `vmux-e2e-create`;
+    const server = `comux-e2e-${Date.now()}`;
+    const session = `comux-e2e-create`;
 
-    // Temp HOME to sandbox ~/.vmux writes
-    const tmpHome = await fsp.mkdtemp(path.join(os.tmpdir(), 'vmux-e2e-home-'));
+    // Temp HOME to sandbox ~/.comux writes
+    const tmpHome = await fsp.mkdtemp(path.join(os.tmpdir(), 'comux-e2e-home-'));
     const panesFile = computePanesFilePath(tmpHome);
 
     try {
@@ -80,13 +80,13 @@ describe.sequential('vmux e2e: create pane', () => {
       // Create a detached session running bash so we can export HOME
       execSync(`tmux -L ${server} -f /dev/null new-session -d -s ${session} -n main bash`, { stdio: 'pipe' });
 
-      // Export HOME inside the tmux session so vmux writes under tmpHome
+      // Export HOME inside the tmux session so comux writes under tmpHome
       execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'export HOME="${tmpHome}"' Enter`, { stdio: 'pipe' });
 
-      // Start vmux using detected runner
+      // Start comux using detected runner
       execSync(`tmux -L ${server} send-keys -t ${session}:0.0 '${runner!.cmd}' Enter`, { stdio: 'pipe' });
 
-      // Wait for panes file to be created by vmux init
+      // Wait for panes file to be created by comux init
       await poll(
         async () => {
           try {
@@ -112,7 +112,7 @@ describe.sequential('vmux e2e: create pane', () => {
       execSync(`tmux -L ${server} send-keys -t ${session}:0.0 'e2e create pane'`, { stdio: 'pipe' });
       execSync(`tmux -L ${server} send-keys -t ${session}:0.0 Enter`, { stdio: 'pipe' });
 
-      // Give vmux some time to process pane creation
+      // Give comux some time to process pane creation
       // Then re-read panes file; if pane creation failed due to missing agents, we still pass on panes file existence
       await new Promise(res => setTimeout(res, 3000));
       const raw2 = await fsp.readFile(panesFile, 'utf-8');
@@ -123,7 +123,7 @@ describe.sequential('vmux e2e: create pane', () => {
         expect(data2.length).toBeGreaterThanOrEqual(1);
       }
 
-      // Quit vmux UI if it's still running (best-effort)
+      // Quit comux UI if it's still running (best-effort)
       try {
         execSync(`tmux -L ${server} send-keys -t ${session}:0.0 q`, { stdio: 'pipe' });
       } catch {}

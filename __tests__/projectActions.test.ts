@@ -1,26 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import type { VmuxPane, SidebarProject } from '../src/types.js';
+import type { ComuxPane, SidebarProject } from '../src/types.js';
 import {
   buildProjectActionLayout,
   buildVisualNavigationRows,
   resolveSelectionAfterPaneClose,
 } from '../src/utils/projectActions.js';
 
-function pane(id: string, slug: string, projectRoot: string): VmuxPane {
+function pane(id: string, slug: string, projectRoot: string): ComuxPane {
   return {
     id,
     slug,
     prompt: `prompt-${slug}`,
-    paneId: `%${id.replace('vmux-', '')}`,
+    paneId: `%${id.replace('comux-', '')}`,
     projectRoot,
   };
 }
 
 describe('projectActions', () => {
   it('adds remove-project only for empty non-root sidebar projects', () => {
-    const panes: VmuxPane[] = [
-      pane('vmux-1', 'main-pane', '/repo-main'),
-      pane('vmux-2', 'aux-pane', '/repo-aux'),
+    const panes: ComuxPane[] = [
+      pane('comux-1', 'main-pane', '/repo-main'),
+      pane('comux-2', 'aux-pane', '/repo-aux'),
     ];
     const sidebarProjects: SidebarProject[] = [
       { projectRoot: '/repo-main', projectName: 'repo-main' },
@@ -61,11 +61,11 @@ describe('projectActions', () => {
   });
 
   it('selects the next pane down in the same project after closing a pane', () => {
-    const panes: VmuxPane[] = [
-      pane('vmux-1', 'main-pane', '/repo-main'),
-      pane('vmux-2', 'aux-one', '/repo-aux'),
-      pane('vmux-3', 'aux-two', '/repo-aux'),
-      pane('vmux-4', 'main-two', '/repo-main'),
+    const panes: ComuxPane[] = [
+      pane('comux-1', 'main-pane', '/repo-main'),
+      pane('comux-2', 'aux-one', '/repo-aux'),
+      pane('comux-3', 'aux-two', '/repo-aux'),
+      pane('comux-4', 'main-two', '/repo-main'),
     ];
     const sidebarProjects: SidebarProject[] = [
       { projectRoot: '/repo-main', projectName: 'repo-main' },
@@ -85,9 +85,9 @@ describe('projectActions', () => {
   });
 
   it('selects the project new-agent action when closing the last pane in that project', () => {
-    const panes: VmuxPane[] = [
-      pane('vmux-1', 'main-pane', '/repo-main'),
-      pane('vmux-2', 'aux-one', '/repo-aux'),
+    const panes: ComuxPane[] = [
+      pane('comux-1', 'main-pane', '/repo-main'),
+      pane('comux-2', 'aux-one', '/repo-aux'),
     ];
     const sidebarProjects: SidebarProject[] = [
       { projectRoot: '/repo-main', projectName: 'repo-main' },

@@ -7,23 +7,23 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-export function resolveVmuxExecutable(): string {
+export function resolveComuxExecutable(): string {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
-  const localVmuxPath = path.resolve(currentDir, '..', '..', 'vmux');
+  const localComuxPath = path.resolve(currentDir, '..', '..', 'comux');
 
-  if (fs.existsSync(localVmuxPath)) {
-    return localVmuxPath;
+  if (fs.existsSync(localComuxPath)) {
+    return localComuxPath;
   }
 
-  return 'vmux';
+  return 'comux';
 }
 
 export function buildFilesOnlyCommand(): string {
-  return `${shellQuote(resolveVmuxExecutable())} --files-only`;
+  return `${shellQuote(resolveComuxExecutable())} --files-only`;
 }
 
 export function buildRemotePaneActionCommand(
   shortcut: RemotePaneActionShortcut
 ): string {
-  return `${shellQuote(resolveVmuxExecutable())} --remote-pane-action ${shortcut}`;
+  return `${shellQuote(resolveComuxExecutable())} --remote-pane-action ${shortcut}`;
 }

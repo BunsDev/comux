@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PopupManager, type PopupManagerConfig } from '../src/services/PopupManager.js';
-import type { VmuxPane } from '../src/types.js';
+import type { ComuxPane } from '../src/types.js';
 
 function createPopupManager(): PopupManager {
   const config: PopupManagerConfig = {
@@ -23,7 +23,7 @@ function createPopupManager(): PopupManager {
   return new PopupManager(config, () => {}, () => {});
 }
 
-function createPane(id: string): VmuxPane {
+function createPane(id: string): ComuxPane {
   return {
     id,
     slug: `pane-${id}`,
@@ -31,7 +31,7 @@ function createPane(id: string): VmuxPane {
     prompt: `prompt-${id}`,
     paneId: `%${id}`,
     projectRoot: '/tmp/project',
-    worktreePath: `/tmp/project/.vmux/worktrees/pane-${id}`,
+    worktreePath: `/tmp/project/.comux/worktrees/pane-${id}`,
   };
 }
 

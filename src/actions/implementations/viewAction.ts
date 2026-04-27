@@ -3,7 +3,7 @@
  */
 
 import { execSync } from 'child_process';
-import type { VmuxPane } from '../../types.js';
+import type { ComuxPane } from '../../types.js';
 import type { ActionResult, ActionContext } from '../types.js';
 import { getPaneDisplayName } from '../../utils/paneTitle.js';
 
@@ -11,7 +11,7 @@ import { getPaneDisplayName } from '../../utils/paneTitle.js';
  * View/Jump to a pane
  */
 export async function viewPane(
-  pane: VmuxPane,
+  pane: ComuxPane,
   context: ActionContext
 ): Promise<ActionResult> {
   const paneName = getPaneDisplayName(pane);

@@ -1,9 +1,9 @@
-import type { VmuxPane, ProjectSettings } from '../types.js';
+import type { ComuxPane, ProjectSettings } from '../types.js';
 import usePaneRunner from './usePaneRunner.js';
 
 interface Params {
-  panes: VmuxPane[];
-  savePanes: (p: VmuxPane[]) => Promise<void>;
+  panes: ComuxPane[];
+  savePanes: (p: ComuxPane[]) => Promise<void>;
   projectSettings: ProjectSettings;
   saveSettings: (s: ProjectSettings) => Promise<void>;
   setShowCommandPrompt: (v: 'test' | 'dev' | null) => void;
@@ -32,7 +32,7 @@ export default function useCommandRunner({
     setRunningCommand,
   });
 
-  const runCommand = async (type: 'test' | 'dev', pane: VmuxPane) => {
+  const runCommand = async (type: 'test' | 'dev', pane: ComuxPane) => {
     if (!pane.worktreePath) {
       setStatusMessage('No worktree path for this pane');
       setTimeout(() => setStatusMessage(''), 2000);
@@ -57,7 +57,7 @@ export default function useCommandRunner({
     await runCommandInternal(type, pane);
   };
 
-  const handleFirstRunResponse = async (accepted: boolean, type: 'test' | 'dev', pane: VmuxPane) => {
+  const handleFirstRunResponse = async (accepted: boolean, type: 'test' | 'dev', pane: ComuxPane) => {
     if (!pane.worktreePath) return;
     if (accepted) await copyNonGitFiles(pane.worktreePath);
 

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { VmuxPane } from '../../types.js';
+import type { ComuxPane } from '../../types.js';
 import { COLORS } from '../../theme/colors.js';
 
 interface MergeConfirmationDialogProps {
-  pane: VmuxPane;
+  pane: ComuxPane;
 }
 
 const MergeConfirmationDialog: React.FC<MergeConfirmationDialogProps> = ({ pane }) => {

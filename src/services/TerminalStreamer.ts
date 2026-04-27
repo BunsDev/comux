@@ -100,7 +100,7 @@ export class TerminalStreamer extends EventEmitter {
     const content = await this.capturePaneContent(tmuxPaneId);
 
     // Create pipe path
-    const pipePath = `/tmp/vmux-pipe-${paneId}-${Date.now()}`;
+    const pipePath = `/tmp/comux-pipe-${paneId}-${Date.now()}`;
 
     return {
       paneId,
@@ -498,7 +498,7 @@ export class TerminalStreamer extends EventEmitter {
     }
 
     // Create new pipe path
-    stream.pipePath = `/tmp/vmux-pipe-${stream.paneId}-${Date.now()}`;
+    stream.pipePath = `/tmp/comux-pipe-${stream.paneId}-${Date.now()}`;
 
     // Restart piping
     setTimeout(() => {

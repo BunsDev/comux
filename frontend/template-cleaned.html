@@ -25,8 +25,8 @@
         </div>
 
         <div v-if="panes.length === 0" class="no-panes">
-          <p>No vmux panes active</p>
-          <p class="hint">Click "Create New Pane" above or press 'n' in vmux</p>
+          <p>No comux panes active</p>
+          <p class="hint">Click "Create New Pane" above or press 'n' in comux</p>
         </div>
 
         <div v-else class="panes-grid">
@@ -233,7 +233,7 @@
                 :disabled="creatingPane"
               >
                 <img
-                  :src="'https://cdn.formk.it/vmux/' + agent + '.svg'"
+                  :src="'https://cdn.formk.it/comux/' + agent + '.svg'"
                   :alt="agent"
                   class="agent-logo"
                 />

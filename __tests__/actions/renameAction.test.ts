@@ -99,7 +99,7 @@ describe('renameAction', () => {
   });
 
   it('persists worktree display names so reopened panes keep the rename', async () => {
-    const worktreePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vmux-rename-worktree-'));
+    const worktreePath = fs.mkdtempSync(path.join(os.tmpdir(), 'comux-rename-worktree-'));
     tempDirs.push(worktreePath);
     const pane = createMockPane({
       slug: 'test-pane',

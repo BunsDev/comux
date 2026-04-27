@@ -216,7 +216,7 @@ function parseGitStatus(rootPath: string): Map<string, string> {
     }
 
     const normalizedPath = decodeGitPath(filePath);
-    if (!normalizedPath || normalizedPath.startsWith('.git/') || normalizedPath.startsWith('.vmux/')) {
+    if (!normalizedPath || normalizedPath.startsWith('.git/') || normalizedPath.startsWith('.comux/')) {
       continue;
     }
 
@@ -235,7 +235,7 @@ function listRepositoryFiles(rootPath: string): string[] {
     .split('\0')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0)
-    .filter((entry) => !entry.startsWith('.git/') && !entry.startsWith('.vmux/'));
+    .filter((entry) => !entry.startsWith('.git/') && !entry.startsWith('.comux/'));
 }
 
 export function loadBrowserSnapshot(rootPath: string): BrowserSnapshot {

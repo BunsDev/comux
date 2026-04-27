@@ -1,5 +1,5 @@
 /**
- * vmux daemon WS protocol (v0).
+ * comux daemon WS protocol (v0).
  *
  * Clients send JSON control frames; binary frames carry PTY IO.
  * A single WS connection can multiplex multiple attached panes via

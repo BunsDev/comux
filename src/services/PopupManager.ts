@@ -14,8 +14,8 @@ import {
   SETTING_DEFINITIONS,
 } from "../utils/settingsManager.js"
 import type {
-  VmuxPane,
-  VmuxThemeName,
+  ComuxPane,
+  ComuxThemeName,
   ProjectSettings,
   SettingDefinition,
   SidebarProject,
@@ -39,9 +39,9 @@ import { getPaneDisplayName } from "../utils/paneTitle.js"
 import type { TrackProjectActivity } from "../types/activity.js"
 import { SettingsManager } from "../utils/settingsManager.js"
 import {
-  DEFAULT_VMUX_THEME,
-  getVmuxThemeLabel,
-  VMUX_THEME_NAMES,
+  DEFAULT_COMUX_THEME,
+  getComuxThemeLabel,
+  COMUX_THEME_NAMES,
 } from "../theme/themePalette.js"
 import {
   AUTO_SIDEBAR_PROJECT_COLOR_THEME_VALUE,
@@ -72,7 +72,7 @@ interface PopupOptions {
   width?: number
   height?: number
   title: string
-  themeName?: VmuxThemeName
+  themeName?: ComuxThemeName
   positioning?: "standard" | "centered" | "large" | "pane"
   targetPaneId?: string
 }
@@ -201,7 +201,7 @@ export class PopupManager {
       const popupHandle = await this.trackProjectActivity(async () => {
         // Write temp file if data provided
         if (tempData !== undefined) {
-          tempFile = `/tmp/vmux-${scriptName.replace(".js", "")}-${Date.now()}.json`
+          tempFile = `/tmp/comux-${scriptName.replace(".js", "")}-${Date.now()}.json`
           await fs.writeFile(tempFile, JSON.stringify(tempData))
           args = [tempFile, ...args]
         }
@@ -330,7 +330,7 @@ export class PopupManager {
       const popupHeight = Math.floor(this.config.terminalHeight * 0.8)
       const popupArgs = projectPath ? [projectPath] : []
       const effectivePath = projectPath || this.config.projectRoot
-      const projectName = effectivePath ? path.basename(effectivePath) : "vmux"
+      const projectName = effectivePath ? path.basename(effectivePath) : "comux"
       const result = await this.launchPopup<string>(
         "newPanePopup.js",
         popupArgs,
@@ -353,8 +353,8 @@ export class PopupManager {
   }
 
   async launchKebabMenuPopup(
-    pane: VmuxPane,
-    panes: VmuxPane[],
+    pane: ComuxPane,
+    panes: ComuxPane[],
     options: { anchorToPane?: boolean } = {}
   ): Promise<PaneMenuActionId | null> {
     if (!this.checkPopupSupport()) return null
@@ -585,7 +585,7 @@ export class PopupManager {
         "logsPopup.js",
         [],
         {
-          title: "🪵 vmux Logs",
+          title: "🪵 comux Logs",
           positioning: "large",
         },
         logsData,
@@ -670,23 +670,23 @@ export class PopupManager {
         description: "Fallback color used when a project does not have its own saved theme",
         type: "select",
         scopeBehavior: "global",
-        options: VMUX_THEME_NAMES.map((themeName) => ({
+        options: COMUX_THEME_NAMES.map((themeName) => ({
           value: themeName,
-          label: getVmuxThemeLabel(themeName),
+          label: getComuxThemeLabel(themeName),
         })),
       }
       const projectColorThemeSetting: SettingDefinition = {
         key: SIDEBAR_PROJECT_COLOR_THEME_SETTING_KEY,
         label: "Project Color Theme",
-        description: "Color for this project in the current vmux session. Auto picks an unused color; inherit follows the project's saved/default theme.",
+        description: "Color for this project in the current comux session. Auto picks an unused color; inherit follows the project's saved/default theme.",
         type: "select",
         scopeBehavior: "session",
         options: [
           { value: AUTO_SIDEBAR_PROJECT_COLOR_THEME_VALUE, label: "Auto" },
           { value: "", label: "Inherit Default Theme" },
-          ...VMUX_THEME_NAMES.map((themeName) => ({
+          ...COMUX_THEME_NAMES.map((themeName) => ({
             value: themeName,
-            label: getVmuxThemeLabel(themeName),
+            label: getComuxThemeLabel(themeName),
           })),
         ],
       }
@@ -707,7 +707,7 @@ export class PopupManager {
 
       let settingsPopupWidth = 84
       try {
-        // Use tmux client dimensions, not the vmux pane's stdout width.
+        // Use tmux client dimensions, not the comux pane's stdout width.
         const dims = await TmuxService.getInstance().getAllDimensions()
         const maxAvailableWidth = dims.clientWidth - this.config.sidebarWidth - 2
         settingsPopupWidth = Math.max(70, Math.min(84, maxAvailableWidth))
@@ -731,7 +731,7 @@ export class PopupManager {
             [DEFAULT_COLOR_THEME_SETTING_KEY]:
               settingsManager.getGlobalSettings().colorTheme
               ?? settingsManager.getTeamDefaults().colorTheme
-              ?? DEFAULT_VMUX_THEME,
+              ?? DEFAULT_COMUX_THEME,
             [SIDEBAR_PROJECT_COLOR_THEME_SETTING_KEY]:
               currentSessionProjectThemeSetting
               || settingsManager.getProjectSettings().colorTheme

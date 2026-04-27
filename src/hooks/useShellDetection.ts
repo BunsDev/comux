@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { VmuxPane } from '../types.js';
-import { getUntrackedPanes, createShellPane, getNextVmuxId } from '../utils/shellPaneDetection.js';
+import type { ComuxPane } from '../types.js';
+import { getUntrackedPanes, createShellPane, getNextComuxId } from '../utils/shellPaneDetection.js';
 import { LogService } from '../services/LogService.js';
 import { syncPaneColorThemes } from '../utils/paneColors.js';
 
@@ -11,9 +11,9 @@ import { syncPaneColorThemes } from '../utils/paneColors.js';
  */
 export async function detectAndAddShellPanes(
   panesFile: string,
-  activePanes: VmuxPane[],
+  activePanes: ComuxPane[],
   allPaneIds: string[]
-): Promise<{ updatedPanes: VmuxPane[]; shellPanesAdded: boolean }> {
+): Promise<{ updatedPanes: ComuxPane[]; shellPanesAdded: boolean }> {
   // Only detect if we have pane IDs from tmux
   if (allPaneIds.length === 0) {
     return { updatedPanes: activePanes, shellPanesAdded: false };
@@ -60,8 +60,8 @@ export async function detectAndAddShellPanes(
   //     );
 
     // Create shell pane objects for each untracked pane
-    const newShellPanes: VmuxPane[] = [];
-    let nextId = getNextVmuxId(activePanes);
+    const newShellPanes: ComuxPane[] = [];
+    let nextId = getNextComuxId(activePanes);
 
     for (const paneInfo of untrackedPanes) {
       const shellPane = await createShellPane(paneInfo.paneId, nextId, paneInfo.title);

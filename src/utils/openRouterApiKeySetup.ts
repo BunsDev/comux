@@ -16,9 +16,9 @@ interface OnboardingState {
   [key: string]: unknown;
 }
 
-const ONBOARDING_STATE_RELATIVE_PATH = path.join('.vmux', 'onboarding.json');
-const OPENROUTER_BLOCK_START = '# >>> vmux openrouter >>>';
-const OPENROUTER_BLOCK_END = '# <<< vmux openrouter <<<';
+const ONBOARDING_STATE_RELATIVE_PATH = path.join('.comux', 'onboarding.json');
+const OPENROUTER_BLOCK_START = '# >>> comux openrouter >>>';
+const OPENROUTER_BLOCK_END = '# <<< comux openrouter <<<';
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

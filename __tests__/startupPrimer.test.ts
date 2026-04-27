@@ -9,8 +9,8 @@ import {
 
 describe('startup primer state', () => {
   it('persists dismissal without clobbering other onboarding state', async () => {
-    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vmux-startup-primer-'));
-    const statePath = path.join(homeDir, '.vmux', 'onboarding.json');
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-startup-primer-'));
+    const statePath = path.join(homeDir, '.comux', 'onboarding.json');
 
     try {
       await fs.mkdir(path.dirname(statePath), { recursive: true });

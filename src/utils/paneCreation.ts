@@ -1,7 +1,7 @@
 import path from 'path';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
-import type { VmuxPane, VmuxConfig, MergeTargetReference } from '../types.js';
+import type { ComuxPane, ComuxConfig, MergeTargetReference } from '../types.js';
 import { TmuxService } from '../services/TmuxService.js';
 import {
   ensurePaneBorderStatusForCurrentSession,
@@ -58,15 +58,15 @@ export interface CreatePaneOptions {
   startPointBranch?: string;
   mergeTargetChain?: MergeTargetReference[];
   projectName: string;
-  existingPanes: VmuxPane[];
+  existingPanes: ComuxPane[];
   projectRoot?: string; // Target repository root for the new pane
   skipAgentSelection?: boolean; // Explicitly allow creating pane with no agent
-  sessionConfigPath?: string; // Shared vmux config file for the current session
+  sessionConfigPath?: string; // Shared comux config file for the current session
   sessionProjectRoot?: string; // Session root that owns sidebar/welcome pane state
 }
 
 export interface CreatePaneResult {
-  pane: VmuxPane;
+  pane: ComuxPane;
   needsAgentChoice: boolean;
 }
 
@@ -173,8 +173,8 @@ export async function createPane(
 
   // Trigger before_pane_create hook
   await triggerHook('before_pane_create', projectRoot, undefined, {
-    VMUX_PROMPT: prompt,
-    VMUX_AGENT: agent || 'unknown',
+    COMUX_PROMPT: prompt,
+    COMUX_AGENT: agent || 'unknown',
   });
 
   // Validate branchPrefix before use
@@ -196,18 +196,18 @@ export async function createPane(
   const tmuxService = TmuxService.getInstance();
 
   const worktreePath = existingWorktree?.worktreePath
-    || path.join(projectRoot, '.vmux', 'worktrees', slug);
+    || path.join(projectRoot, '.comux', 'worktrees', slug);
   const originalPaneId = tmuxService.getCurrentPaneIdSync();
 
   // Load config to get control pane info
   const configPath = optionsSessionConfigPath
-    || path.join(sessionProjectRoot, '.vmux', 'vmux.config.json');
+    || path.join(sessionProjectRoot, '.comux', 'comux.config.json');
   let controlPaneId: string | undefined;
   let configSidebarProjects: SidebarProject[] = [];
 
   try {
     const configContent = fs.readFileSync(configPath, 'utf-8');
-    const config: VmuxConfig = JSON.parse(configContent);
+    const config: ComuxConfig = JSON.parse(configContent);
     controlPaneId = config.controlPaneId;
     configSidebarProjects = Array.isArray(config.sidebarProjects) ? config.sidebarProjects : [];
     paneProjectName = getSidebarProjectDisplayName(
@@ -268,9 +268,9 @@ export async function createPane(
       paneInfo = setupSidebarLayout(controlPaneId, projectRoot);
     } else {
       // Subsequent panes - always split horizontally, let layout manager organize
-      // Get actual vmux pane IDs (not welcome pane) from existingPanes
-      const vmuxPaneIds = existingPanes.map(p => p.paneId);
-      const targetPane = vmuxPaneIds[vmuxPaneIds.length - 1]; // Split from the most recent vmux pane
+      // Get actual comux pane IDs (not welcome pane) from existingPanes
+      const comuxPaneIds = existingPanes.map(p => p.paneId);
+      const targetPane = comuxPaneIds[comuxPaneIds.length - 1]; // Split from the most recent comux pane
 
       // Always split horizontally - the layout manager will organize panes optimally
       paneInfo = splitPane({ targetPane, cwd: projectRoot });
@@ -290,7 +290,7 @@ export async function createPane(
 
       try {
         const configContent = fs.readFileSync(configPath, 'utf-8');
-        const config: VmuxConfig = JSON.parse(configContent);
+        const config: ComuxConfig = JSON.parse(configContent);
         config.controlPaneId = currentPaneId;
         config.lastUpdated = new Date().toISOString();
         atomicWriteJsonSync(configPath, config);
@@ -307,8 +307,8 @@ export async function createPane(
       if (isFirstContentPane) {
         paneInfo = setupSidebarLayout(controlPaneId, projectRoot);
       } else {
-        const vmuxPaneIds = existingPanes.map(p => p.paneId);
-        const targetPane = vmuxPaneIds[vmuxPaneIds.length - 1];
+        const comuxPaneIds = existingPanes.map(p => p.paneId);
+        const targetPane = comuxPaneIds[comuxPaneIds.length - 1];
         paneInfo = splitPane({ targetPane, cwd: projectRoot });
       }
     } else {
@@ -347,17 +347,17 @@ export async function createPane(
 
   // Trigger pane_created hook (after pane created, before worktree)
   await triggerHook('pane_created', projectRoot, undefined, {
-    VMUX_PANE_ID: `vmux-${Date.now()}`,
-    VMUX_SLUG: slug,
-    VMUX_PROMPT: prompt,
-    VMUX_AGENT: agent || 'unknown',
-    VMUX_TMUX_PANE_ID: paneInfo,
+    COMUX_PANE_ID: `comux-${Date.now()}`,
+    COMUX_SLUG: slug,
+    COMUX_PROMPT: prompt,
+    COMUX_AGENT: agent || 'unknown',
+    COMUX_TMUX_PANE_ID: paneInfo,
   });
 
   // Check if this is a hooks editing session (before worktree creation)
   const isHooksEditingSession = !!prompt && (
-    /(create|edit|modify).*(vmux|\.)?.*hooks/i.test(prompt)
-    || /\.vmux-hooks/i.test(prompt)
+    /(create|edit|modify).*(comux|\.)?.*hooks/i.test(prompt)
+    || /\.comux-hooks/i.test(prompt)
   );
 
   // Create git worktree and cd into it
@@ -372,7 +372,7 @@ export async function createPane(
       await new Promise((resolve) => setTimeout(resolve, 300));
     } else {
       // IMPORTANT: Prune stale worktrees first to avoid conflicts
-      // This must run synchronously from vmux, not in the pane
+      // This must run synchronously from comux, not in the pane
       try {
         execSync('git worktree prune', {
           encoding: 'utf-8',
@@ -477,7 +477,7 @@ export async function createPane(
       );
     }
 
-    // Initialize .vmux-hooks if this is a hooks editing session
+    // Initialize .comux-hooks if this is a hooks editing session
     if (isHooksEditingSession) {
       initializeHooksDirectory(worktreePath);
     }
@@ -514,8 +514,8 @@ export async function createPane(
   // pane context. The hook must succeed before we launch the agent — a
   // failing hook means the worktree is in an unknown state and running a
   // prompt against it would be dangerous.
-  const newPane: VmuxPane = {
-    id: `vmux-${Date.now()}`,
+  const newPane: ComuxPane = {
+    id: `comux-${Date.now()}`,
     slug,
     displayName: existingWorktreeMetadata?.displayName,
     branchName: branchName !== slug ? branchName : undefined,
@@ -575,7 +575,7 @@ export async function createPane(
       try {
         codexHookEventFile = installCodexPaneHooks({
           worktreePath,
-          vmuxPaneId: newPane.id,
+          comuxPaneId: newPane.id,
           tmuxPaneId: paneInfo,
         }).eventFile;
       } catch (error) {
@@ -611,7 +611,7 @@ export async function createPane(
         const promptBootstrap = buildPromptReadAndDeleteSnippet(promptFilePath);
         launchCommand = `${promptBootstrap}; ${buildInitialPromptCommand(
           agent,
-          '"$VMUX_PROMPT_CONTENT"',
+          '"$COMUX_PROMPT_CONTENT"',
           settings.permissionMode
         )}`;
       } else {
@@ -632,7 +632,7 @@ export async function createPane(
 
     if (agent === 'codex') {
       launchCommand = buildCodexHookedCommand(launchCommand, {
-        vmuxPaneId: newPane.id,
+        comuxPaneId: newPane.id,
         tmuxPaneId: paneInfo,
         eventFile: codexHookEventFile,
       });
@@ -672,7 +672,7 @@ export async function createPane(
   if (isFirstContentPane) {
     try {
       const configContent = fs.readFileSync(configPath, 'utf-8');
-      const config: VmuxConfig = JSON.parse(configContent);
+      const config: ComuxConfig = JSON.parse(configContent);
 
       // Add the new pane to the config (panesCount becomes 1)
       config.panes = [...existingPanes, newPane];
@@ -697,9 +697,9 @@ export async function createPane(
   // Switch back to the original pane
   await tmuxService.selectPane(originalPaneId);
 
-  // Re-set the title for the vmux pane
+  // Re-set the title for the comux pane
   try {
-    await tmuxService.setPaneTitle(originalPaneId, "vmux");
+    await tmuxService.setPaneTitle(originalPaneId, "comux");
   } catch {
     // Ignore if setting title fails
   }

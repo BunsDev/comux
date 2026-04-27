@@ -77,7 +77,7 @@ describe('closeAction', () => {
 
   describe('shell panes', () => {
     it('should close shell pane immediately without presenting options', async () => {
-      const mockPane = createShellPane({ id: 'vmux-1', paneId: '%42' });
+      const mockPane = createShellPane({ id: 'comux-1', paneId: '%42' });
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
@@ -165,9 +165,9 @@ describe('closeAction', () => {
     });
 
     it('should only present kill_only and explain cleanup is unavailable when sibling panes share the worktree', async () => {
-      const sharedWorktreePath = '/test/project/.vmux/worktrees/shared';
-      const pane1 = createWorktreePane({ id: 'vmux-1', slug: 'alpha', worktreePath: sharedWorktreePath });
-      const pane2 = createWorktreePane({ id: 'vmux-2', slug: 'bravo', worktreePath: sharedWorktreePath });
+      const sharedWorktreePath = '/test/project/.comux/worktrees/shared';
+      const pane1 = createWorktreePane({ id: 'comux-1', slug: 'alpha', worktreePath: sharedWorktreePath });
+      const pane2 = createWorktreePane({ id: 'comux-2', slug: 'bravo', worktreePath: sharedWorktreePath });
       const mockContext = createMockContext([pane1, pane2]);
 
       const result = await closePane(pane1, mockContext);
@@ -182,8 +182,8 @@ describe('closeAction', () => {
 
   describe('close execution - kill_only', () => {
     it('should remove pane from tracking when kill_only selected', async () => {
-      const pane1 = createWorktreePane({ id: 'vmux-1' });
-      const pane2 = createWorktreePane({ id: 'vmux-2' });
+      const pane1 = createWorktreePane({ id: 'comux-1' });
+      const pane2 = createWorktreePane({ id: 'comux-2' });
       const mockContext = createMockContext([pane1, pane2]);
       const savePanesSpy = vi.spyOn(mockContext, 'savePanes');
 
@@ -275,7 +275,7 @@ describe('closeAction', () => {
   describe('close execution - kill_and_clean', () => {
     it('should queue worktree cleanup when kill_and_clean selected', async () => {
       const mockPane = createWorktreePane({
-        worktreePath: '/test/project/.vmux/worktrees/my-feature',
+        worktreePath: '/test/project/.comux/worktrees/my-feature',
       });
       const mockContext = createMockContext([mockPane]);
 
@@ -300,7 +300,7 @@ describe('closeAction', () => {
     it('should not remove pane state or cleanup worktree when tmux pane survives kill', async () => {
       const mockPane = createWorktreePane({
         paneId: '%42',
-        worktreePath: '/test/project/.vmux/worktrees/my-feature',
+        worktreePath: '/test/project/.comux/worktrees/my-feature',
       });
       const mockContext = createMockContext([mockPane]);
       const savePanesSpy = vi.spyOn(mockContext, 'savePanes');
@@ -338,7 +338,7 @@ describe('closeAction', () => {
       expect(triggerHookSync).toHaveBeenCalledWith('before_worktree_remove', expect.anything(), mockPane);
     });
 
-    // Regression test for https://github.com/standardagents/vmux/issues/63
+    // Regression test for https://github.com/standardagents/comux/issues/63
     // before_worktree_remove must block until the hook finishes, otherwise the
     // worktree directory is deleted while the hook is still running.
     it('should wait for before_worktree_remove hook to finish before enqueueing worktree cleanup', async () => {
@@ -416,7 +416,7 @@ describe('closeAction', () => {
         slug: 'project-b-feature',
         projectRoot: '/test/project-b',
         projectName: 'project-b',
-        worktreePath: '/test/project-b/.vmux/worktrees/project-b-feature',
+        worktreePath: '/test/project-b/.comux/worktrees/project-b-feature',
       });
       const mockContext = createMockContext([mockPane]);
 
@@ -495,7 +495,7 @@ describe('closeAction', () => {
 
   describe('layout recalculation', () => {
     it('should NOT recalculate layout when no panes remain', async () => {
-      const mockPane = createWorktreePane({ id: 'vmux-1' });
+      const mockPane = createWorktreePane({ id: 'comux-1' });
       const mockContext = createMockContext([mockPane]);
 
       vi.mocked(execSync).mockReturnValue(Buffer.from(''));
@@ -512,36 +512,36 @@ describe('closeAction', () => {
   });
 
   describe('dev source fallback', () => {
-    const originalVmuxDev = process.env.VMUX_DEV;
+    const originalComuxDev = process.env.COMUX_DEV;
 
     beforeEach(() => {
-      process.env.VMUX_DEV = 'true';
+      process.env.COMUX_DEV = 'true';
     });
 
     afterEach(() => {
-      if (originalVmuxDev === undefined) {
-        delete process.env.VMUX_DEV;
+      if (originalComuxDev === undefined) {
+        delete process.env.COMUX_DEV;
       } else {
-        process.env.VMUX_DEV = originalVmuxDev;
+        process.env.COMUX_DEV = originalComuxDev;
       }
     });
 
     it('should NOT reset source to root when sibling panes remain on the same worktree', async () => {
-      const sourceWorktreePath = '/test/project/.vmux/worktrees/shared-worktree';
+      const sourceWorktreePath = '/test/project/.comux/worktrees/shared-worktree';
       const closingPane = createWorktreePane({
-        id: 'vmux-1',
+        id: 'comux-1',
         paneId: '%11',
         worktreePath: sourceWorktreePath,
       });
       const siblingPane = createWorktreePane({
-        id: 'vmux-2',
+        id: 'comux-2',
         paneId: '%12',
         worktreePath: sourceWorktreePath,
       });
       const otherPane = createWorktreePane({
-        id: 'vmux-3',
+        id: 'comux-3',
         paneId: '%13',
-        worktreePath: '/test/project/.vmux/worktrees/other-worktree',
+        worktreePath: '/test/project/.comux/worktrees/other-worktree',
       });
       const mockContext = createMockContext([closingPane, siblingPane, otherPane]);
       const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(sourceWorktreePath);
@@ -565,16 +565,16 @@ describe('closeAction', () => {
     });
 
     it('should reset source to root when the last pane for source worktree is closed', async () => {
-      const sourceWorktreePath = '/test/project/.vmux/worktrees/shared-worktree';
+      const sourceWorktreePath = '/test/project/.comux/worktrees/shared-worktree';
       const closingPane = createWorktreePane({
-        id: 'vmux-1',
+        id: 'comux-1',
         paneId: '%11',
         worktreePath: sourceWorktreePath,
       });
       const otherPane = createWorktreePane({
-        id: 'vmux-3',
+        id: 'comux-3',
         paneId: '%13',
-        worktreePath: '/test/project/.vmux/worktrees/other-worktree',
+        worktreePath: '/test/project/.comux/worktrees/other-worktree',
       });
       const mockContext = createMockContext([closingPane, otherPane]);
       const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(sourceWorktreePath);

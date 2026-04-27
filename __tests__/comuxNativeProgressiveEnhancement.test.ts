@@ -21,7 +21,7 @@ vi.mock('child_process', () => ({
   }),
 }));
 
-describe('vmux native helper progressive enhancement', () => {
+describe('comux native helper progressive enhancement', () => {
   beforeEach(() => {
     vi.resetModules();
     setPlatform('linux');
@@ -52,8 +52,8 @@ describe('vmux native helper progressive enhancement', () => {
   });
 
   it('skips native notification delivery entirely on non-macOS platforms', async () => {
-    const { VmuxFocusService } = await import('../src/services/VmuxFocusService.js');
-    const service = new VmuxFocusService({ projectName: 'vmux' });
+    const { ComuxFocusService } = await import('../src/services/ComuxFocusService.js');
+    const service = new ComuxFocusService({ projectName: 'comux' });
 
     await expect(service.start()).resolves.toBeUndefined();
     await expect(

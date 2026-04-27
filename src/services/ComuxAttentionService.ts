@@ -7,11 +7,11 @@ import {
   type StatusUpdateEvent,
 } from './StatusDetector.js';
 import {
-  VmuxFocusService,
-  type VmuxFocusChangedEvent,
-} from './VmuxFocusService.js';
+  ComuxFocusService,
+  type ComuxFocusChangedEvent,
+} from './ComuxFocusService.js';
 import { LogService } from './LogService.js';
-import { supportsNativeVmuxHelper } from '../utils/focusDetection.js';
+import { supportsNativeComuxHelper } from '../utils/focusDetection.js';
 
 interface AttentionCandidate {
   paneId: string;
@@ -23,8 +23,8 @@ interface AttentionCandidate {
   fingerprint: string;
 }
 
-interface VmuxAttentionServiceOptions {
-  focusService: VmuxFocusService;
+interface ComuxAttentionServiceOptions {
+  focusService: ComuxFocusService;
 }
 
 export interface PaneAttentionChangedEvent {
@@ -33,7 +33,7 @@ export interface PaneAttentionChangedEvent {
   needsAttention: boolean;
 }
 
-export class VmuxAttentionService extends EventEmitter {
+export class ComuxAttentionService extends EventEmitter {
   private readonly logger = LogService.getInstance();
   private readonly statusDetector = getStatusDetector();
   private readonly candidates = new Map<string, AttentionCandidate>();
@@ -43,12 +43,12 @@ export class VmuxAttentionService extends EventEmitter {
   private readonly activeAttentionPanes = new Map<string, string>();
   private active = false;
 
-  constructor(private readonly options: VmuxAttentionServiceOptions) {
+  constructor(private readonly options: ComuxAttentionServiceOptions) {
     super();
   }
 
   start(): void {
-    if (this.active || !supportsNativeVmuxHelper()) {
+    if (this.active || !supportsNativeComuxHelper()) {
       return;
     }
 
@@ -115,7 +115,7 @@ export class VmuxAttentionService extends EventEmitter {
     void this.maybeNotify(event.paneId);
   };
 
-  private readonly handleFocusChanged = (_event: VmuxFocusChangedEvent): void => {
+  private readonly handleFocusChanged = (_event: ComuxFocusChangedEvent): void => {
     for (const paneId of this.candidates.keys()) {
       void this.maybeNotify(paneId);
     }

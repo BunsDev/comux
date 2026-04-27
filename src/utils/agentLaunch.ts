@@ -461,7 +461,7 @@ export function buildAgentLaunchOptions(
 }
 
 /**
- * Resolve CLI permission flags for a given agent and vmux permissionMode.
+ * Resolve CLI permission flags for a given agent and comux permissionMode.
  */
 export function getPermissionFlags(
   agent: AgentName,
@@ -544,7 +544,7 @@ export async function launchAgentInPane(opts: {
   prompt: string;
   slug: string;
   projectRoot: string;
-  vmuxPaneId?: string;
+  comuxPaneId?: string;
   codexHookEventFile?: string;
   permissionMode?: '' | 'plan' | 'acceptEdits' | 'bypassPermissions';
 }): Promise<void> {
@@ -566,7 +566,7 @@ export async function launchAgentInPane(opts: {
 
       if (promptFilePath) {
         const promptBootstrap = buildPromptReadAndDeleteSnippet(promptFilePath);
-        claudeCmd = `${promptBootstrap}; claude "$VMUX_PROMPT_CONTENT"${permissionSuffix}`;
+        claudeCmd = `${promptBootstrap}; claude "$COMUX_PROMPT_CONTENT"${permissionSuffix}`;
       } else {
         const escapedPrompt = prompt
           .replace(/\\/g, '\\\\')
@@ -594,7 +594,7 @@ export async function launchAgentInPane(opts: {
         const promptBootstrap = buildPromptReadAndDeleteSnippet(promptFilePath);
         codexCmd = `${promptBootstrap}; ${buildInitialPromptCommand(
           'codex',
-          '"$VMUX_PROMPT_CONTENT"',
+          '"$COMUX_PROMPT_CONTENT"',
           permissionMode
         )}`;
       } else {
@@ -608,7 +608,7 @@ export async function launchAgentInPane(opts: {
       codexCmd = buildAgentCommand('codex', permissionMode);
     }
     codexCmd = buildCodexHookedCommand(codexCmd, {
-      vmuxPaneId: opts.vmuxPaneId || '',
+      comuxPaneId: opts.comuxPaneId || '',
       tmuxPaneId: paneId,
       eventFile: opts.codexHookEventFile,
     });
@@ -626,7 +626,7 @@ export async function launchAgentInPane(opts: {
 
       if (promptFilePath) {
         const promptBootstrap = buildPromptReadAndDeleteSnippet(promptFilePath);
-        opencodeCmd = `${promptBootstrap}; opencode --prompt "$VMUX_PROMPT_CONTENT"`;
+        opencodeCmd = `${promptBootstrap}; opencode --prompt "$COMUX_PROMPT_CONTENT"`;
       } else {
         const escapedPrompt = prompt
           .replace(/\\/g, '\\\\')

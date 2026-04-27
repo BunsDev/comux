@@ -1,11 +1,11 @@
 import path from 'path';
-import type { VmuxPane } from '../types.js';
+import type { ComuxPane } from '../types.js';
 
-const WORKTREE_PATH_PATTERN = /[\\\/]\.vmux[\\\/]worktrees[\\\/][^\\\/]+$/;
+const WORKTREE_PATH_PATTERN = /[\\\/]\.comux[\\\/]worktrees[\\\/][^\\\/]+$/;
 
 /**
- * Derive repository root from a vmux worktree path.
- * Example: /repo/.vmux/worktrees/feature-a -> /repo
+ * Derive repository root from a comux worktree path.
+ * Example: /repo/.comux/worktrees/feature-a -> /repo
  */
 export function deriveProjectRootFromWorktreePath(worktreePath?: string): string | undefined {
   if (!worktreePath) return undefined;
@@ -18,7 +18,7 @@ export function deriveProjectRootFromWorktreePath(worktreePath?: string): string
  * then the session project root as fallback.
  */
 export function getPaneProjectRoot(
-  pane: VmuxPane,
+  pane: ComuxPane,
   fallbackProjectRoot: string
 ): string {
   const fromPane = pane.projectRoot?.trim();
@@ -34,7 +34,7 @@ export function getPaneProjectRoot(
  * Resolve a display name for a pane's project.
  */
 export function getPaneProjectName(
-  pane: VmuxPane,
+  pane: ComuxPane,
   fallbackProjectRoot: string,
   fallbackProjectName?: string
 ): string {

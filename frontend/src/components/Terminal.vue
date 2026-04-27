@@ -1,7 +1,7 @@
 <template>
   <div class="terminal-page">
     <header>
-      <a href="/" class="back-button">← vmux</a>
+      <a href="/" class="back-button">← comux</a>
       <h1>{{ paneTitle }}</h1>
       <div class="session-info">
         <span>{{ dimensions.width }}×{{ dimensions.height }}</span>

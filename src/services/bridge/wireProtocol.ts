@@ -1,8 +1,8 @@
 /**
- * wireProtocol.ts — TypeScript mirror of VmuxCore v2 wire protocol.
+ * wireProtocol.ts — TypeScript mirror of ComuxCore v2 wire protocol.
  *
  * Field names and JSON shape are byte-identical to the Swift encoders in:
- *   native/shared/VmuxCore/Sources/VmuxCore/Messages.swift
+ *   native/shared/ComuxCore/Sources/ComuxCore/Messages.swift
  *
  * Encoding rules (matching Swift's BridgeCoder):
  *   - dateEncodingStrategy = .iso8601  → Date fields are ISO-8601 strings on the wire.
@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------------
 
 export const PROTOCOL_VERSION = 2;
-export const BONJOUR_SERVICE_TYPE = "_vmux._tcp";
+export const BONJOUR_SERVICE_TYPE = "_comux._tcp";
 
 // ---------------------------------------------------------------------------
 // Shared types

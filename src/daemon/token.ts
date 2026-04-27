@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, chmod } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-const TOKEN_DIR = path.join(homedir(), '.config', 'vmux');
+const TOKEN_DIR = path.join(homedir(), '.config', 'comux');
 const TOKEN_FILE = path.join(TOKEN_DIR, 'token');
 
 export async function readOrCreateToken(): Promise<string> {

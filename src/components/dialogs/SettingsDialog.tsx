@@ -1,16 +1,16 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { SettingDefinition, VmuxSettings, SettingsScope } from '../../types.js';
+import type { SettingDefinition, ComuxSettings, SettingsScope } from '../../types.js';
 import { COLORS } from '../../theme/colors.js';
 
 interface SettingsDialogProps {
-  settings: VmuxSettings;
-  globalSettings: VmuxSettings;
-  projectSettings: VmuxSettings;
+  settings: ComuxSettings;
+  globalSettings: ComuxSettings;
+  projectSettings: ComuxSettings;
   settingDefinitions: SettingDefinition[];
   selectedIndex: number;
   mode: 'list' | 'edit' | 'scope';
-  editingKey?: keyof VmuxSettings;
+  editingKey?: keyof ComuxSettings;
   editingValueIndex?: number;
   scopeIndex?: number;
 }
@@ -55,7 +55,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               );
             }
 
-            const currentValue = settings[def.key as keyof VmuxSettings];
+            const currentValue = settings[def.key as keyof ComuxSettings];
             const isProjectOverride = def.key in projectSettings;
             const isGlobalSetting = def.key in globalSettings;
 

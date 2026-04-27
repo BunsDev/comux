@@ -1,11 +1,11 @@
 import path from 'path';
-import type { VmuxPane, VmuxThemeName, SidebarProject } from '../types.js';
-import { isVmuxThemeName, normalizeVmuxTheme } from '../theme/themePalette.js';
+import type { ComuxPane, ComuxThemeName, SidebarProject } from '../types.js';
+import { isComuxThemeName, normalizeComuxTheme } from '../theme/themePalette.js';
 import { getPaneProjectRoot } from './paneProject.js';
 import { getSidebarProjectColorTheme } from './sidebarProjects.js';
 import { SettingsManager } from './settingsManager.js';
 
-type ProjectThemeCache = Map<string, VmuxThemeName>;
+type ProjectThemeCache = Map<string, ComuxThemeName>;
 
 function getCacheKey(projectRoot: string): string {
   return path.resolve(projectRoot);
@@ -15,7 +15,7 @@ export function resolveProjectColorTheme(
   projectRoot: string,
   sidebarProjects: SidebarProject[],
   cache: ProjectThemeCache = new Map()
-): VmuxThemeName {
+): ComuxThemeName {
   const cacheKey = getCacheKey(projectRoot);
   const cachedTheme = cache.get(cacheKey);
   if (cachedTheme) {
@@ -23,19 +23,19 @@ export function resolveProjectColorTheme(
   }
 
   const resolvedTheme = getSidebarProjectColorTheme(sidebarProjects, projectRoot)
-    || normalizeVmuxTheme(new SettingsManager(projectRoot).getSettings().colorTheme);
+    || normalizeComuxTheme(new SettingsManager(projectRoot).getSettings().colorTheme);
 
   cache.set(cacheKey, resolvedTheme);
   return resolvedTheme;
 }
 
 export function getPaneColorTheme(
-  pane: VmuxPane,
+  pane: ComuxPane,
   sidebarProjects: SidebarProject[],
   fallbackProjectRoot: string,
   cache: ProjectThemeCache = new Map()
-): VmuxThemeName {
-  if (isVmuxThemeName(pane.colorTheme)) {
+): ComuxThemeName {
+  if (isComuxThemeName(pane.colorTheme)) {
     return pane.colorTheme;
   }
 
@@ -47,10 +47,10 @@ export function getPaneColorTheme(
 }
 
 export function syncPaneColorThemes(
-  panes: VmuxPane[],
+  panes: ComuxPane[],
   sidebarProjects: SidebarProject[],
   fallbackProjectRoot: string
-): VmuxPane[] {
+): ComuxPane[] {
   const projectThemeCache: ProjectThemeCache = new Map();
   let changed = false;
 

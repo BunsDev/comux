@@ -85,11 +85,11 @@ describe('resumeBranches', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    rootRepo = createTempRepoDir('vmux-resume-root-');
+    rootRepo = createTempRepoDir('comux-resume-root-');
     childRepo = path.join(rootRepo, 'child-repo');
     fs.mkdirSync(path.join(childRepo, '.git'), { recursive: true });
 
-    orphanedRootWorktree = path.join(rootRepo, '.vmux', 'worktrees', 'reopen-me');
+    orphanedRootWorktree = path.join(rootRepo, '.comux', 'worktrees', 'reopen-me');
     fs.mkdirSync(orphanedRootWorktree, { recursive: true });
     fs.writeFileSync(path.join(orphanedRootWorktree, '.git'), 'gitdir: /tmp/reopen-me\n', 'utf-8');
   });
@@ -290,14 +290,14 @@ describe('resumeBranches', () => {
 
     createPaneMock.mockResolvedValue({
       pane: {
-        id: 'vmux-1',
+        id: 'comux-1',
         slug: 'remote-shared',
         branchName: 'feature/remote-shared',
         prompt: 'No initial prompt',
         paneId: '%1',
         projectRoot: rootRepo,
         projectName: path.basename(rootRepo),
-        worktreePath: path.join(rootRepo, '.vmux', 'worktrees', 'remote-shared'),
+        worktreePath: path.join(rootRepo, '.comux', 'worktrees', 'remote-shared'),
       },
       needsAgentChoice: false,
     });
@@ -379,11 +379,11 @@ describe('resumeBranches', () => {
       branchName: 'feature/remote-shared',
       projectRoot: rootRepo,
       existingPanes: [],
-      sessionConfigPath: path.join(rootRepo, '.vmux', 'vmux.config.json'),
+      sessionConfigPath: path.join(rootRepo, '.comux', 'comux.config.json'),
       sessionProjectRoot: rootRepo,
     });
 
-    const rootWorktreePath = path.join(rootRepo, '.vmux', 'worktrees', 'remote-shared');
+    const rootWorktreePath = path.join(rootRepo, '.comux', 'worktrees', 'remote-shared');
     const childWorktreePath = path.join(rootWorktreePath, 'child-repo');
 
     expect(createdPaths).toEqual([rootWorktreePath, childWorktreePath]);
@@ -448,9 +448,9 @@ describe('resumeBranches', () => {
       childRepo,
       undefined,
       expect.objectContaining({
-        VMUX_AGENT: 'codex',
-        VMUX_BRANCH: 'feature/remote-shared',
-        VMUX_WORKTREE_PATH: childWorktreePath,
+        COMUX_AGENT: 'codex',
+        COMUX_BRANCH: 'feature/remote-shared',
+        COMUX_WORKTREE_PATH: childWorktreePath,
       })
     );
   });
@@ -460,14 +460,14 @@ describe('resumeBranches', () => {
 
     createPaneMock.mockResolvedValue({
       pane: {
-        id: 'vmux-1',
+        id: 'comux-1',
         slug: 'react',
         branchName: 'react',
         prompt: 'No initial prompt',
         paneId: '%1',
         projectRoot: rootRepo,
         projectName: path.basename(rootRepo),
-        worktreePath: path.join(rootRepo, '.vmux', 'worktrees', 'react'),
+        worktreePath: path.join(rootRepo, '.comux', 'worktrees', 'react'),
       },
       needsAgentChoice: false,
     });
@@ -534,11 +534,11 @@ describe('resumeBranches', () => {
       branchName: 'react',
       projectRoot: rootRepo,
       existingPanes: [],
-      sessionConfigPath: path.join(rootRepo, '.vmux', 'vmux.config.json'),
+      sessionConfigPath: path.join(rootRepo, '.comux', 'comux.config.json'),
       sessionProjectRoot: rootRepo,
     });
 
-    const rootWorktreePath = path.join(rootRepo, '.vmux', 'worktrees', 'react');
+    const rootWorktreePath = path.join(rootRepo, '.comux', 'worktrees', 'react');
     const childWorktreePath = path.join(rootWorktreePath, 'child-repo');
 
     expect(createdPaths).toEqual([rootWorktreePath, childWorktreePath]);
@@ -557,15 +557,15 @@ describe('resumeBranches', () => {
       childRepo,
       undefined,
       expect.objectContaining({
-        VMUX_BRANCH: 'react',
-        VMUX_WORKTREE_PATH: childWorktreePath,
+        COMUX_BRANCH: 'react',
+        COMUX_WORKTREE_PATH: childWorktreePath,
       })
     );
   });
 
   it('reuses an existing child worktree when that branch is already checked out there', async () => {
     const createdPaths: string[] = [];
-    const rootWorktreePath = path.join(rootRepo, '.vmux', 'worktrees', 'react');
+    const rootWorktreePath = path.join(rootRepo, '.comux', 'worktrees', 'react');
     const childWorktreePath = path.join(rootWorktreePath, 'child-repo');
 
     fs.mkdirSync(rootWorktreePath, { recursive: true });
@@ -575,7 +575,7 @@ describe('resumeBranches', () => {
 
     createPaneMock.mockResolvedValue({
       pane: {
-        id: 'vmux-1',
+        id: 'comux-1',
         slug: 'react',
         branchName: 'react',
         prompt: 'No initial prompt',
@@ -658,7 +658,7 @@ describe('resumeBranches', () => {
       branchName: 'react',
       projectRoot: rootRepo,
       existingPanes: [],
-      sessionConfigPath: path.join(rootRepo, '.vmux', 'vmux.config.json'),
+      sessionConfigPath: path.join(rootRepo, '.comux', 'comux.config.json'),
       sessionProjectRoot: rootRepo,
     });
 
@@ -678,8 +678,8 @@ describe('resumeBranches', () => {
       childRepo,
       undefined,
       expect.objectContaining({
-        VMUX_BRANCH: 'react',
-        VMUX_WORKTREE_PATH: childWorktreePath,
+        COMUX_BRANCH: 'react',
+        COMUX_WORKTREE_PATH: childWorktreePath,
       })
     );
   });

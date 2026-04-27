@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildNotificationSoundPreviewMessage,
-  getVmuxHelperSocketPath,
+  getComuxHelperSocketPath,
 } from '../src/utils/notificationSoundPreview.js';
 
 describe('notification sound preview commands', () => {
@@ -17,7 +17,7 @@ describe('notification sound preview commands', () => {
   it('routes bundled sound previews through the helper resource name', () => {
     expect(buildNotificationSoundPreviewMessage('harp', 'darwin')).toEqual({
       type: 'preview-sound',
-      soundName: 'vmux-harp.caf',
+      soundName: 'comux-harp.caf',
     });
   });
 
@@ -26,8 +26,8 @@ describe('notification sound preview commands', () => {
   });
 
   it('uses the default helper socket path', () => {
-    expect(getVmuxHelperSocketPath('/tmp/home')).toBe(
-      '/tmp/home/.vmux/native-helper/run/vmux-helper.sock'
+    expect(getComuxHelperSocketPath('/tmp/home')).toBe(
+      '/tmp/home/.comux/native-helper/run/comux-helper.sock'
     );
   });
 });

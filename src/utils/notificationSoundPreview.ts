@@ -2,8 +2,8 @@ import { createConnection, type Socket } from 'node:net';
 import os from 'os';
 import path from 'path';
 import {
-  supportsNativeVmuxHelper,
-  type VmuxHelperPreviewSoundMessage,
+  supportsNativeComuxHelper,
+  type ComuxHelperPreviewSoundMessage,
 } from './focusDetection.js';
 import type { NotificationSoundId } from './notificationSounds.js';
 import { getNotificationSoundDefinition } from './notificationSounds.js';
@@ -16,8 +16,8 @@ export interface NotificationSoundPreviewPlayer {
 export function buildNotificationSoundPreviewMessage(
   soundId: NotificationSoundId,
   platform: NodeJS.Platform = process.platform
-): VmuxHelperPreviewSoundMessage | null {
-  if (!supportsNativeVmuxHelper(platform)) {
+): ComuxHelperPreviewSoundMessage | null {
+  if (!supportsNativeComuxHelper(platform)) {
     return null;
   }
 
@@ -28,13 +28,13 @@ export function buildNotificationSoundPreviewMessage(
   };
 }
 
-export function getVmuxHelperSocketPath(homeDirectory: string = os.homedir()): string {
-  return path.join(homeDirectory, '.vmux', 'native-helper', 'run', 'vmux-helper.sock');
+export function getComuxHelperSocketPath(homeDirectory: string = os.homedir()): string {
+  return path.join(homeDirectory, '.comux', 'native-helper', 'run', 'comux-helper.sock');
 }
 
 export function createNotificationSoundPreviewPlayer(
   platform: NodeJS.Platform = process.platform,
-  socketPath: string = getVmuxHelperSocketPath()
+  socketPath: string = getComuxHelperSocketPath()
 ): NotificationSoundPreviewPlayer {
   let activeSocket: Socket | null = null;
 

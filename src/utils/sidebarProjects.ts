@@ -1,30 +1,30 @@
 import path from 'path';
 import type {
-  VmuxPane,
-  VmuxThemeName,
+  ComuxPane,
+  ComuxThemeName,
   SidebarProject,
 } from '../types.js';
 import {
-  DEFAULT_VMUX_THEME,
-  VMUX_THEME_NAMES,
-  isVmuxThemeName,
+  DEFAULT_COMUX_THEME,
+  COMUX_THEME_NAMES,
+  isComuxThemeName,
 } from '../theme/themePalette.js';
 import { getPaneProjectName, getPaneProjectRoot } from './paneProject.js';
 
 export const SIDEBAR_PROJECT_COLOR_THEME_SETTING_KEY = 'projectColorTheme';
 export const AUTO_SIDEBAR_PROJECT_COLOR_THEME_VALUE = 'auto';
 
-const AUTO_SIDEBAR_THEME_ORDER: readonly VmuxThemeName[] = [
-  DEFAULT_VMUX_THEME,
-  ...VMUX_THEME_NAMES.filter((themeName) => themeName !== DEFAULT_VMUX_THEME),
+const AUTO_SIDEBAR_THEME_ORDER: readonly ComuxThemeName[] = [
+  DEFAULT_COMUX_THEME,
+  ...COMUX_THEME_NAMES.filter((themeName) => themeName !== DEFAULT_COMUX_THEME),
 ];
 
 function normalizeProjectRoot(projectRoot: string): string {
   return path.resolve(projectRoot);
 }
 
-function normalizeProjectColorTheme(colorTheme: unknown): VmuxThemeName | undefined {
-  return isVmuxThemeName(colorTheme) ? colorTheme : undefined;
+function normalizeProjectColorTheme(colorTheme: unknown): ComuxThemeName | undefined {
+  return isComuxThemeName(colorTheme) ? colorTheme : undefined;
 }
 
 function normalizeProjectColorThemeSource(
@@ -137,7 +137,7 @@ export function setSidebarProjectName(
 export function getSidebarProjectColorTheme(
   projects: SidebarProject[],
   projectRoot: string
-): VmuxThemeName | undefined {
+): ComuxThemeName | undefined {
   return projects.find((project) => sameSidebarProjectRoot(project.projectRoot, projectRoot))?.colorTheme;
 }
 
@@ -170,7 +170,7 @@ export function getSidebarProjectDisplayName(
 export function setSidebarProjectColorTheme(
   projects: SidebarProject[],
   projectRoot: string,
-  colorTheme: VmuxThemeName | undefined,
+  colorTheme: ComuxThemeName | undefined,
   colorThemeSource?: SidebarProject['colorThemeSource']
 ): SidebarProject[] {
   const normalizedColorTheme = normalizeProjectColorTheme(colorTheme);
@@ -217,7 +217,7 @@ function getProjectsWithoutProject(
 export function getSidebarProjectColorThemeSettingValue(
   projects: SidebarProject[],
   projectRoot: string,
-  resolveProjectTheme?: (projectRoot: string) => VmuxThemeName | undefined
+  resolveProjectTheme?: (projectRoot: string) => ComuxThemeName | undefined
 ): string {
   const project = getSidebarProject(projects, projectRoot);
   if (!project?.colorTheme) {
@@ -247,7 +247,7 @@ export function setSidebarProjectColorThemeSettingValue(
   projects: SidebarProject[],
   projectRoot: string,
   settingValue: unknown,
-  resolveProjectTheme?: (projectRoot: string) => VmuxThemeName | undefined
+  resolveProjectTheme?: (projectRoot: string) => ComuxThemeName | undefined
 ): SidebarProject[] {
   if (settingValue === AUTO_SIDEBAR_PROJECT_COLOR_THEME_VALUE) {
     const autoTheme = getAutoSidebarProjectColorTheme(
@@ -262,7 +262,7 @@ export function setSidebarProjectColorThemeSettingValue(
     return setSidebarProjectColorTheme(projects, projectRoot, undefined);
   }
 
-  if (isVmuxThemeName(settingValue)) {
+  if (isComuxThemeName(settingValue)) {
     return setSidebarProjectColorTheme(projects, projectRoot, settingValue, 'manual');
   }
 
@@ -272,9 +272,9 @@ export function setSidebarProjectColorThemeSettingValue(
 export function getAutoSidebarProjectColorTheme(
   projects: SidebarProject[],
   nextProject: Pick<SidebarProject, 'projectRoot' | 'colorTheme'>,
-  resolveProjectTheme?: (projectRoot: string) => VmuxThemeName | undefined
-): VmuxThemeName {
-  const usedThemes = new Set<VmuxThemeName>();
+  resolveProjectTheme?: (projectRoot: string) => ComuxThemeName | undefined
+): ComuxThemeName {
+  const usedThemes = new Set<ComuxThemeName>();
 
   for (const project of projects) {
     const resolvedTheme = normalizeProjectColorTheme(project.colorTheme)
@@ -292,7 +292,7 @@ export function getAutoSidebarProjectColorTheme(
 
   return AUTO_SIDEBAR_THEME_ORDER.find((themeName) => !usedThemes.has(themeName))
     || preferredTheme
-    || DEFAULT_VMUX_THEME;
+    || DEFAULT_COMUX_THEME;
 }
 
 /**
@@ -302,7 +302,7 @@ export function getAutoSidebarProjectColorTheme(
  */
 export function normalizeSidebarProjects(
   sidebarProjects: SidebarProject[] | undefined,
-  panes: VmuxPane[],
+  panes: ComuxPane[],
   fallbackProjectRoot: string,
   fallbackProjectName: string
 ): SidebarProject[] {

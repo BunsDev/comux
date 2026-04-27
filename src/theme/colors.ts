@@ -1,9 +1,9 @@
 import { SettingsManager } from '../utils/settingsManager.js';
-import type { VmuxThemeName } from '../types.js';
+import type { ComuxThemeName } from '../types.js';
 import {
-  DEFAULT_VMUX_THEME,
-  isVmuxThemeName,
-  normalizeVmuxTheme,
+  DEFAULT_COMUX_THEME,
+  isComuxThemeName,
+  normalizeComuxTheme,
 } from './themePalette.js';
 
 interface ThemePalette {
@@ -20,7 +20,7 @@ const ANSI_16_HEX_COLORS = [
   '#0000ff', '#ff00ff', '#00ffff', '#ffffff',
 ] as const;
 
-const THEME_PALETTES: Record<VmuxThemeName, ThemePalette> = {
+const THEME_PALETTES: Record<ComuxThemeName, ThemePalette> = {
   red: {
     accentHex: '#ff5f5f',
     activeBorder: '203',
@@ -109,14 +109,14 @@ export const DECORATIVE_THEME = {
   tail: Array.from({ length: 8 }, () => ''),
 } as const;
 
-let activeThemeName: VmuxThemeName = DEFAULT_VMUX_THEME;
+let activeThemeName: ComuxThemeName = DEFAULT_COMUX_THEME;
 
-export function getVmuxThemePalette(themeName: unknown): ThemePalette {
-  return THEME_PALETTES[normalizeVmuxTheme(themeName)];
+export function getComuxThemePalette(themeName: unknown): ThemePalette {
+  return THEME_PALETTES[normalizeComuxTheme(themeName)];
 }
 
-export function getVmuxThemeAccent(themeName: unknown): string {
-  return getVmuxThemePalette(themeName).accentHex;
+export function getComuxThemeAccent(themeName: unknown): string {
+  return getComuxThemePalette(themeName).accentHex;
 }
 
 function xterm256IndexToHex(colorIndex: number): string | undefined {
@@ -145,14 +145,14 @@ function xterm256IndexToHex(colorIndex: number): string | undefined {
     .join('')}`;
 }
 
-export function getVmuxThemeActiveBorderHex(themeName: unknown): string {
-  const activeBorderIndex = Number.parseInt(getVmuxThemePalette(themeName).activeBorder, 10);
+export function getComuxThemeActiveBorderHex(themeName: unknown): string {
+  const activeBorderIndex = Number.parseInt(getComuxThemePalette(themeName).activeBorder, 10);
   const activeBorderHex = xterm256IndexToHex(activeBorderIndex);
-  return activeBorderHex || getVmuxThemeAccent(themeName);
+  return activeBorderHex || getComuxThemeAccent(themeName);
 }
 
-export function applyVmuxTheme(themeName: VmuxThemeName): VmuxThemeName {
-  const nextTheme = getVmuxThemePalette(themeName);
+export function applyComuxTheme(themeName: ComuxThemeName): ComuxThemeName {
+  const nextTheme = getComuxThemePalette(themeName);
   activeThemeName = themeName;
 
   assignMutableRecord(COLORS as unknown as Record<string, string>, {
@@ -173,22 +173,22 @@ export function applyVmuxTheme(themeName: VmuxThemeName): VmuxThemeName {
   return activeThemeName;
 }
 
-export function getActiveVmuxTheme(): VmuxThemeName {
+export function getActiveComuxTheme(): ComuxThemeName {
   return activeThemeName;
 }
 
-export function syncVmuxThemeFromSettings(projectRoot?: string): VmuxThemeName {
+export function syncComuxThemeFromSettings(projectRoot?: string): ComuxThemeName {
   try {
     const settings = new SettingsManager(projectRoot || process.cwd()).getSettings();
-    return applyVmuxTheme(normalizeVmuxTheme(settings.colorTheme));
+    return applyComuxTheme(normalizeComuxTheme(settings.colorTheme));
   } catch {
-    return applyVmuxTheme(DEFAULT_VMUX_THEME);
+    return applyComuxTheme(DEFAULT_COMUX_THEME);
   }
 }
 
 // Keep module consumers working without explicit setup.
-if (process.env.VMUX_THEME && isVmuxThemeName(process.env.VMUX_THEME)) {
-  applyVmuxTheme(process.env.VMUX_THEME);
+if (process.env.COMUX_THEME && isComuxThemeName(process.env.COMUX_THEME)) {
+  applyComuxTheme(process.env.COMUX_THEME);
 } else {
-  syncVmuxThemeFromSettings(process.cwd());
+  syncComuxThemeFromSettings(process.cwd());
 }

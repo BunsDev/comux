@@ -22,28 +22,28 @@ describe('tmuxRuntimeCompatibility', () => {
   });
 
   it('builds runtime commands for missing compatibility settings', () => {
-    const commands = buildTmuxRuntimeCompatibilityCommands('vmux-test', {
+    const commands = buildTmuxRuntimeCompatibilityCommands('comux-test', {
       terminalOverrides: [],
       updateEnvironment: [],
     });
 
     expect(commands).toEqual([
-      ['set-option', '-q', '-t', 'vmux-test', 'set-clipboard', 'on'],
-      ['set-option', '-q', '-t', 'vmux-test', 'allow-passthrough', 'all'],
-      ['set-option', '-q', '-ag', '-t', 'vmux-test', 'update-environment', 'TERM_PROGRAM'],
-      ['set-option', '-q', '-ag', '-t', 'vmux-test', 'terminal-overrides', 'xterm-256color:Ms=\\E]52;c;%p2%s\\007'],
+      ['set-option', '-q', '-t', 'comux-test', 'set-clipboard', 'on'],
+      ['set-option', '-q', '-t', 'comux-test', 'allow-passthrough', 'all'],
+      ['set-option', '-q', '-ag', '-t', 'comux-test', 'update-environment', 'TERM_PROGRAM'],
+      ['set-option', '-q', '-ag', '-t', 'comux-test', 'terminal-overrides', 'xterm-256color:Ms=\\E]52;c;%p2%s\\007'],
     ]);
   });
 
   it('does not duplicate array entries already present', () => {
-    const commands = buildTmuxRuntimeCompatibilityCommands('vmux-test', {
+    const commands = buildTmuxRuntimeCompatibilityCommands('comux-test', {
       terminalOverrides: ['linux*:AX@', 'xterm-256color:Ms=\\E]52;c;%p2%s\\007'],
       updateEnvironment: ['DISPLAY', 'TERM_PROGRAM'],
     });
 
     expect(commands).toEqual([
-      ['set-option', '-q', '-t', 'vmux-test', 'set-clipboard', 'on'],
-      ['set-option', '-q', '-t', 'vmux-test', 'allow-passthrough', 'all'],
+      ['set-option', '-q', '-t', 'comux-test', 'set-clipboard', 'on'],
+      ['set-option', '-q', '-t', 'comux-test', 'allow-passthrough', 'all'],
     ]);
   });
 });

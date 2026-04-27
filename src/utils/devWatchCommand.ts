@@ -1,7 +1,7 @@
 /**
- * Build a shell-safe command for restarting vmux dev watch from a source path.
+ * Build a shell-safe command for restarting comux dev watch from a source path.
  * For respawned tmux panes, we append an interactive shell so the pane stays open
- * after vmux exits intentionally.
+ * after comux exits intentionally.
  */
 
 const escapeForDoubleQuotedShell = (value: string): string =>

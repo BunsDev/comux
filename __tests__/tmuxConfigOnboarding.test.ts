@@ -29,7 +29,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('detects missing tmux config', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'vmux-onboarding-'));
+    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
 
     try {
       const result = await hasMeaningfulTmuxConfig(homeDir);
@@ -40,7 +40,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('detects existing tmux config from ~/.tmux.conf', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'vmux-onboarding-'));
+    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
 
     try {
       writeFileSync(join(homeDir, '.tmux.conf'), "set -g mouse on\n", 'utf-8');
@@ -52,7 +52,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('treats empty tmux config as not configured', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'vmux-onboarding-'));
+    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
 
     try {
       writeFileSync(join(homeDir, '.tmux.conf'), '', 'utf-8');
@@ -64,7 +64,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('detects existing tmux config from ~/.config/tmux/tmux.conf', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'vmux-onboarding-'));
+    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
 
     try {
       const configDir = join(homeDir, '.config', 'tmux');
@@ -92,7 +92,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('writes managed config and onboarding state when setup is accepted', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'vmux-onboarding-'));
+    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
     const sourcedPaths: string[] = [];
 
     try {
@@ -107,12 +107,12 @@ describe('tmux config onboarding utils', () => {
       });
 
       const configPath = join(homeDir, '.tmux.conf');
-      const statePath = join(homeDir, '.vmux', 'onboarding.json');
+      const statePath = join(homeDir, '.comux', 'onboarding.json');
       const config = readFileSync(configPath, 'utf-8');
       const state = JSON.parse(readFileSync(statePath, 'utf-8'));
 
-      expect(config).toContain('# >>> vmux');
-      expect(config).toContain('# <<< vmux');
+      expect(config).toContain('# >>> comux');
+      expect(config).toContain('# <<< comux');
       expect(state.tmuxConfigOnboarding).toMatchObject({
         completed: true,
         completedAt: '2026-04-24T12:00:00.000Z',
@@ -127,7 +127,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('marks onboarding skipped without creating tmux config', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'vmux-onboarding-'));
+    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
 
     try {
       await runTmuxConfigOnboardingIfNeeded({
@@ -140,7 +140,7 @@ describe('tmux config onboarding utils', () => {
         },
       });
 
-      const state = JSON.parse(readFileSync(join(homeDir, '.vmux', 'onboarding.json'), 'utf-8'));
+      const state = JSON.parse(readFileSync(join(homeDir, '.comux', 'onboarding.json'), 'utf-8'));
       expect(state.tmuxConfigOnboarding).toMatchObject({
         completed: true,
         completedAt: '2026-04-24T12:00:00.000Z',
@@ -153,7 +153,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('preserves existing tmux config and creates a backup when setup is accepted', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'vmux-onboarding-'));
+    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
     const configPath = join(homeDir, '.tmux.conf');
 
     try {
@@ -170,10 +170,10 @@ describe('tmux config onboarding utils', () => {
       });
 
       const config = readFileSync(configPath, 'utf-8');
-      const backups = readdirSync(homeDir).filter(name => name.startsWith('.tmux.conf.vmux-backup-'));
+      const backups = readdirSync(homeDir).filter(name => name.startsWith('.tmux.conf.comux-backup-'));
 
       expect(config).toContain('set -g history-limit 5000');
-      expect(config).toContain('# >>> vmux');
+      expect(config).toContain('# >>> comux');
       expect(backups).toHaveLength(1);
     } finally {
       rmSync(homeDir, { recursive: true, force: true });

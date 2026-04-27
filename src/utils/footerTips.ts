@@ -2,9 +2,9 @@
 const BASE_FOOTER_TIPS = [
   'Press [?] for every shortcut.',
   'Press [m] for pane actions.',
-  'Press [s] to tweak vmux settings.',
+  'Press [s] to tweak comux settings.',
   'You can hide tips in settings.',
-  'Press [l] to inspect vmux logs.',
+  'Press [l] to inspect comux logs.',
   'Press [n] for a new agent pane.',
   'Press [t] for a new terminal.',
   'Press [u] to open rituals.',

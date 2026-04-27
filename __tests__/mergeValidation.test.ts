@@ -11,9 +11,9 @@ describe('mergeValidation', () => {
     vi.mocked(execSync).mockReset();
   });
 
-  it('ignores vmux metadata directories when checking git status', () => {
+  it('ignores comux metadata directories when checking git status', () => {
     vi.mocked(execSync).mockReturnValue(
-      '?? .vmux/\nM  .vmux/worktrees/feature-a\n'
+      '?? .comux/\nM  .comux/worktrees/feature-a\n'
     );
 
     const status = getGitStatus('/repo');
@@ -28,11 +28,11 @@ describe('mergeValidation', () => {
   it('ignores untracked hook scaffolding but preserves real hook changes', () => {
     vi.mocked(execSync).mockReturnValue(
       [
-        '?? .vmux-hooks/',
-        '?? .vmux-hooks/AGENTS.md',
-        '?? .vmux-hooks/examples/pre_merge.example',
-        ' M .vmux-hooks/pre_merge',
-        '?? .vmux-hooks/custom_hook',
+        '?? .comux-hooks/',
+        '?? .comux-hooks/AGENTS.md',
+        '?? .comux-hooks/examples/pre_merge.example',
+        ' M .comux-hooks/pre_merge',
+        '?? .comux-hooks/custom_hook',
       ].join('\n')
     );
 
@@ -41,14 +41,14 @@ describe('mergeValidation', () => {
     expect(status).toEqual({
       hasChanges: true,
       files: [
-        '.vmux-hooks/pre_merge',
-        '.vmux-hooks/custom_hook',
+        '.comux-hooks/pre_merge',
+        '.comux-hooks/custom_hook',
       ],
-      summary: ' M .vmux-hooks/pre_merge\n?? .vmux-hooks/custom_hook',
+      summary: ' M .comux-hooks/pre_merge\n?? .comux-hooks/custom_hook',
     });
   });
 
-  it('keeps non-vmux files in the dirty-state result', () => {
+  it('keeps non-comux files in the dirty-state result', () => {
     vi.mocked(execSync).mockReturnValue(
       ' M src/index.ts\nM package.json\n'
     );

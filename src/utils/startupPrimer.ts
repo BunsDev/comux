@@ -12,7 +12,7 @@ interface OnboardingState {
   };
 }
 
-const ONBOARDING_STATE_RELATIVE_PATH = path.join('.vmux', 'onboarding.json');
+const ONBOARDING_STATE_RELATIVE_PATH = path.join('.comux', 'onboarding.json');
 
 async function readOnboardingState(statePath: string): Promise<OnboardingState> {
   try {

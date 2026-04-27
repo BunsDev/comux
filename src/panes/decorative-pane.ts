@@ -5,16 +5,16 @@
 
 import { ASCII_ART as ASCII_ART_EXPORTS } from "../utils/asciiArt.js"
 import {
-  applyVmuxTheme,
+  applyComuxTheme,
   DECORATIVE_THEME,
-  getActiveVmuxTheme,
+  getActiveComuxTheme,
 } from "../theme/colors.js"
-import { normalizeVmuxTheme } from "../theme/themePalette.js"
+import { normalizeComuxTheme } from "../theme/themePalette.js"
 import { WELCOME_PANE_THEME_OPTION } from "../utils/welcomePane.js"
 import { execSync } from "child_process"
 
 // Parse the ASCII art string into an array of lines
-const ASCII_ART = ASCII_ART_EXPORTS.vmuxWelcome.trim().split("\n")
+const ASCII_ART = ASCII_ART_EXPORTS.comuxWelcome.trim().split("\n")
 
 const FILL_CHAR = "·"
 const DIM_GRAY = DECORATIVE_THEME.fill
@@ -127,7 +127,7 @@ function render(width: number, height: number, drops: StaticDrop[]): void {
         // If we're in the art region and the art has a character here
         if (artCol >= 0 && artCol < trimmedArt.length) {
           const artChar = trimmedArt[artCol]
-          // ASCII art takes precedence - render in the active vmux accent
+          // ASCII art takes precedence - render in the active comux accent
           line += DECORATIVE_THEME.primary + artChar + RESET
         } else {
           // Outside art region - show background or fill char
@@ -185,12 +185,12 @@ function syncThemeFromPaneOption(): boolean {
     return false
   }
 
-  const nextTheme = normalizeVmuxTheme(configuredTheme)
-  if (nextTheme === getActiveVmuxTheme()) {
+  const nextTheme = normalizeComuxTheme(configuredTheme)
+  if (nextTheme === getActiveComuxTheme()) {
     return false
   }
 
-  applyVmuxTheme(nextTheme)
+  applyComuxTheme(nextTheme)
   return true
 }
 

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { homedir } from 'os';
-import type { VmuxSettings, SettingsScope, EffectiveSettingsScope, SettingDefinition } from '../types.js';
+import type { ComuxSettings, SettingsScope, EffectiveSettingsScope, SettingDefinition } from '../types.js';
 import {
   DEFAULT_MIN_PANE_WIDTH,
   DEFAULT_MAX_PANE_WIDTH,
@@ -25,16 +25,16 @@ import {
   type NotificationSoundId,
 } from './notificationSounds.js';
 import {
-  DEFAULT_VMUX_THEME,
-  VMUX_THEME_NAMES,
-  getVmuxThemeLabel,
-  isVmuxThemeName,
+  DEFAULT_COMUX_THEME,
+  COMUX_THEME_NAMES,
+  getComuxThemeLabel,
+  isComuxThemeName,
 } from '../theme/themePalette.js';
 
-const GLOBAL_SETTINGS_PATH = join(homedir(), '.vmux.global.json');
-const TEAM_DEFAULTS_FILENAME = '.vmux.defaults.json';
+const GLOBAL_SETTINGS_PATH = join(homedir(), '.comux.global.json');
+const TEAM_DEFAULTS_FILENAME = '.comux.defaults.json';
 const PERMISSION_MODES = ['', 'plan', 'acceptEdits', 'bypassPermissions'] as const;
-function isPermissionMode(value: string): value is NonNullable<VmuxSettings['permissionMode']> {
+function isPermissionMode(value: string): value is NonNullable<ComuxSettings['permissionMode']> {
   return (PERMISSION_MODES as readonly string[]).includes(value);
 }
 
@@ -56,13 +56,13 @@ function isValidMinPaneWidth(value: unknown): value is number {
   );
 }
 
-function sanitizeLoadedSettings(value: unknown): VmuxSettings {
+function sanitizeLoadedSettings(value: unknown): ComuxSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
   }
 
   const parsed = value as Record<string, unknown>;
-  const sanitized: VmuxSettings = {};
+  const sanitized: ComuxSettings = {};
 
   if (typeof parsed.permissionMode === 'string' && isPermissionMode(parsed.permissionMode)) {
     sanitized.permissionMode = parsed.permissionMode;
@@ -96,7 +96,7 @@ function sanitizeLoadedSettings(value: unknown): VmuxSettings {
     sanitized.showFooterTips = parsed.showFooterTips;
   }
 
-  if (typeof parsed.colorTheme === 'string' && isVmuxThemeName(parsed.colorTheme)) {
+  if (typeof parsed.colorTheme === 'string' && isComuxThemeName(parsed.colorTheme)) {
     sanitized.colorTheme = parsed.colorTheme;
   }
 
@@ -126,8 +126,8 @@ function sanitizeLoadedSettings(value: unknown): VmuxSettings {
   return sanitized;
 }
 
-function cloneSettingsArrays(settings: VmuxSettings): VmuxSettings {
-  const cloned: VmuxSettings = { ...settings };
+function cloneSettingsArrays(settings: ComuxSettings): ComuxSettings {
+  const cloned: ComuxSettings = { ...settings };
 
   if (Array.isArray(cloned.enabledAgents)) {
     cloned.enabledAgents = [...cloned.enabledAgents];
@@ -140,8 +140,8 @@ function cloneSettingsArrays(settings: VmuxSettings): VmuxSettings {
   return cloned;
 }
 
-const DEFAULT_SETTINGS: VmuxSettings = {
-  // Most permissive defaults for new vmux setups.
+const DEFAULT_SETTINGS: ComuxSettings = {
+  // Most permissive defaults for new comux setups.
   permissionMode: 'bypassPermissions',
   enableAutopilotByDefault: true,
   minPaneWidth: DEFAULT_MIN_PANE_WIDTH,
@@ -149,7 +149,7 @@ const DEFAULT_SETTINGS: VmuxSettings = {
   enabledAgents: getDefaultEnabledAgents(),
   enabledNotificationSounds: getDefaultNotificationSoundSelection(),
   showFooterTips: true,
-  colorTheme: DEFAULT_VMUX_THEME,
+  colorTheme: DEFAULT_COMUX_THEME,
 };
 
 const AGENT_OPTIONS = getAgentDefinitions().map((agent) => ({
@@ -197,23 +197,23 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   {
     key: 'enabledNotificationSounds' as any,
     label: 'Attention Notification Sounds',
-    description: 'Select the macOS helper sounds that vmux randomizes between for background alerts',
+    description: 'Select the macOS helper sounds that comux randomizes between for background alerts',
     type: 'action' as any,
   },
   {
     key: 'showFooterTips',
     label: 'Show Footer Tips',
-    description: 'Rotate short vmux tips in the footer. Disable this if you prefer a quieter sidebar.',
+    description: 'Rotate short comux tips in the footer. Disable this if you prefer a quieter sidebar.',
     type: 'boolean',
   },
   {
     key: 'colorTheme',
     label: 'Color Theme',
-    description: 'Choose the accent color for the vmux UI and welcome pane',
+    description: 'Choose the accent color for the comux UI and welcome pane',
     type: 'select',
-    options: VMUX_THEME_NAMES.map((themeName) => ({
+    options: COMUX_THEME_NAMES.map((themeName) => ({
       value: themeName,
-      label: getVmuxThemeLabel(themeName),
+      label: getComuxThemeLabel(themeName),
     })),
   },
   {
@@ -263,7 +263,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   {
     key: 'hooks' as any,
     label: 'Manage Hooks',
-    description: 'View and edit vmux lifecycle hooks',
+    description: 'View and edit comux lifecycle hooks',
     type: 'action' as any,
   },
 ];
@@ -272,19 +272,19 @@ export class SettingsManager {
   private globalPath: string;
   private projectPath: string;
   private teamDefaultsPath: string;
-  private globalSettings: VmuxSettings = {};
-  private projectSettings: VmuxSettings = {};
-  private teamDefaults: VmuxSettings = {};
+  private globalSettings: ComuxSettings = {};
+  private projectSettings: ComuxSettings = {};
+  private teamDefaults: ComuxSettings = {};
 
   constructor(projectRoot?: string) {
     const root = projectRoot || process.cwd();
     this.globalPath = GLOBAL_SETTINGS_PATH;
-    this.projectPath = join(root, '.vmux', 'settings.json');
+    this.projectPath = join(root, '.comux', 'settings.json');
     this.teamDefaultsPath = join(root, TEAM_DEFAULTS_FILENAME);
     this.loadSettings();
   }
 
-  private loadSettingsFile(filePath: string, label: string): VmuxSettings {
+  private loadSettingsFile(filePath: string, label: string): ComuxSettings {
     if (!existsSync(filePath)) {
       return {};
     }
@@ -317,7 +317,7 @@ export class SettingsManager {
   }
 
   private resolveGlobalPaneWidths(
-    overrides?: Partial<Pick<VmuxSettings, 'minPaneWidth' | 'maxPaneWidth'>>
+    overrides?: Partial<Pick<ComuxSettings, 'minPaneWidth' | 'maxPaneWidth'>>
   ): { minPaneWidth: number; maxPaneWidth: number } {
     const hasMinOverride = overrides?.minPaneWidth !== undefined;
     const hasMaxOverride = overrides?.maxPaneWidth !== undefined;
@@ -343,7 +343,7 @@ export class SettingsManager {
   /**
    * Get merged settings (project > global > team defaults > built-in defaults)
    */
-  getSettings(): VmuxSettings {
+  getSettings(): ComuxSettings {
     const merged = cloneSettingsArrays({
       ...DEFAULT_SETTINGS,
       ...this.teamDefaults,
@@ -362,7 +362,7 @@ export class SettingsManager {
   /**
    * Get a specific setting value (with project override)
    */
-  getSetting<K extends keyof VmuxSettings>(key: K): VmuxSettings[K] {
+  getSetting<K extends keyof ComuxSettings>(key: K): ComuxSettings[K] {
     const merged = this.getSettings();
     return merged[key];
   }
@@ -370,23 +370,23 @@ export class SettingsManager {
   /**
    * Get global settings only
    */
-  getGlobalSettings(): VmuxSettings {
+  getGlobalSettings(): ComuxSettings {
     return cloneSettingsArrays(this.globalSettings);
   }
 
   /**
    * Get project settings only
    */
-  getProjectSettings(): VmuxSettings {
+  getProjectSettings(): ComuxSettings {
     return cloneSettingsArrays(this.projectSettings);
   }
 
   /**
    * Update a setting at the specified scope
    */
-  updateSetting<K extends keyof VmuxSettings>(
+  updateSetting<K extends keyof ComuxSettings>(
     key: K,
-    value: VmuxSettings[K],
+    value: ComuxSettings[K],
     scope: SettingsScope
   ): void {
     // Validate branch-related settings
@@ -398,7 +398,7 @@ export class SettingsManager {
     if (key === 'permissionMode' && typeof value === 'string' && !isPermissionMode(value)) {
       throw new Error(`Invalid permissionMode: "${value}"`);
     }
-    if (key === 'colorTheme' && !isVmuxThemeName(value)) {
+    if (key === 'colorTheme' && !isComuxThemeName(value)) {
       throw new Error(`Invalid colorTheme: "${String(value)}"`);
     }
     if (key === 'enabledAgents') {
@@ -432,7 +432,7 @@ export class SettingsManager {
 
     // Pane width settings are always stored globally, regardless of requested scope.
     if (key === 'minPaneWidth' || key === 'maxPaneWidth') {
-      const paneWidthOverrides: Partial<Pick<VmuxSettings, 'minPaneWidth' | 'maxPaneWidth'>> = {};
+      const paneWidthOverrides: Partial<Pick<ComuxSettings, 'minPaneWidth' | 'maxPaneWidth'>> = {};
       if (key === 'minPaneWidth') {
         paneWidthOverrides.minPaneWidth = value as number;
       } else {
@@ -470,11 +470,11 @@ export class SettingsManager {
   /**
    * Update multiple settings at once
    */
-  updateSettings(settings: Partial<VmuxSettings>, scope: SettingsScope): void {
+  updateSettings(settings: Partial<ComuxSettings>, scope: SettingsScope): void {
     if (typeof settings.permissionMode === 'string' && !isPermissionMode(settings.permissionMode)) {
       throw new Error(`Invalid permissionMode: "${settings.permissionMode}"`);
     }
-    if (settings.colorTheme !== undefined && !isVmuxThemeName(settings.colorTheme)) {
+    if (settings.colorTheme !== undefined && !isComuxThemeName(settings.colorTheme)) {
       throw new Error(`Invalid colorTheme: "${String(settings.colorTheme)}"`);
     }
     if (settings.enabledAgents !== undefined) {
@@ -518,12 +518,12 @@ export class SettingsManager {
       );
     }
 
-    const settingsToApply: Partial<VmuxSettings> = { ...settings };
+    const settingsToApply: Partial<ComuxSettings> = { ...settings };
     let projectSettingsChanged = false;
     let paneWidthsUpdated = false;
 
     if (settingsToApply.minPaneWidth !== undefined || settingsToApply.maxPaneWidth !== undefined) {
-      const paneWidthOverrides: Partial<Pick<VmuxSettings, 'minPaneWidth' | 'maxPaneWidth'>> = {};
+      const paneWidthOverrides: Partial<Pick<ComuxSettings, 'minPaneWidth' | 'maxPaneWidth'>> = {};
       if (settingsToApply.minPaneWidth !== undefined) {
         paneWidthOverrides.minPaneWidth = settingsToApply.minPaneWidth;
       }
@@ -578,7 +578,7 @@ export class SettingsManager {
   /**
    * Remove a setting from the specified scope
    */
-  removeSetting(key: keyof VmuxSettings, scope: SettingsScope): void {
+  removeSetting(key: keyof ComuxSettings, scope: SettingsScope): void {
     if (scope === 'global') {
       delete this.globalSettings[key];
       this.saveGlobalSettings();
@@ -617,7 +617,7 @@ export class SettingsManager {
   /**
    * Check if a setting is overridden at the project level
    */
-  isProjectOverride(key: keyof VmuxSettings): boolean {
+  isProjectOverride(key: keyof ComuxSettings): boolean {
     if (key === 'minPaneWidth' || key === 'maxPaneWidth') {
       return false;
     }
@@ -627,14 +627,14 @@ export class SettingsManager {
   /**
    * Get team defaults (committed to repo, read-only)
    */
-  getTeamDefaults(): VmuxSettings {
+  getTeamDefaults(): ComuxSettings {
     return cloneSettingsArrays(this.teamDefaults);
   }
 
   /**
    * Get the effective scope for a setting (where it's currently defined)
    */
-  getEffectiveScope(key: keyof VmuxSettings): EffectiveSettingsScope | null {
+  getEffectiveScope(key: keyof ComuxSettings): EffectiveSettingsScope | null {
     if (key === 'minPaneWidth') {
       return this.globalSettings.minPaneWidth !== undefined ? 'global' : null;
     }

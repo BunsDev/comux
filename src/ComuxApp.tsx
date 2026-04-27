@@ -38,11 +38,11 @@ import {
 import { SettingsManager } from "./utils/settingsManager.js"
 import { useServices } from "./hooks/useServices.js"
 import { PaneLifecycleManager } from "./services/PaneLifecycleManager.js"
-import { VmuxFocusService } from "./services/VmuxFocusService.js"
+import { ComuxFocusService } from "./services/ComuxFocusService.js"
 import {
-  VmuxAttentionService,
+  ComuxAttentionService,
   type PaneAttentionChangedEvent,
-} from "./services/VmuxAttentionService.js"
+} from "./services/ComuxAttentionService.js"
 import { reopenWorktree } from "./utils/reopenWorktree.js"
 import {
   resumeBranchWorkspace,
@@ -72,9 +72,9 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const ACTIVE_PANE_SYNC_INTERVAL_MS = 125
 import type {
-  VmuxPane,
-  VmuxAppProps,
-  VmuxThemeName,
+  ComuxPane,
+  ComuxAppProps,
+  ComuxThemeName,
   MergeTargetReference,
 } from "./types.js"
 import PanesGrid from "./components/panes/PanesGrid.js"
@@ -94,9 +94,9 @@ import {
 } from "./utils/projectActions.js"
 import { getPaneProjectRoot } from "./utils/paneProject.js"
 import {
-  applyVmuxTheme,
+  applyComuxTheme,
   COLORS,
-  getVmuxThemePalette,
+  getComuxThemePalette,
 } from "./theme/colors.js"
 import {
   applyTmuxThemeToSession,
@@ -125,11 +125,11 @@ import {
 } from "./utils/rituals.js"
 import {
   createShellPane,
-  getNextVmuxId,
+  getNextComuxId,
 } from "./utils/shellPaneDetection.js"
 import type { InlineRenameState } from "./utils/inlineRename.js"
 
-const VmuxApp: React.FC<VmuxAppProps> = ({
+const ComuxApp: React.FC<ComuxAppProps> = ({
   panesFile,
   projectName,
   sessionName,
@@ -141,7 +141,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
 }) => {
   const { stdout } = useStdout()
   const terminalHeight = stdout?.rows || 40
-  const isDevMode = process.env.VMUX_DEV === "true"
+  const isDevMode = process.env.COMUX_DEV === "true"
   const sessionProjectRoot = projectRoot || process.cwd()
 
   /* panes state moved to usePanes */
@@ -233,9 +233,9 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
   const [hooksPromptIndex, setHooksPromptIndex] = useState(0)
   // undefined = not yet determined, true = use hooks, false = use polling
   const [useHooks, setUseHooks] = useState<boolean | undefined>(undefined)
-  const [focusService] = useState(() => new VmuxFocusService({ projectName, projectRoot }))
+  const [focusService] = useState(() => new ComuxFocusService({ projectName, projectRoot }))
   const [attentionService] = useState(
-    () => new VmuxAttentionService({ focusService })
+    () => new ComuxAttentionService({ focusService })
   )
 
   useEffect(() => {
@@ -350,7 +350,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
         setUseHooks(true)
         // Save the preference
         settingsManager.updateSetting('useTmuxHooks', true, 'global')
-        refreshVmuxSettings()
+        refreshComuxSettings()
       } else {
         // Need to ask user - show prompt
         setShowHooksPrompt(true)
@@ -381,7 +381,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
           return prevPanes
         }
 
-        const updatedPane: VmuxPane = {
+        const updatedPane: ComuxPane = {
           ...pane,
           needsAttention: event.needsAttention,
         }
@@ -471,7 +471,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
         if (paneIndex === -1) return prevPanes
 
         const pane = prevPanes[paneIndex]
-        const updated: VmuxPane = {
+        const updated: ComuxPane = {
           ...pane,
           agentStatus: event.status,
         }
@@ -568,7 +568,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
     // Check if tmux supports popups (3.2+) and enable mouse mode for click-outside-to-close
     const popupSupport = supportsPopups()
     setPopupsSupported(popupSupport)
-    // Enable mouse mode only for this vmux session (not global)
+    // Enable mouse mode only for this comux session (not global)
     ensureMouseMode(sessionName)
   }, [sessionName])
 
@@ -634,7 +634,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
   )
   const focusHint = focusedPane
     ? "pane focused: Ctrl-b Left returns, Alt+Shift+M opens menu"
-    : "vmux keys active: arrows Enter n t u e ?"
+    : "comux keys active: arrows Enter n t u e ?"
   const activeProjectRoot = selectedProjectRoot
   const resolveProjectThemeName = React.useCallback((activeProjectRoot: string) => {
     return resolveProjectColorTheme(activeProjectRoot, sidebarProjects)
@@ -654,11 +654,11 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
     [panes]
   )
   const controlPaneActiveBorderStyle = useMemo(
-    () => `fg=colour${getVmuxThemePalette(selectedThemeName).activeBorder}`,
+    () => `fg=colour${getComuxThemePalette(selectedThemeName).activeBorder}`,
     [selectedThemeName]
   )
   const projectThemeByRoot = useMemo(() => {
-    const themeMap = new Map<string, VmuxThemeName>()
+    const themeMap = new Map<string, ComuxThemeName>()
 
     for (const group of projectActionLayout.groups) {
       const paneTheme = group.panes.find((entry) => entry.pane.colorTheme)?.pane.colorTheme
@@ -670,9 +670,9 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
 
     return themeMap
   }, [projectActionLayout.groups, resolveProjectThemeName, themeRefreshNonce])
-  applyVmuxTheme(selectedThemeName)
+  applyComuxTheme(selectedThemeName)
 
-  const refreshVmuxSettings = (_activeProjectRoot: string = selectedProjectRoot) => {
+  const refreshComuxSettings = (_activeProjectRoot: string = selectedProjectRoot) => {
     setSettings(new SettingsManager(sessionProjectRoot).getSettings())
     setThemeRefreshNonce((current) => current + 1)
   }
@@ -736,19 +736,19 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
 
       for (const paneId of Array.from(cachedPrefixes.keys())) {
         if (!activePaneIds.has(paneId)) {
-          tmuxService.unsetPaneOptionSync(paneId, '@vmux_title_prefix')
+          tmuxService.unsetPaneOptionSync(paneId, '@comux_title_prefix')
           cachedPrefixes.delete(paneId)
         }
       }
       for (const paneId of Array.from(cachedLabels.keys())) {
         if (!activePaneIds.has(paneId)) {
-          tmuxService.unsetPaneOptionSync(paneId, '@vmux_title_label')
+          tmuxService.unsetPaneOptionSync(paneId, '@comux_title_label')
           cachedLabels.delete(paneId)
         }
       }
       for (const paneId of Array.from(cachedActiveBorderStyles.keys())) {
         if (!activeBorderStylePaneIds.has(paneId)) {
-          tmuxService.unsetPaneOptionSync(paneId, '@vmux_active_border_style')
+          tmuxService.unsetPaneOptionSync(paneId, '@comux_active_border_style')
           cachedActiveBorderStyles.delete(paneId)
         }
       }
@@ -770,22 +770,22 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
           sessionProjectRoot,
           projectName
         )
-        const activeBorderStyle = `fg=colour${getVmuxThemePalette(paneThemeName).activeBorder}`
+        const activeBorderStyle = `fg=colour${getComuxThemePalette(paneThemeName).activeBorder}`
 
         if (cachedPrefixes.get(pane.paneId) !== prefixValue) {
-          tmuxService.setPaneOptionSync(pane.paneId, '@vmux_title_prefix', prefixValue)
+          tmuxService.setPaneOptionSync(pane.paneId, '@comux_title_prefix', prefixValue)
           cachedPrefixes.set(pane.paneId, prefixValue)
         }
 
         if (cachedLabels.get(pane.paneId) !== labelValue) {
-          tmuxService.setPaneOptionSync(pane.paneId, '@vmux_title_label', labelValue)
+          tmuxService.setPaneOptionSync(pane.paneId, '@comux_title_label', labelValue)
           cachedLabels.set(pane.paneId, labelValue)
         }
 
         if (cachedActiveBorderStyles.get(pane.paneId) !== activeBorderStyle) {
           tmuxService.setPaneOptionSync(
             pane.paneId,
-            '@vmux_active_border_style',
+            '@comux_active_border_style',
             activeBorderStyle
           )
           cachedActiveBorderStyles.set(pane.paneId, activeBorderStyle)
@@ -803,7 +803,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
       if (controlPaneId && cachedActiveBorderStyles.get(controlPaneId) !== controlPaneActiveBorderStyle) {
         tmuxService.setPaneOptionSync(
           controlPaneId,
-          '@vmux_active_border_style',
+          '@comux_active_border_style',
           controlPaneActiveBorderStyle
         )
         cachedActiveBorderStyles.set(controlPaneId, controlPaneActiveBorderStyle)
@@ -998,8 +998,8 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
 
   const createTerminalPaneForRitual = async (
     targetProjectRoot: string,
-    existingPanes: VmuxPane[]
-  ): Promise<VmuxPane | null> => {
+    existingPanes: ComuxPane[]
+  ): Promise<ComuxPane | null> => {
     try {
       setIsCreatingPane(true)
       setStatusMessage("Creating ritual terminal pane...")
@@ -1010,7 +1010,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
 
       const shellPane = await createShellPane(
         newPaneId,
-        getNextVmuxId(existingPanes)
+        getNextComuxId(existingPanes)
       )
       shellPane.projectRoot = targetProjectRoot
       shellPane.projectName = basename(targetProjectRoot)
@@ -1124,7 +1124,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
     return () => bridgeDaemon.setRitualLauncher(null);
   }, [bridgeDaemon]);
 
-  const handleCreateChildWorktree = async (parentPane: VmuxPane) => {
+  const handleCreateChildWorktree = async (parentPane: ComuxPane) => {
     if (!parentPane.worktreePath) {
       setStatusMessage("Selected pane has no worktree path")
       setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
@@ -1321,7 +1321,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
     )
   }
 
-  const handleSetDevSourceFromPane = async (pane: VmuxPane) => {
+  const handleSetDevSourceFromPane = async (pane: ComuxPane) => {
     if (!isDevMode) {
       setStatusMessage("Source switching is only available in dev mode")
       setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
@@ -1642,7 +1642,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
       process.stdout.write("\x1b[0m") // Reset all attributes
 
       // Never inject control keys into the pane during shutdown.
-      // An orphaned vmux dev process can outlive the UI and replay them forever.
+      // An orphaned comux dev process can outlive the UI and replay them forever.
       if (process.env.TMUX) {
         try {
           const tmuxService = TmuxService.getInstance()
@@ -1654,7 +1654,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
       process.stdout.write("\x1b[2J\x1b[H")
 
       // Show clean goodbye message
-      process.stdout.write("\n  Run vmux again to resume. Goodbye 👋\n\n")
+      process.stdout.write("\n  Run comux again to resume. Goodbye 👋\n\n")
 
       // Exit process
       process.exit(0)
@@ -1675,20 +1675,20 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
         setShowHooksPrompt(false)
         setUseHooks(true)
         settingsManager.updateSetting('useTmuxHooks', true, 'global')
-        refreshVmuxSettings()
+        refreshComuxSettings()
       } else if (input === 'n') {
         // No - use polling
         setShowHooksPrompt(false)
         setUseHooks(false)
         settingsManager.updateSetting('useTmuxHooks', false, 'global')
-        refreshVmuxSettings()
+        refreshComuxSettings()
       } else if (key.return) {
         // Select current option
         setShowHooksPrompt(false)
         const selected = hooksPromptIndex === 0
         setUseHooks(selected)
         settingsManager.updateSetting('useTmuxHooks', selected, 'global')
-        refreshVmuxSettings()
+        refreshComuxSettings()
       }
     },
     { isActive: showHooksPrompt }
@@ -1719,7 +1719,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
     projectSettings,
     saveSettings,
     settingsManager,
-    refreshVmuxSettings,
+    refreshComuxSettings,
     popupManager,
     actionSystem,
     controlPaneId,
@@ -1758,7 +1758,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
   //   - Footer tip: +1 line when footer tips are enabled
   //   - Toast (active): wrapped lines + header + marginBottom
   //   - Toast (queued, transitioning): header + marginBottom (2 lines)
-  //   - Debug info: +1 line if DEBUG_VMUX
+  //   - Debug info: +1 line if DEBUG_COMUX
   //   - Status line: +1 line if updateAvailable/currentBranch/debugMessage
   //   - Status messages: +1 line per active message
   const showFooterHelp = !showCommandPrompt
@@ -1798,7 +1798,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
       }
 
       // Add debug info
-      if (process.env.DEBUG_VMUX) {
+      if (process.env.DEBUG_COMUX) {
         footerLines += 1
       }
     }
@@ -1902,7 +1902,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
         footerTip={currentFooterTip}
         focusHint={focusHint}
         gridInfo={(() => {
-          if (!process.env.DEBUG_VMUX) return undefined
+          if (!process.env.DEBUG_COMUX) return undefined
           const rows = navigationRows.length
           const cols = Math.max(1, ...navigationRows.map((row) => row.length))
           const pos = getCardGridPosition(selectedIndex)
@@ -1920,7 +1920,7 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
           )}
           {updateAvailable && updateInfo && (
             <Text color={COLORS.error} bold>
-              Update available: npm i -g vmux@latest{" "}
+              Update available: npm i -g comux@latest{" "}
             </Text>
           )}
           {currentBranch && (
@@ -1935,4 +1935,4 @@ const VmuxApp: React.FC<VmuxAppProps> = ({
   )
 }
 
-export default VmuxApp
+export default ComuxApp
