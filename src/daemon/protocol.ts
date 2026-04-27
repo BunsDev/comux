@@ -28,6 +28,16 @@ export interface ProjectSummary {
   autonomyProfile?: string;
 }
 
+export type CovenSessionSummary = {
+  id: string;
+  projectRoot: string;
+  harness: string;
+  title: string;
+  status: 'starting' | 'running' | 'waiting' | 'completed' | 'failed' | 'killed';
+  createdAt: string;
+  updatedAt: string;
+};
+
 export interface PaneStatusResult {
   id: PaneId;
   exists?: boolean;
@@ -49,6 +59,7 @@ export type ClientRequest =
   | { type: 'projects.list'; requestId: string }
   | { type: 'projects.open'; requestId: string; cwd?: string; title?: string; autonomyProfile?: string }
   | { type: 'panes.list'; requestId: string }
+  | { type: 'coven.sessions.list'; requestId: string }
   | { type: 'panes.spawn'; requestId: string; cwd: string; branch?: string; agent?: string; title?: string; prompt?: string }
   | { type: 'panes.capture'; requestId: string; id: PaneId; lines?: number }
   | { type: 'panes.status'; requestId: string; id: PaneId }
@@ -67,6 +78,7 @@ export type ServerResponse =
   | { type: 'projects.list.result'; requestId: string; projects: ProjectSummary[] }
   | { type: 'projects.open.result'; requestId: string; project: ProjectSummary }
   | { type: 'panes.list.result'; requestId: string; panes: PaneSummary[] }
+  | { type: 'coven.sessions.list.result'; requestId: string; sessions: CovenSessionSummary[] }
   | { type: 'panes.spawn.result'; requestId: string; id: PaneId; pane?: PaneSummary; worktreePath?: string; branch?: string }
   | { type: 'panes.capture.result'; requestId: string; id: PaneId; text: string; lines: number }
   | { type: 'panes.status.result'; requestId: string; status: PaneStatusResult }

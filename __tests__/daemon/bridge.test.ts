@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   buildScopedProject,
   capturePaneText,
+  listProjectCovenSessions,
   listScopedProjects,
   readPaneStatus,
   resolveScopedCwd,
@@ -60,6 +61,48 @@ describe('daemon bridge project scope helpers', () => {
       title: 'Demo',
       autonomyProfile: 'assist',
     });
+  });
+});
+
+describe('daemon bridge Coven helpers', () => {
+  it('only displays Coven sessions inside the current project root', async () => {
+    const root = await tempDir('comux-bridge-coven-root-');
+    const outside = await tempDir('comux-bridge-coven-outside-');
+    await mkdir(path.join(root, 'worktree'));
+
+    const sessions = await listProjectCovenSessions(root, {
+      listSessions: async () => [
+        {
+          id: 'inside-root',
+          projectRoot: root,
+          harness: 'codex',
+          title: 'Inside root',
+          status: 'running',
+          createdAt: '2026-04-27T10:00:00Z',
+          updatedAt: '2026-04-27T10:01:00Z',
+        },
+        {
+          id: 'inside-child',
+          projectRoot: path.join(root, 'worktree'),
+          harness: 'claude',
+          title: 'Inside child',
+          status: 'waiting',
+          createdAt: '2026-04-27T10:02:00Z',
+          updatedAt: '2026-04-27T10:03:00Z',
+        },
+        {
+          id: 'outside',
+          projectRoot: outside,
+          harness: 'codex',
+          title: 'Outside',
+          status: 'running',
+          createdAt: '2026-04-27T10:04:00Z',
+          updatedAt: '2026-04-27T10:05:00Z',
+        },
+      ],
+    });
+
+    expect(sessions.map((session) => session.id)).toEqual(['inside-root', 'inside-child']);
   });
 });
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { AGENT_IDS, buildAgentCommand, buildInitialPromptCommand, type AgentName } from '../utils/agentLaunch.js';
 import { buildPromptReadAndDeleteSnippet, writePromptFile } from '../utils/promptStore.js';
 import type { ComuxConfig } from '../types.js';
-import type { PaneStatusResult, PaneSummary, ProjectSummary } from './protocol.js';
+import type { CovenSessionSummary, PaneStatusResult, PaneSummary, ProjectSummary } from './protocol.js';
 
 export const DEFAULT_CAPTURE_LINES = 200;
 export const MAX_CAPTURE_LINES = 2_000;
@@ -39,6 +39,10 @@ export interface BridgeSpawnResult {
 export interface BridgeError {
   code: string;
   message: string;
+}
+
+export interface CovenClient {
+  listSessions: () => Promise<CovenSessionSummary[]>;
 }
 
 interface RawConfigPane extends Record<string, unknown> {
@@ -101,6 +105,28 @@ export async function buildScopedProject(
 
 export async function listScopedProjects(projectRoot: string): Promise<ProjectSummary[]> {
   return [await buildScopedProject(projectRoot)];
+}
+
+export async function listProjectCovenSessions(
+  projectRoot: string,
+  client: CovenClient,
+): Promise<CovenSessionSummary[]> {
+  const rootReal = await realpath(projectRoot);
+  const sessions = await client.listSessions();
+  const scopedSessions: CovenSessionSummary[] = [];
+
+  for (const session of sessions) {
+    try {
+      const sessionRoot = await realpath(session.projectRoot);
+      if (isPathInsideOrEqual(rootReal, sessionRoot)) {
+        scopedSessions.push({ ...session, projectRoot: sessionRoot });
+      }
+    } catch {
+      // Refuse to display sessions whose project root cannot be verified.
+    }
+  }
+
+  return scopedSessions;
 }
 
 export function boundedLineCount(value: unknown): number {
