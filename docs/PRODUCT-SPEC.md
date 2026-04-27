@@ -257,8 +257,10 @@ Cody is the first conductor persona for this flow. Other users may have their ow
 
 ## Immediate next steps
 
-1. Create/push the public `comux` GitHub repository.
-2. Replace the placeholder README with product positioning and coming-soon architecture.
-3. Import or rewrite the smallest VMUX primitives into a clean comux source layout.
-4. Build the local daemon skeleton and project/pane APIs.
-5. Wire one end-to-end Cody/OpenMeow/comux demo loop.
+The first public release is live as GitHub release `v0.0.1` and npm package `comux@0.0.1`. The next slice should make that release easier to trust and extend without implying the full cockpit is ready.
+
+1. **First-user polish:** tighten the README, CLI help, `doctor` output, and local smoke path so a new user can understand what works today and where the product is headed.
+2. **Test hygiene:** keep the TypeScript CLI/core port covered by fast, reliable tests and remove any brittle release-era assumptions from the suite.
+3. **Cody/OpenMeow bridge slice:** build the smallest structured bridge that can hand a scoped coding task into comux and report status back.
+4. **Release cadence:** document a lightweight versioning and release checklist for follow-up patches after `v0.0.1`.
+5. **Native parity later:** keep native cockpit parity as a separate product track after the bridge and CLI foundations are stable.

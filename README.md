@@ -45,6 +45,16 @@ OpenMeow / CLI / future UI
 5. Cody reports back when work is blocked, ready, or needs approval.
 6. You can jump into comux for full terminal visibility.
 
+## Install / try
+
+The first public package is available as `comux@0.0.1`, with the current release also published on GitHub as `v0.0.1`. This is an early CLI/core slice, not the full cockpit product yet.
+
+Try the published CLI without installing it globally:
+
+```sh
+npm exec comux@latest -- doctor --json
+```
+
 ## Local smoke test
 
 See [`docs/SMOKE.md`](./docs/SMOKE.md) for the current local verification loop.
