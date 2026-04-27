@@ -182,9 +182,9 @@ describe('useInputHandling side panel toggle', () => {
     await sleep(20);
     stdin.write('\x1b[<0;1;3M');
     await sleep(40);
-    stdin.write('\x1b[<0;1;1M');
-    await sleep(40);
     stdin.write('\x1b[<0;1;4M');
+    await sleep(40);
+    stdin.write('\x1b[<0;1;5M');
     await sleep(40);
 
     expect(onStateChange).toHaveBeenNthCalledWith(1, false);

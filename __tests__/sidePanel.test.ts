@@ -14,4 +14,11 @@ describe('side panel responsive helpers', () => {
     expect(sidePanel.shouldUseCompactSidePanel(89)).toBe(true);
     expect(sidePanel.shouldUseCompactSidePanel(100)).toBe(false);
   });
+
+  it('does not auto-collapse narrow terminals after a manual side panel override', async () => {
+    const sidePanel = await import('../src/utils/sidePanel.js');
+
+    expect(sidePanel.shouldAutoCollapseSidePanel(89, false)).toBe(true);
+    expect(sidePanel.shouldAutoCollapseSidePanel(89, true)).toBe(false);
+  });
 });

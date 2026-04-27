@@ -9,3 +9,10 @@ export function getSidePanelWidth(collapsed: boolean): number {
 export function shouldUseCompactSidePanel(terminalWidth: number): boolean {
   return Number.isFinite(terminalWidth) && terminalWidth < SIDE_PANEL_MOBILE_BREAKPOINT;
 }
+
+export function shouldAutoCollapseSidePanel(
+  terminalWidth: number,
+  hasManualOverride: boolean
+): boolean {
+  return shouldUseCompactSidePanel(terminalWidth) && !hasManualOverride;
+}

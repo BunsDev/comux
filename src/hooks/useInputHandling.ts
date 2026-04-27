@@ -881,11 +881,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
       return false
     }
 
-    if (
-      onToggleSidePanel &&
-      mouseEvent.column <= SIDE_PANEL_COLLAPSED_WIDTH &&
-      (sidePanelCollapsed || mouseEvent.row === 1)
-    ) {
+    if (onToggleSidePanel && mouseEvent.column <= SIDE_PANEL_COLLAPSED_WIDTH) {
       onToggleSidePanel()
       return true
     }

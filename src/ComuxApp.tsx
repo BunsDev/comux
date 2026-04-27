@@ -69,6 +69,7 @@ import {
 } from "./utils/footerTips.js"
 import {
   getSidePanelWidth,
+  shouldAutoCollapseSidePanel,
   shouldUseCompactSidePanel,
 } from "./utils/sidePanel.js"
 
@@ -231,8 +232,10 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
   const [sidePanelCollapsed, setSidePanelCollapsed] = useState(() =>
     shouldUseCompactSidePanel(terminalWidth)
   )
+  const [sidePanelManualOverride, setSidePanelManualOverride] = useState(false)
   const sidePanelWidth = getSidePanelWidth(sidePanelCollapsed)
   const toggleSidePanel = useCallback(() => {
+    setSidePanelManualOverride(true)
     setSidePanelCollapsed((current) => {
       const next = !current
       setStatusMessage(next ? "Side panel hidden" : "Side panel shown")
@@ -242,10 +245,10 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
   }, [setStatusMessage])
 
   useEffect(() => {
-    if (shouldUseCompactSidePanel(terminalWidth)) {
+    if (shouldAutoCollapseSidePanel(terminalWidth, sidePanelManualOverride)) {
       setSidePanelCollapsed(true)
     }
-  }, [terminalWidth])
+  }, [terminalWidth, sidePanelManualOverride])
 
   // Track unread error and warning counts for logs badge
   const [unreadErrorCount, setUnreadErrorCount] = useState(0)
