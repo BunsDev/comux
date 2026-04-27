@@ -27,6 +27,7 @@ import { validateSystemRequirements, printValidationResults } from './utils/syst
 import { getUntrackedPanes } from './utils/shellPaneDetection.js';
 import { runFirstRunOnboardingIfNeeded } from './utils/onboarding.js';
 import { migrateDmuxConfigIfNeeded } from './utils/migrateDmuxConfig.js';
+import { migrateVmuxConfigIfNeeded } from './utils/migrateVmuxConfig.js';
 import { atomicWriteJson } from './utils/atomicWrite.js';
 import { buildDevWatchCommand, buildDevWatchRespawnCommand } from './utils/devWatchCommand.js';
 import { shouldUseQuietDevWatchExit } from './utils/devWatchExit.js';
@@ -208,6 +209,9 @@ class Comux {
   async init() {
     // Set up global signal handlers for clean exit
     this.setupGlobalSignalHandlers();
+
+    // Migrate legacy vmux project config before initializing comux config.
+    await migrateVmuxConfigIfNeeded(this.projectRoot);
 
     // Ensure .comux directory exists and is in .gitignore
     await this.ensureComuxDirectory();
