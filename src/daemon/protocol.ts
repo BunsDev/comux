@@ -20,10 +20,38 @@ export interface PaneSummary {
   lastActivity?: string;
 }
 
+export interface ProjectSummary {
+  id: string;
+  root: string;
+  cwd: string;
+  title: string;
+  autonomyProfile?: string;
+}
+
+export interface PaneStatusResult {
+  id: PaneId;
+  exists?: boolean;
+  status: string;
+  pane?: PaneSummary;
+  metadata?: {
+    comuxId?: string;
+    title?: string;
+    agent?: string;
+    branch?: string;
+    cwd?: string;
+    needsAttention?: boolean;
+    lastActivity?: string;
+  };
+}
+
 export type ClientRequest =
   | { type: 'hello'; token: string; clientName?: string }
+  | { type: 'projects.list'; requestId: string }
+  | { type: 'projects.open'; requestId: string; cwd?: string; title?: string; autonomyProfile?: string }
   | { type: 'panes.list'; requestId: string }
-  | { type: 'panes.spawn'; requestId: string; cwd: string; branch?: string; agent?: string; title?: string }
+  | { type: 'panes.spawn'; requestId: string; cwd: string; branch?: string; agent?: string; title?: string; prompt?: string }
+  | { type: 'panes.capture'; requestId: string; id: PaneId; lines?: number }
+  | { type: 'panes.status'; requestId: string; id: PaneId }
   | { type: 'panes.attach'; requestId: string; id: PaneId; cols?: number; rows?: number }
   | { type: 'panes.detach'; requestId: string; streamId: StreamId }
   | { type: 'panes.focus'; requestId: string; id?: PaneId; streamId?: StreamId }
@@ -36,8 +64,12 @@ export type ServerResponse =
   | { type: 'welcome'; protocol: number; serverVersion: string }
   | { type: 'error'; requestId?: string; code: string; message: string }
   | { type: 'ack'; requestId: string; ok: true }
+  | { type: 'projects.list.result'; requestId: string; projects: ProjectSummary[] }
+  | { type: 'projects.open.result'; requestId: string; project: ProjectSummary }
   | { type: 'panes.list.result'; requestId: string; panes: PaneSummary[] }
-  | { type: 'panes.spawn.result'; requestId: string; id: PaneId }
+  | { type: 'panes.spawn.result'; requestId: string; id: PaneId; pane?: PaneSummary; worktreePath?: string; branch?: string }
+  | { type: 'panes.capture.result'; requestId: string; id: PaneId; text: string; lines: number }
+  | { type: 'panes.status.result'; requestId: string; status: PaneStatusResult }
   | { type: 'panes.attach.result'; requestId: string; streamId: StreamId; id: PaneId }
   | { type: 'panes.stream.exit'; streamId: StreamId; reason: string };
 

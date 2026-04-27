@@ -13,6 +13,17 @@ import {
   encodeBinaryFrame,
 } from './protocol.js';
 import { TmuxControl, tmuxSessionNameForRoot, tmuxSessionExists } from './tmuxControl.js';
+import {
+  bridgeErrorCode,
+  bridgeErrorMessage,
+  buildScopedProject,
+  capturePaneText,
+  listScopedProjects,
+  readPaneStatus,
+  resolveConfiguredPaneId,
+  spawnBridgePane,
+  tmuxPaneExists,
+} from './bridge.js';
 
 interface DaemonOptions {
   port: number;
@@ -170,9 +181,49 @@ class Connection {
         this.send({ type: 'welcome', protocol: PROTOCOL_VERSION, serverVersion: this.deps.serverVersion });
         return;
       }
+      case 'projects.list': {
+        try {
+          const projects = await listScopedProjects(this.deps.projectRoot);
+          this.send({ type: 'projects.list.result', requestId: msg.requestId, projects });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: 'projects_list_failed', message: bridgeErrorMessage(e) });
+        }
+        return;
+      }
+      case 'projects.open': {
+        try {
+          const project = await buildScopedProject(this.deps.projectRoot, msg.cwd, {
+            title: msg.title,
+            autonomyProfile: msg.autonomyProfile,
+          });
+          this.send({ type: 'projects.open.result', requestId: msg.requestId, project });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: 'project_scope_violation', message: bridgeErrorMessage(e) });
+        }
+        return;
+      }
       case 'panes.list': {
         const panes = await listPanes(this.deps.projectRoot);
         this.send({ type: 'panes.list.result', requestId: msg.requestId, panes });
+        return;
+      }
+      case 'panes.capture': {
+        try {
+          const paneId = await resolveConfiguredPaneId(this.deps.projectRoot, msg.id);
+          const captured = capturePaneText(paneId, msg.lines, capturePaneSync);
+          this.send({ type: 'panes.capture.result', requestId: msg.requestId, ...captured });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'capture_failed'), message: bridgeErrorMessage(e) });
+        }
+        return;
+      }
+      case 'panes.status': {
+        try {
+          const status = await readPaneStatus(this.deps.projectRoot, msg.id, tmuxPaneExists);
+          this.send({ type: 'panes.status.result', requestId: msg.requestId, status });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: 'status_failed', message: bridgeErrorMessage(e) });
+        }
         return;
       }
       case 'panes.attach': {
@@ -292,15 +343,24 @@ class Connection {
         return;
       }
       case 'panes.spawn': {
-        // spawn requires deeper integration with comux's PaneLifecycleManager +
-        // worktree service; defer to step-3 once the vale-dash client exists
-        // and we know what the UX wants to expose.
-        this.send({
-          type: 'error',
-          requestId: msg.requestId,
-          code: 'not_implemented',
-          message: 'panes.spawn lands in step-3 of the daemon plan',
-        });
+        try {
+          const result = await spawnBridgePane(this.deps.projectRoot, this.deps.tmux.sessionName, msg);
+          this.send({
+            type: 'panes.spawn.result',
+            requestId: msg.requestId,
+            id: result.id,
+            pane: result.pane,
+            worktreePath: result.worktreePath,
+            branch: result.branch,
+          });
+        } catch (e) {
+          this.send({
+            type: 'error',
+            requestId: msg.requestId,
+            code: bridgeErrorCode(e, 'spawn_failed'),
+            message: bridgeErrorMessage(e),
+          });
+        }
         return;
       }
       default: {

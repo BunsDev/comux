@@ -246,6 +246,18 @@ Cody is the first conductor persona for this flow. Other users may have their ow
 - Mobile client.
 - Complex marketplace/plugin story.
 
+## Daemon bridge v0 contract
+
+The first Cody/OpenMeow bridge is intentionally project-scoped. A daemon is launched for one explicit project root, and bridge calls can only resolve paths at or below that root.
+
+- `projects.list` returns the daemon-scoped project.
+- `projects.open { cwd?, title?, autonomyProfile? }` validates `cwd` against the daemon project root and returns that same scoped project; outside paths are rejected.
+- `panes.spawn { cwd, agent?, title?, prompt?, branch? }` requires the existing comux tmux session, creates a git worktree under `.comux/worktrees/<slug>`, opens a pane there, and records pane metadata.
+- `panes.capture { id, lines? }` returns bounded recent UTF-8 pane text.
+- `panes.status { id }` returns config-backed pane metadata plus best-effort tmux existence.
+
+The bridge must not roam to unrelated folders, run coding agents in the main checkout for spawned work, or perform push/merge/publish/delete actions.
+
 ## Trust and safety rules
 
 - comux only operates on explicitly launched project roots.

@@ -42,8 +42,8 @@ export async function listPanes(projectRoot: string): Promise<PaneSummary[]> {
       typeof p.id === 'string' ? p.id : undefined;
     return {
       id: tmuxId,
-      cwd: String(p.worktreeDir ?? p.cwd ?? projectRoot),
-      branch: typeof p.branch === 'string' ? p.branch : undefined,
+      cwd: String(p.worktreePath ?? p.worktreeDir ?? p.cwd ?? projectRoot),
+      branch: typeof p.branchName === 'string' ? p.branchName : typeof p.branch === 'string' ? p.branch : undefined,
       agent: typeof p.agent === 'string' ? p.agent : undefined,
       title: fallbackTitle,
       lastActivity: typeof p.lastUpdated === 'string' ? p.lastUpdated : undefined,

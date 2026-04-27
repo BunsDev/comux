@@ -1,0 +1,232 @@
+import { execSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  buildScopedProject,
+  capturePaneText,
+  listScopedProjects,
+  readPaneStatus,
+  resolveScopedCwd,
+  spawnBridgePane,
+  tailTextLines,
+} from '../../src/daemon/bridge.js';
+
+let tempRoots: string[] = [];
+
+async function tempDir(prefix: string): Promise<string> {
+  const root = await realpath(await mkdtemp(path.join(tmpdir(), prefix)));
+  tempRoots.push(root);
+  return root;
+}
+
+async function writeConfig(root: string, config: unknown): Promise<void> {
+  await mkdir(path.join(root, '.comux'), { recursive: true });
+  await writeFile(path.join(root, '.comux', 'comux.config.json'), JSON.stringify(config, null, 2));
+}
+
+afterEach(async () => {
+  await Promise.all(tempRoots.map((root) => rm(root, { recursive: true, force: true })));
+  tempRoots = [];
+});
+
+describe('daemon bridge project scope helpers', () => {
+  it('rejects cwd outside the daemon project root', async () => {
+    const root = await tempDir('comux-bridge-root-');
+    const outside = await tempDir('comux-bridge-outside-');
+
+    await expect(resolveScopedCwd(root, outside)).rejects.toThrow(/outside the comux project root/);
+  });
+
+  it('returns the daemon-scoped project for list and open', async () => {
+    const root = await tempDir('comux-bridge-project-');
+    await mkdir(path.join(root, 'src'));
+
+    await expect(listScopedProjects(root)).resolves.toEqual([
+      {
+        id: root,
+        root,
+        cwd: root,
+        title: path.basename(root),
+        autonomyProfile: undefined,
+      },
+    ]);
+
+    await expect(buildScopedProject(root, 'src', { title: 'Demo', autonomyProfile: 'assist' })).resolves.toEqual({
+      id: root,
+      root,
+      cwd: root,
+      title: 'Demo',
+      autonomyProfile: 'assist',
+    });
+  });
+});
+
+describe('daemon bridge pane helpers', () => {
+  it('bounds captured pane output to a safe line count', () => {
+    expect(tailTextLines('a\nb\nc\nd', 2)).toBe('c\nd');
+    const captured = capturePaneText('%1', 9999, () => Buffer.from(Array.from({ length: 2100 }, (_, i) => `l${i}`).join('\n')));
+    expect(captured.lines).toBe(2000);
+    expect(captured.text.split('\n')).toHaveLength(2000);
+    expect(captured.text.startsWith('l100')).toBe(true);
+  });
+
+  it('does not probe tmux for panes outside the project config', async () => {
+    const root = await tempDir('comux-bridge-status-missing-');
+    await writeConfig(root, { panes: [], settings: {} });
+
+    await expect(readPaneStatus(root, '%999', () => {
+      throw new Error('unregistered pane should not be probed');
+    })).resolves.toEqual({ id: '%999', status: 'unknown' });
+  });
+
+  it('reports pane status from comux config metadata', async () => {
+    const root = await tempDir('comux-bridge-status-');
+    await writeConfig(root, {
+      projectName: 'demo',
+      projectRoot: root,
+      panes: [
+        {
+          id: 'comux-1',
+          paneId: '%7',
+          title: 'Fix tests',
+          worktreePath: '/repo/.comux/worktrees/fix-tests',
+          branchName: 'comux/fix-tests',
+          agent: 'codex',
+          agentStatus: 'waiting',
+          needsAttention: true,
+          lastUpdated: '2026-04-27T00:00:00.000Z',
+        },
+      ],
+      settings: {},
+      lastUpdated: '2026-04-27T00:00:00.000Z',
+    });
+
+    await expect(readPaneStatus(root, '%7', (id) => id === '%7')).resolves.toEqual({
+      id: '%7',
+      exists: true,
+      status: 'waiting',
+      pane: {
+        id: '%7',
+        cwd: '/repo/.comux/worktrees/fix-tests',
+        branch: 'comux/fix-tests',
+        agent: 'codex',
+        title: 'Fix tests',
+        lastActivity: '2026-04-27T00:00:00.000Z',
+      },
+      metadata: {
+        comuxId: 'comux-1',
+        title: 'Fix tests',
+        agent: 'codex',
+        branch: 'comux/fix-tests',
+        cwd: '/repo/.comux/worktrees/fix-tests',
+        needsAttention: true,
+        lastActivity: '2026-04-27T00:00:00.000Z',
+      },
+    });
+  });
+
+  it('rejects spawn cwd outside the daemon project root before tmux or git work', async () => {
+    const root = await tempDir('comux-bridge-spawn-root-');
+    const outside = await tempDir('comux-bridge-spawn-outside-');
+
+    await expect(spawnBridgePane(root, 'comux-demo', {
+      requestId: 'req-1',
+      cwd: outside,
+      title: 'outside',
+    }, {
+      tmuxSessionExists: () => {
+        throw new Error('tmux should not be checked for out-of-scope cwd');
+      },
+      createTmuxPane: () => {
+        throw new Error('tmux pane should not be created');
+      },
+      sendTmuxCommand: () => {
+        throw new Error('agent should not launch');
+      },
+    })).rejects.toThrow(/outside the comux project root/);
+  });
+
+  it('requires an existing comux tmux session before creating a worktree', async () => {
+    const root = await tempDir('comux-bridge-missing-session-');
+    execSync('git init', { cwd: root, stdio: 'ignore' });
+
+    await expect(spawnBridgePane(root, 'comux-demo', {
+      requestId: 'req-2',
+      cwd: root,
+      title: 'missing session',
+    }, {
+      tmuxSessionExists: () => false,
+      createTmuxPane: () => {
+        throw new Error('tmux pane should not be created');
+      },
+      sendTmuxCommand: () => {
+        throw new Error('agent should not launch');
+      },
+    })).rejects.toMatchObject({ code: 'tmux_session_missing' });
+  });
+
+  it('creates a scoped worktree pane and persists metadata through injectable tmux helpers', async () => {
+    const root = await tempDir('comux-bridge-spawn-');
+    execSync('git init', { cwd: root, stdio: 'ignore' });
+    execSync('git config user.email test@example.invalid', { cwd: root, stdio: 'ignore' });
+    execSync('git config user.name Test', { cwd: root, stdio: 'ignore' });
+    await writeFile(path.join(root, 'README.md'), '# demo\n');
+    execSync('git add README.md && git commit -m init', { cwd: root, stdio: 'ignore' });
+    await writeConfig(root, {
+      projectName: 'demo',
+      projectRoot: root,
+      panes: [],
+      settings: {},
+      lastUpdated: '2026-04-27T00:00:00.000Z',
+    });
+
+    const commands: string[] = [];
+    const result = await spawnBridgePane(root, 'comux-demo', {
+      requestId: 'req-3',
+      cwd: root,
+      title: 'Fix bug',
+      agent: 'codex',
+      prompt: 'Fix the bug',
+    }, {
+      tmuxSessionExists: () => true,
+      createTmuxPane: (_sessionName, cwd, title) => {
+        expect(cwd).toMatch(/\.comux\/worktrees\/fix-bug$/);
+        expect(title).toBe('Fix bug');
+        return '%42';
+      },
+      sendTmuxCommand: (_paneId, command) => commands.push(command),
+    });
+
+    expect(result).toMatchObject({
+      id: '%42',
+      branch: 'comux/fix-bug',
+      pane: {
+        id: '%42',
+        cwd: path.join(root, '.comux', 'worktrees', 'fix-bug'),
+        branch: 'comux/fix-bug',
+        agent: 'codex',
+        title: 'Fix bug',
+      },
+    });
+    expect(commands).toHaveLength(1);
+    expect(commands[0]).toContain('COMUX_PROMPT_FILE=');
+    expect(commands[0]).toContain('codex');
+
+    const raw = await readFile(path.join(root, '.comux', 'comux.config.json'), 'utf8');
+    expect(JSON.parse(raw)).toMatchObject({
+      panes: [
+        {
+          id: expect.stringMatching(/^comux-/),
+          paneId: '%42',
+          slug: 'fix-bug',
+          title: 'Fix bug',
+          worktreePath: path.join(root, '.comux', 'worktrees', 'fix-bug'),
+          branchName: 'comux/fix-bug',
+          agent: 'codex',
+        },
+      ],
+    });
+  });
+});
