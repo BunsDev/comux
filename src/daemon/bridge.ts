@@ -1,10 +1,12 @@
 import { execFileSync } from 'node:child_process';
+import net from 'node:net';
+import os from 'node:os';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { AGENT_IDS, buildAgentCommand, buildInitialPromptCommand, type AgentName } from '../utils/agentLaunch.js';
 import { buildPromptReadAndDeleteSnippet, writePromptFile } from '../utils/promptStore.js';
 import type { ComuxConfig } from '../types.js';
-import type { CovenSessionSummary, PaneStatusResult, PaneSummary, ProjectSummary } from './protocol.js';
+import type { CovenSessionEvent, CovenSessionSummary, PaneStatusResult, PaneSummary, ProjectSummary } from './protocol.js';
 
 export const DEFAULT_CAPTURE_LINES = 200;
 export const MAX_CAPTURE_LINES = 2_000;
@@ -43,6 +45,15 @@ export interface BridgeError {
 
 export interface CovenClient {
   listSessions: () => Promise<CovenSessionSummary[]>;
+  listEvents?: (sessionId: string) => Promise<CovenSessionEvent[]>;
+  sendInput?: (sessionId: string, data: string) => Promise<void>;
+  killSession?: (sessionId: string) => Promise<void>;
+}
+
+export interface BridgeCovenOpenResult {
+  id: string;
+  pane: PaneSummary;
+  session: CovenSessionSummary;
 }
 
 interface RawConfigPane extends Record<string, unknown> {
@@ -127,6 +138,168 @@ export async function listProjectCovenSessions(
   }
 
   return scopedSessions;
+}
+
+export async function openProjectCovenSession(
+  projectRoot: string,
+  sessionName: string,
+  sessionId: string,
+  client: CovenClient = createCovenClient(),
+  deps: BridgeSpawnDeps = defaultSpawnDeps,
+): Promise<BridgeCovenOpenResult> {
+  if (!isSafeCovenSessionId(sessionId)) {
+    throw bridgeError('invalid_coven_session_id', 'Coven session id contains unsupported characters');
+  }
+  const scopedSessions = await listProjectCovenSessions(projectRoot, client);
+  const session = scopedSessions.find((candidate) => candidate.id === sessionId);
+  if (!session) {
+    throw bridgeError('coven_session_not_found', 'Coven session is not in this comux project scope');
+  }
+  if (!deps.tmuxSessionExists(sessionName)) {
+    throw bridgeError('tmux_session_missing', 'comux tmux session is not running; start comux for this project first');
+  }
+
+  const title = `coven:${session.title || session.id.slice(0, 8)}`;
+  const paneId = deps.createTmuxPane(sessionName, session.projectRoot, title);
+  deps.sendTmuxCommand(paneId, buildCovenAttachCommand(session.id));
+
+  const now = new Date().toISOString();
+  const config = await readBridgeConfig(projectRoot);
+  const pane: RawConfigPane = {
+    id: `comux-${Date.now()}`,
+    slug: uniqueCovenPaneSlug(config, session),
+    title,
+    displayName: title,
+    prompt: '',
+    paneId,
+    cwd: session.projectRoot,
+    projectRoot,
+    projectName: path.basename(projectRoot),
+    type: 'shell',
+    shellType: 'coven',
+    covenSession: {
+      id: session.id,
+      harness: session.harness,
+      status: session.status,
+      projectRoot: session.projectRoot,
+    },
+    lastUpdated: now,
+  };
+  config.projectName = config.projectName || path.basename(projectRoot);
+  config.projectRoot = projectRoot;
+  config.settings = config.settings || {};
+  config.panes = [...(Array.isArray(config.panes) ? config.panes : []), pane];
+  config.lastUpdated = now;
+  await writeBridgeConfig(projectRoot, config);
+
+  return {
+    id: paneId,
+    pane: rawPaneToSummary(pane, projectRoot),
+    session,
+  };
+}
+
+export function buildCovenAttachCommand(sessionId: string): string {
+  if (!isSafeCovenSessionId(sessionId)) {
+    throw bridgeError('invalid_coven_session_id', 'Coven session id contains unsupported characters');
+  }
+  return `coven attach ${sessionId}`;
+}
+
+function isSafeCovenSessionId(sessionId: string): boolean {
+  return /^[A-Za-z0-9._:-]+$/.test(sessionId);
+}
+
+function uniqueCovenPaneSlug(config: BridgeConfig, session: CovenSessionSummary): string {
+  const base = `coven-${session.id.slice(0, 8)}`;
+  const panes = Array.isArray(config.panes) ? config.panes : [];
+  const existing = new Set(panes.map((pane) => String(pane.slug ?? '')));
+  for (let i = 0; i < 100; i++) {
+    const slug = i === 0 ? base : `${base}-${i + 1}`;
+    if (!existing.has(slug)) return slug;
+  }
+  return `${base}-${Date.now()}`;
+}
+
+export function createCovenClient(covenHome = defaultCovenHome()): CovenClient {
+  return {
+    async listSessions() {
+      const raw = await requestCovenApi(covenHome, 'GET', '/sessions');
+      return Array.isArray(raw) ? raw.map(normalizeCovenSession) : [];
+    },
+    async listEvents(sessionId: string) {
+      const raw = await requestCovenApi(covenHome, 'GET', `/events?sessionId=${encodeURIComponent(sessionId)}`);
+      return Array.isArray(raw) ? raw.map(normalizeCovenEvent) : [];
+    },
+    async sendInput(sessionId: string, data: string) {
+      await requestCovenApi(covenHome, 'POST', `/sessions/${sessionId}/input`, { data });
+    },
+    async killSession(sessionId: string) {
+      await requestCovenApi(covenHome, 'POST', `/sessions/${sessionId}/kill`);
+    },
+  };
+}
+
+function defaultCovenHome(): string {
+  return process.env.COVEN_HOME || path.join(os.homedir(), '.coven');
+}
+
+function requestCovenApi(covenHome: string, method: string, requestPath: string, body?: unknown): Promise<unknown> {
+  const socketPath = path.join(covenHome, 'coven.sock');
+  const bodyText = body === undefined ? '' : JSON.stringify(body);
+  const request = [
+    `${method} ${requestPath} HTTP/1.1`,
+    'Host: coven',
+    'Content-Type: application/json',
+    `Content-Length: ${Buffer.byteLength(bodyText)}`,
+    'Connection: close',
+    '',
+    bodyText,
+  ].join('\r\n');
+
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection(socketPath);
+    const chunks: Buffer[] = [];
+    socket.on('connect', () => socket.end(request));
+    socket.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    socket.on('error', reject);
+    socket.on('end', () => {
+      try {
+        const response = Buffer.concat(chunks).toString('utf8');
+        const [head, payload = ''] = response.split('\r\n\r\n');
+        const status = Number(head.split(/\s+/)[1]);
+        if (!Number.isFinite(status) || status < 200 || status >= 300) {
+          reject(bridgeError('coven_api_failed', `Coven API returned HTTP ${status || 'unknown'}`));
+          return;
+        }
+        resolve(payload.trim() ? JSON.parse(payload) : null);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+}
+
+function normalizeCovenSession(raw: any): CovenSessionSummary {
+  return {
+    id: String(raw.id),
+    projectRoot: String(raw.projectRoot ?? raw.project_root),
+    harness: String(raw.harness),
+    title: String(raw.title),
+    status: raw.status,
+    createdAt: String(raw.createdAt ?? raw.created_at),
+    updatedAt: String(raw.updatedAt ?? raw.updated_at),
+  };
+}
+
+function normalizeCovenEvent(raw: any): CovenSessionEvent {
+  return {
+    id: String(raw.id),
+    sessionId: String(raw.sessionId ?? raw.session_id),
+    kind: String(raw.kind),
+    payloadJson: String(raw.payloadJson ?? raw.payload_json),
+    createdAt: String(raw.createdAt ?? raw.created_at),
+  };
 }
 
 export function boundedLineCount(value: unknown): number {

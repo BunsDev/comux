@@ -33,9 +33,17 @@ export type CovenSessionSummary = {
   projectRoot: string;
   harness: string;
   title: string;
-  status: 'starting' | 'running' | 'waiting' | 'completed' | 'failed' | 'killed';
+  status: 'starting' | 'running' | 'waiting' | 'completed' | 'failed' | 'killed' | 'orphaned' | 'created';
   createdAt: string;
   updatedAt: string;
+};
+
+export type CovenSessionEvent = {
+  id: string;
+  sessionId: string;
+  kind: 'output' | 'input' | 'kill' | 'exit' | string;
+  payloadJson: string;
+  createdAt: string;
 };
 
 export interface PaneStatusResult {
@@ -60,6 +68,7 @@ export type ClientRequest =
   | { type: 'projects.open'; requestId: string; cwd?: string; title?: string; autonomyProfile?: string }
   | { type: 'panes.list'; requestId: string }
   | { type: 'coven.sessions.list'; requestId: string }
+  | { type: 'coven.sessions.open'; requestId: string; id: string }
   | { type: 'panes.spawn'; requestId: string; cwd: string; branch?: string; agent?: string; title?: string; prompt?: string }
   | { type: 'panes.capture'; requestId: string; id: PaneId; lines?: number }
   | { type: 'panes.status'; requestId: string; id: PaneId }
@@ -79,6 +88,7 @@ export type ServerResponse =
   | { type: 'projects.open.result'; requestId: string; project: ProjectSummary }
   | { type: 'panes.list.result'; requestId: string; panes: PaneSummary[] }
   | { type: 'coven.sessions.list.result'; requestId: string; sessions: CovenSessionSummary[] }
+  | { type: 'coven.sessions.open.result'; requestId: string; id: PaneId; pane: PaneSummary; session: CovenSessionSummary }
   | { type: 'panes.spawn.result'; requestId: string; id: PaneId; pane?: PaneSummary; worktreePath?: string; branch?: string }
   | { type: 'panes.capture.result'; requestId: string; id: PaneId; text: string; lines: number }
   | { type: 'panes.status.result'; requestId: string; status: PaneStatusResult }

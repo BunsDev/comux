@@ -4,9 +4,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  buildCovenAttachCommand,
   buildScopedProject,
   capturePaneText,
   listProjectCovenSessions,
+  openProjectCovenSession,
   listScopedProjects,
   readPaneStatus,
   resolveScopedCwd,
@@ -105,6 +107,80 @@ describe('daemon bridge Coven helpers', () => {
     expect(sessions.map((session) => session.id)).toEqual(['inside-root', 'inside-child']);
   });
 });
+
+  it('opens an in-scope Coven session as a comux shell pane', async () => {
+    const root = await tempDir('comux-bridge-coven-open-');
+    const commands: string[] = [];
+
+    const result = await openProjectCovenSession(
+      root,
+      'comux-test',
+      'session-1',
+      {
+        listSessions: async () => [
+          {
+            id: 'session-1',
+            projectRoot: root,
+            harness: 'codex',
+            title: 'Fix tests',
+            status: 'running',
+            createdAt: '2026-04-27T10:00:00Z',
+            updatedAt: '2026-04-27T10:01:00Z',
+          },
+        ],
+      },
+      {
+        tmuxSessionExists: () => true,
+        createTmuxPane: (_sessionName, cwd, title) => {
+          expect(cwd).toBe(root);
+          expect(title).toBe('coven:Fix tests');
+          return '%42';
+        },
+        sendTmuxCommand: (paneId, command) => {
+          commands.push(`${paneId}:${command}`);
+        },
+      },
+    );
+
+    const config = JSON.parse(await readFile(path.join(root, '.comux', 'comux.config.json'), 'utf8'));
+    expect(result.id).toBe('%42');
+    expect(result.pane.title).toBe('coven:Fix tests');
+    expect(commands).toEqual(['%42:coven attach session-1']);
+    expect(config.panes[0]).toMatchObject({
+      paneId: '%42',
+      shellType: 'coven',
+      type: 'shell',
+      covenSession: { id: 'session-1', harness: 'codex', status: 'running' },
+    });
+  });
+
+  it('refuses to open Coven sessions outside the current project scope', async () => {
+    const root = await tempDir('comux-bridge-coven-root-');
+    const outside = await tempDir('comux-bridge-coven-outside-');
+
+    await expect(openProjectCovenSession(root, 'comux-test', 'outside', {
+      listSessions: async () => [
+        {
+          id: 'outside',
+          projectRoot: outside,
+          harness: 'codex',
+          title: 'Outside',
+          status: 'running',
+          createdAt: '2026-04-27T10:00:00Z',
+          updatedAt: '2026-04-27T10:01:00Z',
+        },
+      ],
+    }, {
+      tmuxSessionExists: () => true,
+      createTmuxPane: () => { throw new Error('should not create pane'); },
+      sendTmuxCommand: () => { throw new Error('should not send command'); },
+    })).rejects.toThrow(/not in this comux project scope/);
+  });
+
+  it('builds safe Coven attach commands only for safe ids', () => {
+    expect(buildCovenAttachCommand('abc-123_def:ghi')).toBe('coven attach abc-123_def:ghi');
+    expect(() => buildCovenAttachCommand('abc; rm -rf /')).toThrow(/unsupported characters/);
+  });
 
 describe('daemon bridge pane helpers', () => {
   it('bounds captured pane output to a safe line count', () => {

@@ -18,7 +18,10 @@ import {
   bridgeErrorMessage,
   buildScopedProject,
   capturePaneText,
+  listProjectCovenSessions,
   listScopedProjects,
+  createCovenClient,
+  openProjectCovenSession,
   readPaneStatus,
   resolveConfiguredPaneId,
   spawnBridgePane,
@@ -205,6 +208,30 @@ class Connection {
       case 'panes.list': {
         const panes = await listPanes(this.deps.projectRoot);
         this.send({ type: 'panes.list.result', requestId: msg.requestId, panes });
+        return;
+      }
+      case 'coven.sessions.list': {
+        try {
+          const sessions = await listProjectCovenSessions(this.deps.projectRoot, createCovenClient());
+          this.send({ type: 'coven.sessions.list.result', requestId: msg.requestId, sessions });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'coven_sessions_list_failed'), message: bridgeErrorMessage(e) });
+        }
+        return;
+      }
+      case 'coven.sessions.open': {
+        try {
+          const result = await openProjectCovenSession(this.deps.projectRoot, this.deps.tmux.sessionName, msg.id);
+          this.send({
+            type: 'coven.sessions.open.result',
+            requestId: msg.requestId,
+            id: result.id,
+            pane: result.pane,
+            session: result.session,
+          });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'coven_session_open_failed'), message: bridgeErrorMessage(e) });
+        }
         return;
       }
       case 'panes.capture': {
