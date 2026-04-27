@@ -1,0 +1,30 @@
+{
+  "name": "comux",
+  "version": "0.0.0",
+  "description": "A project-scoped agent cockpit for coordinating coding work across terminal sessions.",
+  "type": "module",
+  "bin": {
+    "comux": "./index.js"
+  },
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "agents",
+    "terminal",
+    "tmux",
+    "worktrees",
+    "openclaw",
+    "coding-agents"
+  ],
+  "author": "Valentina Alexander",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
