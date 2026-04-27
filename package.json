@@ -4,7 +4,7 @@
   "description": "A project-scoped agent cockpit for coordinating coding work across terminal sessions.",
   "type": "module",
   "bin": {
-    "comux": "./index.js"
+    "comux": "index.js"
   },
   "exports": {
     ".": "./index.js"
