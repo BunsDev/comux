@@ -37,7 +37,7 @@
       autocorrect="off"
     />
 
-    <div class="terminal-content" @click="focusMobileInput">
+    <div class="terminal-content" @click="handleTerminalClick">
       <div class="terminal-output" :style="terminalContainerStyle">
         <div
           v-for="(row, rowIndex) in terminalBuffer"
@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue';
+import { splitTerminalTextByUrl } from '../utils/terminalLinks';
 
 // Get pane ID from URL
 const paneId = window.location.pathname.split('/').pop() || '';
@@ -422,6 +423,20 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function renderTextWithLinks(text: string): string {
+  return splitTerminalTextByUrl(text)
+    .map(segment => {
+      const escapedText = escapeHtml(segment.text);
+      if (!segment.url) {
+        return escapedText;
+      }
+
+      const escapedUrl = escapeHtml(segment.url);
+      return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" class="terminal-link" title="Command-click to open ${escapedUrl}">${escapedText}</a>`;
+    })
+    .join('');
+}
+
 // Check if two cells have the same styling
 function hasSameStyle(cell1: any, cell2: any): boolean {
   return cell1.fg === cell2.fg &&
@@ -607,7 +622,7 @@ function renderRow(row: any[], rowIndex: number): string {
         text += c.char;
         col++;
       }
-      html += escapeHtml(text);
+      html += renderTextWithLinks(text);
     } else {
       const { classes, styles } = buildStyleAttrs(cell);
       if (isCursor) classes.push('term-cursor');
@@ -625,7 +640,7 @@ function renderRow(row: any[], rowIndex: number): string {
 
       const classAttr = classes.length ? ' class="' + classes.join(' ') + '"' : '';
       const styleAttr = styles.length ? ' style="' + styles.join('; ') + '"' : '';
-      html += '<span' + classAttr + styleAttr + '>' + escapeHtml(text) + '</span>';
+      html += '<span' + classAttr + styleAttr + '>' + renderTextWithLinks(text) + '</span>';
     }
   }
 
@@ -679,6 +694,26 @@ function focusMobileInput() {
   if (isMobile.value && mobileInputRef.value) {
     mobileInputRef.value.focus();
   }
+}
+
+function handleTerminalClick(event: MouseEvent) {
+  const target = event.target instanceof Element ? event.target : null;
+  const link = target?.closest('a.terminal-link') as HTMLAnchorElement | null;
+
+  if (!link) {
+    focusMobileInput();
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (event.metaKey || event.ctrlKey) {
+    window.open(link.href, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  focusMobileInput();
 }
 
 async function handleMobileInput(event: Event) {

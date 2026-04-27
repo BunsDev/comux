@@ -1404,6 +1404,18 @@ footer {
   line-height: 1.2;
 }
 
+.terminal-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.terminal-link:hover {
+  color: var(--accent-light);
+}
+
 /* Mobile toolbar */
 .mobile-toolbar {
   display: flex;
