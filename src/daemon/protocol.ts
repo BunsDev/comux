@@ -46,6 +46,13 @@ export type CovenSessionEvent = {
   createdAt: string;
 };
 
+export type CovenSessionLaunchRequest = {
+  harness: string;
+  prompt: string;
+  cwd?: string;
+  title?: string;
+};
+
 export interface PaneStatusResult {
   id: PaneId;
   exists?: boolean;
@@ -68,6 +75,7 @@ export type ClientRequest =
   | { type: 'projects.open'; requestId: string; cwd?: string; title?: string; autonomyProfile?: string }
   | { type: 'panes.list'; requestId: string }
   | { type: 'coven.sessions.list'; requestId: string }
+  | { type: 'coven.sessions.launch'; requestId: string; launch: CovenSessionLaunchRequest }
   | { type: 'coven.sessions.open'; requestId: string; id: string }
   | { type: 'panes.spawn'; requestId: string; cwd: string; branch?: string; agent?: string; title?: string; prompt?: string }
   | { type: 'panes.capture'; requestId: string; id: PaneId; lines?: number }
@@ -88,6 +96,7 @@ export type ServerResponse =
   | { type: 'projects.open.result'; requestId: string; project: ProjectSummary }
   | { type: 'panes.list.result'; requestId: string; panes: PaneSummary[] }
   | { type: 'coven.sessions.list.result'; requestId: string; sessions: CovenSessionSummary[] }
+  | { type: 'coven.sessions.launch.result'; requestId: string; session: CovenSessionSummary }
   | { type: 'coven.sessions.open.result'; requestId: string; id: PaneId; pane: PaneSummary; session: CovenSessionSummary }
   | { type: 'panes.spawn.result'; requestId: string; id: PaneId; pane?: PaneSummary; worktreePath?: string; branch?: string }
   | { type: 'panes.capture.result'; requestId: string; id: PaneId; text: string; lines: number }

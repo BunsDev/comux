@@ -21,6 +21,7 @@ import {
   listProjectCovenSessions,
   listScopedProjects,
   createCovenClient,
+  launchProjectCovenSession,
   openProjectCovenSession,
   readPaneStatus,
   resolveConfiguredPaneId,
@@ -216,6 +217,15 @@ class Connection {
           this.send({ type: 'coven.sessions.list.result', requestId: msg.requestId, sessions });
         } catch (e) {
           this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'coven_sessions_list_failed'), message: bridgeErrorMessage(e) });
+        }
+        return;
+      }
+      case 'coven.sessions.launch': {
+        try {
+          const session = await launchProjectCovenSession(this.deps.projectRoot, msg.launch, createCovenClient());
+          this.send({ type: 'coven.sessions.launch.result', requestId: msg.requestId, session });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'coven_session_launch_failed'), message: bridgeErrorMessage(e) });
         }
         return;
       }
