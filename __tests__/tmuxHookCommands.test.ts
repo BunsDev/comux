@@ -8,7 +8,7 @@ describe('tmuxHookCommands', () => {
   it('builds pane-exited hook with recovery + SIGUSR2 notification', () => {
     const command = buildPaneExitedHookCommandForSession(4321, 'comux-test');
 
-    expect(command).toContain('COMUX_RECOVERY_SESSION_B64=dm11eC10ZXN0');
+    expect(command).toContain('COMUX_RECOVERY_SESSION_B64=Y29tdXgtdGVzdA==');
     expect(command).toContain('COMUX_RECOVERY_EXITED_PANE=#{hook_pane}');
     expect(command).toContain('controlPaneRecovery.js');
     expect(command).toContain('kill -USR2 4321');

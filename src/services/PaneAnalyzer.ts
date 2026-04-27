@@ -145,7 +145,7 @@ export class PaneAnalyzer {
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/comux/comux',
+        'HTTP-Referer': 'https://github.com/BunsDev/comux',
         'X-Title': 'comux',
       },
       body: JSON.stringify({
