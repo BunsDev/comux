@@ -42,6 +42,7 @@ export interface TmuxDoctorCheck {
 
 export interface TmuxDoctorResult {
   canRun: boolean;
+  usable: boolean;
   healthy: boolean;
   fixed: boolean;
   checks: TmuxDoctorCheck[];
@@ -338,9 +339,9 @@ export async function runTmuxDoctor(
       label: 'tmux config',
       severity: 'warning',
       message: existingConfig
-        ? `tmux config exists at ${existingConfig.path}, but comux managed block is missing`
-        : 'No tmux config with a comux managed block was found',
-      fix: 'Run comux doctor --fix to add the comux managed block',
+        ? `Recommended comux tmux config block is not installed in ${existingConfig.path}`
+        : 'Recommended comux tmux config block is not installed yet',
+      fix: 'Run comux doctor --fix to add the recommended comux tmux config block',
     });
 
     if (options.fix) {
@@ -460,6 +461,7 @@ export async function runTmuxDoctor(
 
   return {
     canRun: !hasErrors,
+    usable: !hasErrors,
     healthy: !hasErrors && !hasWarnings,
     fixed,
     checks,
@@ -492,10 +494,11 @@ export function formatTmuxDoctorText(result: TmuxDoctorResult): string {
     lines.push('', chalk.yellow(`Backup written: ${result.backupPath}`));
   }
 
-  if (!result.healthy && result.canRun && !result.fixed) {
-    lines.push('', chalk.yellow('Run comux doctor --fix to apply safe repairs.'));
-  } else if (!result.healthy && result.canRun && result.fixed) {
-    lines.push('', chalk.yellow('Some warnings remain because they require comux to be running in this session.'));
+  if (!result.healthy && result.usable && !result.fixed) {
+    lines.push('', chalk.yellow('comux can run; recommended setup warnings remain.'));
+    lines.push(chalk.yellow('Run comux doctor --fix to apply safe repairs.'));
+  } else if (!result.healthy && result.usable && result.fixed) {
+    lines.push('', chalk.yellow('comux can run. Some warnings remain because they require comux to be running in this session.'));
   }
 
   return lines.join('\n');

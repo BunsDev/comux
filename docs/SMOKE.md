@@ -31,7 +31,9 @@ comux
 
 Expected behavior:
 
-- `doctor --json` reports tmux and git checks.
+- `doctor --json` reports tmux and git checks, including `usable: true` when
+  there are no blocking errors. `healthy` may be `false` if only recommended
+  setup warnings remain.
 - `npm pack --dry-run --json` includes `docs/SMOKE.md`.
 - The interactive command opens the terminal cockpit for the disposable project.
 - Creating a pane creates an isolated git worktree.

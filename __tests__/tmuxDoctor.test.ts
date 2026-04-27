@@ -43,9 +43,45 @@ describe('tmux doctor', () => {
       });
 
       expect(result.canRun).toBe(true);
+      expect(result.usable).toBe(true);
       expect(result.healthy).toBe(true);
       expect(getTmuxDoctorExitCode(result)).toBe(0);
       expect(JSON.parse(formatTmuxDoctorJson(result)).checks).toEqual(result.checks);
+    } finally {
+      await fs.rm(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it('reports usable with warnings when only the recommended managed config is missing', async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
+
+    try {
+      const result = await runTmuxDoctor({
+        runtime: createRuntime({ homeDir }),
+      });
+
+      expect(result.canRun).toBe(true);
+      expect(result.usable).toBe(true);
+      expect(result.healthy).toBe(false);
+      expect(result.checks.find((check) => check.id === 'tmux-managed-config')?.severity).toBe('warning');
+      expect(JSON.parse(formatTmuxDoctorJson(result)).usable).toBe(true);
+    } finally {
+      await fs.rm(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it('text output says comux can run when only warnings exist', async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
+
+    try {
+      const result = await runTmuxDoctor({
+        runtime: createRuntime({ homeDir }),
+      });
+
+      const text = formatTmuxDoctorText(result);
+
+      expect(text).toMatch(/comux can run|usable/i);
+      expect(text).toContain('recommended');
     } finally {
       await fs.rm(homeDir, { recursive: true, force: true });
     }
@@ -71,6 +107,7 @@ describe('tmux doctor', () => {
       });
 
       expect(result.canRun).toBe(false);
+      expect(result.usable).toBe(false);
       expect(result.checks.find((check) => check.id === 'tmux-version')?.severity).toBe('error');
       expect(getTmuxDoctorExitCode(result)).toBe(1);
     } finally {
