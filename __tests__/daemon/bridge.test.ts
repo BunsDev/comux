@@ -7,6 +7,7 @@ import {
   buildCovenAttachCommand,
   buildScopedProject,
   capturePaneText,
+  launchProjectCovenSession,
   listProjectCovenSessions,
   openProjectCovenSession,
   listScopedProjects,
@@ -106,7 +107,62 @@ describe('daemon bridge Coven helpers', () => {
 
     expect(sessions.map((session) => session.id)).toEqual(['inside-root', 'inside-child']);
   });
-});
+
+  it('launches a Coven session scoped to the current comux project', async () => {
+    const root = await tempDir('comux-bridge-coven-launch-');
+    await mkdir(path.join(root, 'app'));
+    const launches: unknown[] = [];
+
+    const session = await launchProjectCovenSession(
+      root,
+      {
+        harness: ' codex ',
+        prompt: ' build the thing ',
+        title: ' Build ',
+        cwd: 'app',
+      },
+      {
+        listSessions: async () => [],
+        launchSession: async (request) => {
+          launches.push(request);
+          return {
+            id: 'session-1',
+            projectRoot: request.projectRoot,
+            harness: request.harness,
+            title: request.title || request.prompt,
+            status: 'running',
+            createdAt: '2026-04-27T10:00:00Z',
+            updatedAt: '2026-04-27T10:01:00Z',
+          };
+        },
+      },
+    );
+
+    expect(launches).toEqual([
+      { harness: 'codex', prompt: 'build the thing', title: 'Build', projectRoot: root, cwd: path.join(root, 'app') },
+    ]);
+    expect(session).toMatchObject({ id: 'session-1', projectRoot: root, harness: 'codex', status: 'running' });
+  });
+
+  it('rejects Coven launch cwd outside the current project before calling Coven', async () => {
+    const root = await tempDir('comux-bridge-coven-launch-root-');
+    const outside = await tempDir('comux-bridge-coven-launch-outside-');
+
+    await expect(launchProjectCovenSession(
+      root,
+      {
+        harness: 'codex',
+        prompt: 'hello',
+        cwd: outside,
+      },
+      {
+        listSessions: async () => [],
+        launchSession: async () => {
+          throw new Error('should not launch outside project scope');
+        },
+      },
+    )).rejects.toThrow(/outside the comux project root/);
+  });
 
   it('opens an in-scope Coven session as a comux shell pane', async () => {
     const root = await tempDir('comux-bridge-coven-open-');
@@ -181,6 +237,7 @@ describe('daemon bridge Coven helpers', () => {
     expect(buildCovenAttachCommand('abc-123_def:ghi')).toBe('coven attach abc-123_def:ghi');
     expect(() => buildCovenAttachCommand('abc; rm -rf /')).toThrow(/unsupported characters/);
   });
+});
 
 describe('daemon bridge pane helpers', () => {
   it('bounds captured pane output to a safe line count', () => {

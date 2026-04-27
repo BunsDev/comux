@@ -6,7 +6,14 @@ import path from 'node:path';
 import { AGENT_IDS, buildAgentCommand, buildInitialPromptCommand, type AgentName } from '../utils/agentLaunch.js';
 import { buildPromptReadAndDeleteSnippet, writePromptFile } from '../utils/promptStore.js';
 import type { ComuxConfig } from '../types.js';
-import type { CovenSessionEvent, CovenSessionSummary, PaneStatusResult, PaneSummary, ProjectSummary } from './protocol.js';
+import type {
+  CovenSessionEvent,
+  CovenSessionLaunchRequest,
+  CovenSessionSummary,
+  PaneStatusResult,
+  PaneSummary,
+  ProjectSummary,
+} from './protocol.js';
 
 export const DEFAULT_CAPTURE_LINES = 200;
 export const MAX_CAPTURE_LINES = 2_000;
@@ -45,6 +52,9 @@ export interface BridgeError {
 
 export interface CovenClient {
   listSessions: () => Promise<CovenSessionSummary[]>;
+  launchSession?: (
+    request: CovenSessionLaunchRequest & { projectRoot: string; cwd: string },
+  ) => Promise<CovenSessionSummary>;
   listEvents?: (sessionId: string) => Promise<CovenSessionEvent[]>;
   sendInput?: (sessionId: string, data: string) => Promise<void>;
   killSession?: (sessionId: string) => Promise<void>;
@@ -140,6 +150,42 @@ export async function listProjectCovenSessions(
   return scopedSessions;
 }
 
+export async function launchProjectCovenSession(
+  projectRoot: string,
+  request: Partial<CovenSessionLaunchRequest> | undefined,
+  client: CovenClient = createCovenClient(),
+): Promise<CovenSessionSummary> {
+  if (!client.launchSession) {
+    throw bridgeError('coven_launch_unsupported', 'Coven client does not support launching sessions');
+  }
+  const harness = typeof request?.harness === 'string' ? request.harness.trim() : '';
+  const prompt = typeof request?.prompt === 'string' ? request.prompt.trim() : '';
+  const title = typeof request?.title === 'string' ? request.title.trim() : undefined;
+  if (!harness) {
+    throw bridgeError('invalid_coven_launch', 'Coven launch requires a harness');
+  }
+  if (!prompt) {
+    throw bridgeError('invalid_coven_launch', 'Coven launch requires a prompt');
+  }
+
+  const scoped = await resolveScopedCwd(
+    projectRoot,
+    typeof request?.cwd === 'string' ? request.cwd : undefined,
+  );
+  const session = await client.launchSession({
+    harness,
+    prompt,
+    title: title || undefined,
+    projectRoot: scoped.projectRoot,
+    cwd: scoped.requestedCwd,
+  });
+  const sessionRoot = await realpath(session.projectRoot);
+  if (!isPathInsideOrEqual(scoped.projectRoot, sessionRoot)) {
+    throw bridgeError('coven_session_scope_violation', 'Coven launched a session outside this comux project scope');
+  }
+  return { ...session, projectRoot: sessionRoot };
+}
+
 export async function openProjectCovenSession(
   projectRoot: string,
   sessionName: string,
@@ -226,6 +272,10 @@ export function createCovenClient(covenHome = defaultCovenHome()): CovenClient {
     async listSessions() {
       const raw = await requestCovenApi(covenHome, 'GET', '/sessions');
       return Array.isArray(raw) ? raw.map(normalizeCovenSession) : [];
+    },
+    async launchSession(request) {
+      const raw = await requestCovenApi(covenHome, 'POST', '/sessions', request);
+      return normalizeCovenSession(raw);
     },
     async listEvents(sessionId: string) {
       const raw = await requestCovenApi(covenHome, 'GET', `/events?sessionId=${encodeURIComponent(sessionId)}`);
@@ -371,7 +421,10 @@ export async function spawnBridgePane(
   request: BridgeSpawnRequest,
   deps: BridgeSpawnDeps = defaultSpawnDeps,
 ): Promise<BridgeSpawnResult> {
-  const scoped = await resolveScopedCwd(projectRoot, request.cwd);
+  const scoped = await resolveScopedCwd(
+    projectRoot,
+    typeof request?.cwd === 'string' ? request.cwd : undefined,
+  );
   if (!deps.tmuxSessionExists(sessionName)) {
     throw bridgeError('tmux_session_missing', 'comux tmux session is not running; start comux for this project first');
   }
