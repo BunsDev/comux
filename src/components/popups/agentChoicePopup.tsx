@@ -1,0 +1,219 @@
+#!/usr/bin/env node
+
+/**
+ * Standalone popup for choosing one or more agents.
+ * Runs in a tmux popup modal and writes result to a file.
+ */
+
+import React, { useMemo, useRef, useState } from 'react';
+import { render, Box, Text, useInput, useApp } from 'ink';
+import { PopupContainer, PopupWrapper, writeSuccessAndExit } from './shared/index.js';
+import { POPUP_CONFIG } from './config.js';
+import { resolveAgentsToLaunchOnEnter } from './agentChoiceSelection.js';
+import {
+  getAgentLabel,
+  getAgentShortLabel,
+  isAgentName,
+  type AgentName,
+} from '../../utils/agentLaunch.js';
+
+interface AgentChoicePopupProps {
+  resultFile: string;
+  availableAgents: AgentName[];
+  initialSelectedAgents: AgentName[];
+  initialFocusedAgent?: AgentName;
+}
+
+const AgentChoicePopupApp: React.FC<AgentChoicePopupProps> = ({
+  resultFile,
+  availableAgents,
+  initialSelectedAgents,
+  initialFocusedAgent,
+}) => {
+  const { exit } = useApp();
+  const [selectedIndex, setSelectedIndex] = useState(() => {
+    if (initialFocusedAgent) {
+      const focusedIndex = availableAgents.indexOf(initialFocusedAgent);
+      if (focusedIndex >= 0) {
+        return focusedIndex;
+      }
+    }
+
+    const firstSelectedIndex = availableAgents.findIndex((agent) =>
+      initialSelectedAgents.includes(agent)
+    );
+    return firstSelectedIndex >= 0 ? firstSelectedIndex : 0;
+  });
+  const [selectedAgents, setSelectedAgents] = useState<Set<AgentName>>(
+    () =>
+      new Set<AgentName>(
+        availableAgents.filter((agent) => initialSelectedAgents.includes(agent))
+      )
+  );
+  const selectedIndexRef = useRef(selectedIndex);
+  const selectedAgentsRef = useRef(selectedAgents);
+  selectedIndexRef.current = selectedIndex;
+  selectedAgentsRef.current = selectedAgents;
+
+  const orderedSelections = useMemo(
+    () => availableAgents.filter((agent) => selectedAgents.has(agent)),
+    [availableAgents, selectedAgents]
+  );
+  const selectedCount = orderedSelections.length;
+
+  const setSelectedIndexValue = (nextIndex: number) => {
+    selectedIndexRef.current = nextIndex;
+    setSelectedIndex(nextIndex);
+  };
+
+  const setSelectedAgentsValue = (nextSelectedAgents: Set<AgentName>) => {
+    selectedAgentsRef.current = nextSelectedAgents;
+    setSelectedAgents(nextSelectedAgents);
+  };
+
+  const toggleSelectedAgent = () => {
+    const agent = availableAgents[selectedIndexRef.current];
+    if (!agent) return;
+
+    const next = new Set(selectedAgentsRef.current);
+    if (next.has(agent)) {
+      next.delete(agent);
+    } else {
+      next.add(agent);
+    }
+
+    setSelectedAgentsValue(next);
+  };
+
+  useInput((input, key) => {
+    if (availableAgents.length === 0) {
+      if (key.return) {
+        writeSuccessAndExit(resultFile, [], exit);
+      }
+      return;
+    }
+
+    if (key.upArrow) {
+      setSelectedIndexValue(Math.max(0, selectedIndexRef.current - 1));
+      return;
+    }
+
+    if (key.downArrow) {
+      setSelectedIndexValue(
+        Math.min(availableAgents.length - 1, selectedIndexRef.current + 1)
+      );
+      return;
+    }
+
+    if (input === ' ') {
+      toggleSelectedAgent();
+      return;
+    }
+
+    if (key.return) {
+      const launchAgents = resolveAgentsToLaunchOnEnter(
+        availableAgents,
+        selectedAgentsRef.current,
+        selectedIndexRef.current
+      );
+      writeSuccessAndExit(resultFile, launchAgents, exit);
+    }
+  });
+
+  return (
+    <PopupWrapper resultFile={resultFile}>
+      <PopupContainer footer="↑↓ navigate • Space toggle • Enter launch • ESC cancel">
+        <Box marginBottom={1}>
+          <Text dimColor>
+            Enter launches the focused agent. Space selects multiple agents.
+          </Text>
+          <Text color={POPUP_CONFIG.titleColor}>
+            Selected: {selectedCount}/{availableAgents.length}
+          </Text>
+        </Box>
+
+        <Box flexDirection="column">
+          {availableAgents.length === 0 && (
+            <Text dimColor>No enabled agents available</Text>
+          )}
+          {availableAgents.map((agent, index) => {
+            const isSelectedRow = index === selectedIndex;
+            const isChecked = selectedAgents.has(agent);
+            const marker = isChecked ? '◉' : '◎';
+            const markerColor = isChecked ? POPUP_CONFIG.successColor : 'white';
+
+            return (
+              <Box key={agent}>
+                <Text color={markerColor} bold={isChecked}>
+                  {marker}
+                </Text>
+                <Text
+                  color={isSelectedRow ? POPUP_CONFIG.titleColor : 'white'}
+                  bold={isSelectedRow}
+                >
+                  {' '}
+                  {getAgentLabel(agent)}
+                </Text>
+                <Text color={isSelectedRow ? POPUP_CONFIG.titleColor : 'gray'}>
+                  {' '}
+                  {getAgentShortLabel(agent)}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+      </PopupContainer>
+    </PopupWrapper>
+  );
+};
+
+// Entry point
+function main() {
+  const resultFile = process.argv[2];
+  const agentsJson = process.argv[3];
+  const initialSelectedJson = process.argv[4];
+  const initialFocusedRaw = process.argv[5];
+
+  if (!resultFile || !agentsJson) {
+    console.error('Error: Result file and agents JSON required');
+    process.exit(1);
+  }
+
+  let availableAgents: AgentName[];
+  try {
+    availableAgents = JSON.parse(agentsJson);
+  } catch {
+    console.error('Error: Failed to parse agents JSON');
+    process.exit(1);
+  }
+
+  let initialSelectedAgents: AgentName[] = [];
+  if (initialSelectedJson) {
+    try {
+      const parsed = JSON.parse(initialSelectedJson);
+      if (Array.isArray(parsed)) {
+        initialSelectedAgents = parsed.filter((agent): agent is AgentName =>
+          isAgentName(agent)
+        );
+      }
+    } catch {
+      // Ignore invalid initial selection payloads and fall back to no preselection.
+    }
+  }
+
+  const initialFocusedAgent =
+    initialFocusedRaw && isAgentName(initialFocusedRaw)
+      ? initialFocusedRaw
+      : undefined;
+
+  render(
+    <AgentChoicePopupApp
+      resultFile={resultFile}
+      availableAgents={availableAgents}
+      initialSelectedAgents={initialSelectedAgents}
+      initialFocusedAgent={initialFocusedAgent}
+    />
+  );
+}
+
+main();
