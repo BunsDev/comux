@@ -39,6 +39,7 @@
     "README.md",
     "docs/PRODUCT-SPEC.md",
     "docs/SMOKE.md",
+    "CONTRIBUTING.md",
     "LICENSE"
   ],
   "scripts": {

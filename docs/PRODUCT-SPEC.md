@@ -1,278 +1,158 @@
 # comux Product Spec
 
-**Status:** early product direction  
-**Package:** `comux`  
-**Product thesis:** comux is the project-scoped cockpit where your OpenClaw familiar coordinates coding agents in visible terminal workspaces.
+- **Status:** early public product
+- **Package:** `comux`
+- **One-liner:** comux is a project-scoped cockpit for coordinating parallel coding agents in visible terminal workspaces.
 
-## Why comux exists
+## Thesis
 
-Coding with agents is powerful, but it gets chaotic fast. One agent is easy to follow. Five agents across three repos, each with its own branch, terminal, tests, blockers, and approvals, becomes a coordination problem.
+Parallel coding agents are useful only when the work stays visible, scoped, and recoverable.
 
-comux exists to make that coordination visible, scoped, and trustworthy.
-
-It gives the user one place to launch project work, watch agent terminals, understand status, and jump in when human judgment is needed. It is not another hidden background automation layer. It is the cockpit for agentic development work.
-
-## Product promise
+comux gives developers one cockpit for launching agent lanes, watching terminals, keeping branches isolated, and bringing work back through explicit review. It carries forward the proven VMUX primitives — tmux panes, git worktrees, agent launchers, and merge flows — with cleaner comux branding and a smaller public surface for now.
 
 > Full autonomy, inside a room you chose.
 
-A user explicitly launches a project into comux. Within that project boundary, their OpenClaw familiar or coding conductor can create terminal workspaces, spawn coding agents, run tests, inspect output, and summarize progress. Outside that boundary, nothing roams.
+## Product shape
 
-## Positioning
+```text
+CLI / OpenMeow / future UI
+          │
+          ▼
+    comux control API
+          │
+          ▼
+   local comux daemon
+          │
+          ├─ projects
+          ├─ tmux panes
+          ├─ git worktrees
+          ├─ agent launchers
+          ├─ Coven sessions
+          └─ status / attention events
+```
 
-comux is a fresh public product, not just a renamed VMUX history. VMUX proved the primitives: tmux panes, isolated worktrees, agent launchers, and multi-project terminal control. comux should preserve the best of those primitives while presenting a cleaner product story and codebase.
+## Core model
 
-### One-liner
-
-comux is a project-scoped agent cockpit for coordinating coding work across terminal sessions.
-
-### Slightly longer
-
-comux lets your OpenClaw familiar conduct Claude, Codex, Gemini, and other coding agents in visible terminal workspaces, with isolated git worktrees and explicit project-level autonomy.
-
-### OpenMeow integration line
-
-OpenMeow is the toss. Cody is the conductor. comux is the cockpit.
-
-## Core mental model
-
-- **Project:** an explicit repo/workspace the user has launched into comux.
-- **Cockpit:** the visible comux surface for project tabs, terminal panes, worktrees, agents, and status.
-- **Pane:** one terminal workspace, usually backed by a git worktree and optionally an agent process.
-- **Conductor:** the user’s OpenClaw agent or subagent that coordinates work inside the project.
-- **Worker agent:** Claude, Codex, Gemini, OpenCode, or another coding CLI running inside a pane.
-- **Autonomy profile:** the project-level permission envelope that defines what the conductor can do without asking.
+- **Project** — an explicit repo/workspace launched into comux.
+- **Cockpit** — the visible terminal control surface.
+- **Pane** — one terminal workspace, often backed by a worktree and agent process.
+- **Worktree** — an isolated git checkout for a task or branch.
+- **Agent** — Claude, Codex, OpenCode, Gemini, or another configured coding CLI.
+- **Conductor** — a human, OpenClaw familiar, Cody/OpenMeow, or bridge process coordinating work.
+- **Coven session** — an optional Coven-managed harness session that comux can launch or open when a local Coven daemon is available.
 
 ## Target user
 
-comux is for developers who are ready to use multiple AI coding agents but do not want the work to disappear into invisible background jobs.
+comux is for developers and maintainers who want multiple coding agents working at once without losing track of branches, terminals, tests, blockers, or handoffs.
 
-The early user is a power user or maintainer who:
+The early user is comfortable with terminal tools and wants:
 
-- works across multiple repos;
-- wants parallel agent work without branch conflicts;
-- wants terminal-level visibility;
-- needs approvals, diffs, and status summaries;
-- values speed but does not want reckless autonomy.
+- parallel agent work without branch conflicts;
+- terminal-level visibility;
+- explicit merge/PR/review control;
+- project-scoped autonomy;
+- a future path for OpenMeow/OpenClaw/Coven orchestration.
 
 ## Product pillars
 
-### 1. Explicit project launch
+### 1. Project-scoped autonomy
 
-The user chooses when a project enters comux.
+A user starts comux from a chosen project. Automation stays inside that room unless the user explicitly opens another one.
 
-A launched project defines the room where autonomy is allowed. The conductor should not wander across the filesystem or operate on unrelated repos.
+### 2. Visible execution
 
-### 2. Visible agent workspaces
+Every worker should be inspectable as a terminal pane. No mysterious hidden jobs as the primary experience.
 
-Agent work should be inspectable.
+### 3. Worktree isolation
 
-comux shows panes, branches, worktrees, agent identities, last activity, and attention state. The user can always jump into the terminal and intervene.
+Parallel work should not trample the main checkout. Coding lanes default toward branch/worktree isolation.
 
-### 3. Conductor-first orchestration
+### 4. Explicit merge and PR flow
 
-The user should not have to babysit every worker agent.
+comux helps with merge, PR, and cleanup flows, but review remains human-legible and approval-driven.
 
-A conductor — such as Cody from OpenMeow or the user’s primary OpenClaw familiar — can create panes, send scoped prompts, watch output, detect blockers, and report back with concise summaries.
+### 5. Bridge-friendly local control
 
-### 4. Worktree isolation
-
-Parallel agent work should not trample the main checkout.
-
-Each coding pane should get a branch/worktree by default. Merging, PR creation, and cleanup stay explicit and reviewable.
-
-### 5. Permissioned autonomy
-
-comux should make autonomy configurable instead of vague.
-
-Autonomy is granted per project and enforced at the bridge/control layer. Destructive and external actions stay gated.
-
-## Autonomy profiles
-
-### Observe
-
-- Read panes, output, metadata, and diffs.
-- Summarize and advise.
-- No commands or writes.
-
-### Assist
-
-- Create panes.
-- Launch worker agents.
-- Send prompts.
-- Ask before edits or state-changing commands.
-
-### Autopilot
-
-- Create panes and worktrees.
-- Run tests and typechecks.
-- Allow worker agents to edit inside scoped worktrees.
-- Prepare commits or PR-shaped summaries.
-- Ask before push, merge, delete, or external actions.
-
-### Trusted
-
-- Broad autonomy inside repo policy.
-- Still respects global hard gates, protected branches, secrets policy, and external-action approval.
-
-## Architecture direction
-
-comux should separate a local control plane from user-facing clients.
-
-```text
-OpenMeow / CLI / future UI
-          │
-          ▼
-   comux control API
-          │
-          ▼
- local comux daemon
-          │
-          ├─ project registry
-          ├─ tmux/session manager
-          ├─ worktree manager
-          ├─ agent launcher registry
-          ├─ pane status/attention events
-          └─ approval/action log
-```
-
-### Daemon
-
-The daemon owns privileged local automation:
-
-- opening projects;
-- creating panes;
-- creating worktrees;
-- launching agents;
-- capturing terminal output;
-- emitting status events;
-- focusing or opening cockpit surfaces.
-
-### Clients
-
-Clients should stay thin:
-
-- CLI for local power use;
-- OpenMeow integration for toss-to-Cody flows;
-- future Mac/web cockpit surface for richer visibility.
-
-### OpenClaw integration
-
-OpenClaw should integrate through a structured bridge, not by blind terminal puppeteering.
-
-The conductor needs operations like:
-
-- `projects.open`
-- `panes.spawn`
-- `panes.input`
-- `panes.capture`
-- `panes.status`
-- `panes.kill`
-- `events.subscribe`
-
-## First demo loop
-
-The first product demo should be narrow and real:
-
-1. User opens OpenMeow.
-2. User tosses: “Cody, fix this bug in open-meow.”
-3. Cody asks comux to open the `open-meow` project.
-4. comux creates a worker pane with an isolated worktree.
-5. Cody launches Codex or Claude with a scoped prompt.
-6. comux reports pane status and attention events.
-7. Cody summarizes progress back to OpenMeow.
-8. User can open comux to inspect the terminal.
-9. Cody asks before merge/push/PR actions.
-
-If this loop works, the product is real.
+OpenMeow, OpenClaw, Coven, and future clients should talk to a structured local control layer instead of blind terminal puppeteering.
 
 ## What to carry forward from VMUX
 
 Carry forward:
 
-- tmux-pane orchestration;
+- tmux pane orchestration;
 - git worktree isolation;
 - agent launcher registry;
 - project/pane metadata;
+- file browser and pane visibility controls;
 - attention/completion heuristics;
 - merge and PR workflow learnings;
-- daemon/control API direction.
+- lifecycle hooks.
+
+Simplify for comux v0:
+
+- keep the README and public story compact;
+- focus on CLI/core/daemon behavior first;
+- avoid over-explaining native app or multi-client ambitions before they are real;
+- treat OpenMeow and Coven as integration paths, not required setup.
 
 Leave behind:
 
-- old product name/history;
-- UI or architecture baggage that makes the public story harder to understand;
-- assumptions that every user starts in a terminal;
-- any hidden automation that is hard to inspect or interrupt.
-
-## OpenMeow relationship
-
-OpenMeow should drive adoption by making comux feel instantly useful from anywhere on macOS.
-
-OpenMeow does not need to become a terminal UI. It should remain the zero-chrome intake surface:
-
-- toss a coding task to Cody;
-- pick/confirm the project;
-- see compact status;
-- jump to comux for full cockpit visibility.
-
-Cody is the first conductor persona for this flow. Other users may have their own familiar or coding conductor, but the product pattern is the same.
+- old product name/history as the main story;
+- hidden automation that is hard to inspect or interrupt;
+- assumptions that every user wants the full historical VMUX surface on day one.
 
 ## v0 scope
 
-### Must have
+### Included now / near-term
 
-- Public repo with clear README and product thesis.
-- Local daemon/control API skeleton.
-- Project open/create command.
-- Pane spawn command backed by tmux.
-- Worktree-per-pane default.
-- Agent launcher for at least one worker agent.
-- Pane capture/status command.
-- Minimal OpenClaw/Cody bridge contract.
-
-### Nice to have
-
-- OpenMeow “Open in comux” action.
-- Multiple agent launchers.
-- Event stream for pane attention/completion.
-- Simple project autonomy profile metadata.
+- Public npm package `comux`.
+- TypeScript + Ink tmux cockpit.
+- Project-scoped tmux session.
+- Pane/worktree creation.
+- Agent launcher registry.
+- Pane file browser and visibility controls.
+- Merge/PR-oriented pane menu flows.
+- Local daemon/control bridge.
+- Coven session list/open/launch integration when a local Coven daemon is running.
+- Smoke docs and contributor loop.
 
 ### Not yet
 
-- Teams/multi-user collaboration.
-- Cloud-hosted terminals.
-- Full web dashboard.
-- Mobile client.
-- Complex marketplace/plugin story.
+- Full native desktop cockpit.
+- Cloud terminals.
+- Team collaboration.
+- Hosted agent orchestration.
+- Marketplace/plugin story.
+- Broad public claims about stable automation policies.
 
-## Daemon bridge v0 contract
+## Bridge rules
 
-The first Cody/OpenMeow bridge is intentionally project-scoped. A daemon is launched for one explicit project root, and bridge calls can only resolve paths at or below that root.
+The bridge must stay conservative:
 
-- `projects.list` returns the daemon-scoped project.
-- `projects.open { cwd?, title?, autonomyProfile? }` validates `cwd` against the daemon project root and returns that same scoped project; outside paths are rejected.
-- `panes.spawn { cwd, agent?, title?, prompt?, branch? }` requires the existing comux tmux session, creates a git worktree under `.comux/worktrees/<slug>`, opens a pane there, and records pane metadata.
-- `panes.capture { id, lines? }` returns bounded recent UTF-8 pane text.
-- `panes.status { id }` returns config-backed pane metadata plus best-effort tmux existence.
+- operate on explicitly launched project roots;
+- reject out-of-project paths;
+- prefer worktree-backed coding lanes;
+- expose bounded pane capture/status APIs;
+- avoid push, merge, publish, delete, or external actions without explicit approval;
+- keep secrets and infrastructure URLs out of UI copy and logs.
 
-The bridge must not roam to unrelated folders, run coding agents in the main checkout for spawned work, or perform push/merge/publish/delete actions.
+## First demo loop
 
-## Trust and safety rules
+1. Open a repo in comux.
+2. Press `n` and describe a coding task.
+3. Pick Codex, Claude, or another configured agent.
+4. comux creates an isolated worktree and terminal pane.
+5. The agent works visibly.
+6. Open the pane menu with `m` to inspect, merge, create a PR, or close.
+7. If Coven is running, open or launch a Coven-managed session from the bridge path.
 
-- comux only operates on explicitly launched project roots.
-- The conductor cannot silently expand scope to unrelated repos.
-- Secrets, tokens, gateway URLs, and infrastructure URLs never appear in logs or UI copy.
-- Dirty worktrees, destructive cleanup, force push, public posting, package publishing, and merges require explicit approval.
-- Protected repo rules override project autonomy.
-- Every conductor action should be explainable after the fact.
+If this loop is boringly reliable, comux is doing its job.
 
-## Immediate next steps
+## Relationship to OpenMeow, OpenClaw, and Coven
 
-The first public release is live as GitHub release `v0.0.1` and npm package `comux@0.0.1`. The next slice should make that release easier to trust and extend without implying the full cockpit is ready.
+- **OpenMeow** is the lightweight intake surface: toss the task.
+- **Cody/OpenClaw** is the conductor: decide what needs doing and report back.
+- **Coven** is the harness substrate: run and expose managed coding sessions.
+- **comux** is the cockpit: keep the visible terminal/worktree control plane understandable.
 
-1. **First-user polish:** tighten the README, CLI help, `doctor` output, and local smoke path so a new user can understand what works today and where the product is headed.
-2. **Test hygiene:** keep the TypeScript CLI/core port covered by fast, reliable tests and remove any brittle release-era assumptions from the suite.
-3. **Cody/OpenMeow bridge slice:** build the smallest structured bridge that can hand a scoped coding task into comux and report status back.
-4. **Release cadence:** document a lightweight versioning and release checklist for follow-up patches after `v0.0.1`.
-5. **Native parity later:** keep native cockpit parity as a separate product track after the bridge and CLI foundations are stable.
+These integrations should make comux more useful, but comux must remain valuable as a standalone CLI.
