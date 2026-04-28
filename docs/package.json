@@ -10,10 +10,10 @@
     "deploy": "vite build && wrangler deploy -c wrangler.json"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.25.1",
-    "@tailwindcss/vite": "^4.1.18",
-    "tailwindcss": "^4.1.18",
-    "vite": "^6.4.2",
-    "wrangler": "^4.66.0"
+    "@cloudflare/vite-plugin": "1.25.1",
+    "@tailwindcss/vite": "4.1.18",
+    "tailwindcss": "4.1.18",
+    "vite": "6.4.2",
+    "wrangler": "4.66.0"
   }
 }

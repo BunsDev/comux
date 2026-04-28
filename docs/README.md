@@ -1,28 +1,40 @@
-# comux Documentation
+# comux Documentation Site
 
-This directory holds the public docs for comux: the tmux/worktree cockpit for parallel coding agents and Coven-managed sessions.
+Single-page marketing and documentation site for comux.
 
-## Start here
+## Development
 
-- [Product spec](PRODUCT-SPEC.md) — product thesis, scope, and integration model.
-- [Smoke test](SMOKE.md) — package, CLI, interactive cockpit, and Coven bridge checks.
-- [Contributing](../CONTRIBUTING.md) — maintainer dogfood loop and release checklist.
+```bash
+# Install dependencies (from docs directory)
+npm install
 
-## Documentation stance
+# Start dev server
+npm run dev
 
-Keep comux docs in parity with VMUX-style clarity while staying specific to comux:
+# Build for production
+npm run build
 
-- Short public-facing README first.
-- Concrete install and quick-start commands.
-- Keyboard shortcuts that match the current app.
-- Explicit tmux/worktree/agent value proposition.
-- Clear relationship to Coven/OpenCoven without making Coven required setup.
-- No old VMUX package names or private history as the main story.
+# Preview production build
+npm run preview
+```
 
-## Canonical language
+## Features
 
-- Product/package/command: **comux** / `comux`
-- Runtime surface: **tmux cockpit** or **terminal cockpit**
-- Isolation unit: **pane + git worktree + branch**
-- OpenCoven relationship: **Coven is the harness substrate; comux is the cockpit**
-- Release package: `comux` on npm
+- Single-page app with scroll-spy navigation
+- Polished public docs layout for comux
+- comux install, workflow, configuration, hook, and troubleshooting pages
+- Agent catalog and keyboard shortcut reference
+- Cloudflare Workers deployment config
+
+## Structure
+
+- `src/` - Source files
+- `src/content/` - Documentation page content
+- `public/` - Static assets
+- `dist/` - Production build output (generated)
+
+## Related docs
+
+- [Product spec](PRODUCT-SPEC.md)
+- [Smoke test](SMOKE.md)
+- [Contributing](../CONTRIBUTING.md)

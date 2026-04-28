@@ -1,0 +1,83 @@
+export const meta = { title: 'Troubleshooting' };
+
+export function render() {
+  return `
+    <h1>Troubleshooting</h1>
+    <p class="lead">Start here when comux does not launch, an agent is missing, panes look stale, merges stop, or a docs preview is not building.</p>
+
+    <h2>Quick Diagnostics</h2>
+    <pre><code data-lang="bash">node --version
+pnpm --version
+tmux -V
+git status --short
+comux --version</code></pre>
+    <p>When developing comux itself, use the maintainer doctor command:</p>
+    <pre><code data-lang="bash">pnpm run dev:doctor</code></pre>
+
+    <h2>Install Command Fails</h2>
+    <table>
+      <thead>
+        <tr><th>Symptom</th><th>Check</th><th>Fix</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>comux: command not found</code></td><td>Global npm bin is not on <code>PATH</code></td><td>Run <code>npm config get prefix</code> and add the resulting bin directory to your shell profile</td></tr>
+        <tr><td>Package name not found</td><td>Registry or package metadata issue</td><td>Confirm the package name is <code>comux</code> and retry after refreshing npm auth/cache</td></tr>
+        <tr><td>Permission denied during global install</td><td>npm prefix ownership</td><td>Use a Node version manager or fix npm global directory ownership</td></tr>
+      </tbody>
+    </table>
+    <pre><code data-lang="bash">npm install -g comux</code></pre>
+
+    <h2>comux Will Not Start</h2>
+    <ul>
+      <li>Run from inside a git repository. comux expects a project root it can associate with panes and worktrees.</li>
+      <li>Confirm tmux is installed with <code>tmux -V</code>.</li>
+      <li>Check whether an old session is still running with <code>tmux list-sessions | grep comux</code>.</li>
+      <li>If panes look stale after a crash, restart comux from the project root and let it rehydrate pane state.</li>
+    </ul>
+
+    <h2>Agent Does Not Appear</h2>
+    <p>comux only shows agents that are installed, enabled, and detectable.</p>
+    <ol>
+      <li>Confirm the agent CLI works from the same shell where you launch comux.</li>
+      <li>Open comux settings with <kbd>s</kbd> and check <strong>Enabled Agents</strong>.</li>
+      <li>If you installed the agent in a custom path, add that path to your shell profile before launching comux.</li>
+      <li>Set <code>defaultAgent</code> only after the agent appears in the selector.</li>
+    </ol>
+
+    <h2>Branch Names or Commit Messages Are Generic</h2>
+    <p>Smart branch names and AI commit messages require OpenRouter.</p>
+    <pre><code data-lang="bash">export OPENROUTER_API_KEY="sk-or-v1-..."</code></pre>
+    <p>Without that key, comux still works. It falls back to timestamp-based branch names and generic commit messages.</p>
+
+    <h2>Merge Stops on Conflicts</h2>
+    <p>This is expected. comux keeps conflicts in the worktree branch so main stays clean.</p>
+    <ol>
+      <li>Jump to the pane with <kbd>j</kbd>.</li>
+      <li>Inspect conflicting files with <code>git status</code>.</li>
+      <li>Resolve conflicts manually or ask the agent to resolve them.</li>
+      <li>Run project validation in the worktree.</li>
+      <li>Retry merge from the pane menu.</li>
+    </ol>
+
+    <h2>macOS Notifications Do Not Fire</h2>
+    <ul>
+      <li>Confirm macOS notification permissions allow comux helper notifications.</li>
+      <li>Make sure the pane is not the fully focused comux pane. Focused panes do not notify.</li>
+      <li>Open settings with <kbd>s</kbd> and check the enabled notification sounds.</li>
+      <li>Non-macOS systems still show sidebar and border attention state, but do not use the native helper.</li>
+    </ul>
+
+    <h2>Docs Preview Is Not Working</h2>
+    <table>
+      <thead>
+        <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dev server will not start</td><td>Docs dependencies are missing</td><td>Run <code>cd docs && npm install</code>, then <code>npm run dev</code></td></tr>
+        <tr><td>Preview shows connection refused</td><td>Docs server is not running</td><td>Run <code>cd docs && npm run dev</code></td></tr>
+        <tr><td>Build fails on old names</td><td>Imported docs still mention an old package or asset</td><td>Search <code>docs/</code> for old names and replace with comux-specific copy</td></tr>
+        <tr><td>You accidentally made it public</td><td>Funnel is enabled instead of Serve</td><td>Run <code>tailscale serve status</code>, then disable Funnel or reset Serve</td></tr>
+      </tbody>
+    </table>
+  `;
+}

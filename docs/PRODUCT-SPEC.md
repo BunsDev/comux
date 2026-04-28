@@ -9,7 +9,7 @@
 
 Parallel coding agents are useful only when the work stays visible, scoped, and recoverable.
 
-comux gives developers one cockpit for launching agent lanes, watching terminals, keeping branches isolated, and bringing work back through explicit review. It carries forward the proven VMUX primitives — tmux panes, git worktrees, agent launchers, rituals, file browsing, and merge flows — with clean comux branding and a public package that can stand alone.
+comux gives developers one cockpit for launching agent lanes, watching terminals, keeping branches isolated, and bringing work back through explicit review. It focuses the proven terminal-cockpit primitives — tmux panes, git worktrees, agent launchers, rituals, file browsing, and merge flows — with clean comux branding and a public package that can stand alone.
 
 > Branch, develop, inspect, and merge — all in parallel.
 
@@ -77,9 +77,9 @@ Rituals should make common project layouts fast without depending on brittle tmu
 
 OpenMeow, OpenClaw, Coven, and future clients should talk to structured local state instead of blind terminal puppeteering.
 
-## VMUX parity targets
+## Capability targets
 
-comux should remain in parity with the VMUX user promise:
+comux should keep the core user promise sharp:
 
 - tmux pane orchestration;
 - git worktree isolation;
