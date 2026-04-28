@@ -1,6 +1,6 @@
 # Contributing to comux
 
-comux is developed while running comux itself. The goal is a fast, repeatable loop for maintainers and contributors without hiding work in background magic.
+This project is built while running comux itself. The goal is a fast, repeatable loop for maintainers and contributors.
 
 ## Prerequisites
 
@@ -9,7 +9,7 @@ comux is developed while running comux itself. The goal is a fast, repeatable lo
 - `tmux` 3.0+
 - Git 2.20+
 
-## Local development
+## Local Development (Dogfood Loop)
 
 1. Install dependencies:
 
@@ -23,42 +23,66 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` generates local hook docs, compiles TypeScript, and launches comux from `dist/index.js` with `COMUX_DEV=true`.
+`pnpm dev` is the standard maintainer entrypoint for this repo. It generates hook docs, compiles TypeScript, then launches comux from `dist/index.js` with `COMUX_DEV=true`.
 
-If setup or reload behavior looks wrong, run:
+If tmux setup looks wrong, run:
 
 ```bash
 comux doctor
 comux doctor --fix
 ```
 
-## Recommended daily workflow
+`comux doctor --fix` applies safe tmux repairs, backs up an existing `~/.tmux.conf`, and only edits the comux-managed block.
 
-1. Keep one long-lived maintainer checkout for running local comux.
+## Recommended Daily Workflow
+
+1. Keep one long-lived maintainer checkout for running local comux (`pnpm dev`).
 2. Create feature panes/worktrees from comux (`n`) for actual changes.
-3. Iterate in feature worktree panes.
-4. Use the pane menu (`m`) to merge, create a PR, close, or clean up.
-5. Close panes with care when you want to preserve worktrees for later.
+3. Iterate in feature worktree panes and merge from the pane menu (`m`) when possible.
+4. Close panes with care when you want to preserve worktrees for later.
+5. Reopen closed worktrees with `r` when you need to resume work.
 
-## Checks before a PR
+In DEV mode, source switching is available from the pane menu (`[DEV] Use as Source`) or hotkey (`S`):
+
+- Select any worktree pane and run source toggle -> that worktree becomes active source.
+- Toggle again on the already-active source pane -> source falls back to project root.
+- If the active source worktree is closed/removed, comux automatically falls back to project root.
+- The active source pane is marked with `[source]` in the pane list.
+
+This keeps the dev session stable while still using pane-per-branch isolation.
+
+## Bootstrap Behavior
+
+`pnpm dev` generates hook docs before compiling. Hook documentation is generated from source into `src/utils/generated-agents-doc.ts`.
+
+You can run the generator manually:
+
+```bash
+pnpm run generate:hooks-docs
+```
+
+If this generated file changes only because the date rolled forward, revert it before committing unless the generated content itself changed.
+
+## Pull Request Workflow
+
+1. One pane/worktree per PR branch.
+2. Merge through comux when possible to dogfood merge + cleanup paths.
+3. Ensure local checks pass:
 
 ```bash
 pnpm run typecheck
 pnpm run test
-pnpm run build
+```
+
+4. For docs/package changes, also verify package contents:
+
+```bash
 npm pack --dry-run
 ```
 
-For a fuller manual verification loop, see [`docs/SMOKE.md`](./docs/SMOKE.md).
+5. Open PR from the feature branch created for that pane.
 
-## Pull request workflow
-
-1. One pane/worktree per feature branch.
-2. Keep docs and tests close to the behavior change.
-3. Run the checks above before opening the PR.
-4. If a change touches worktree, merge, bridge, or daemon behavior, include the relevant smoke notes in the PR description.
-
-## Release checklist
+## Maintainer Checklist (Before Release)
 
 ```bash
 pnpm run clean

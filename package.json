@@ -37,6 +37,7 @@
     "dist/**/*",
     "comux",
     "README.md",
+    "docs/README.md",
     "docs/PRODUCT-SPEC.md",
     "docs/SMOKE.md",
     "CONTRIBUTING.md",

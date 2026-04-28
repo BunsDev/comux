@@ -2,33 +2,33 @@
 
 - **Status:** early public product
 - **Package:** `comux`
-- **One-liner:** comux is a project-scoped cockpit for coordinating parallel coding agents in visible terminal workspaces.
+- **Command:** `comux`
+- **One-liner:** comux is a project-scoped cockpit for coordinating parallel coding agents in visible tmux/worktree sessions.
 
 ## Thesis
 
 Parallel coding agents are useful only when the work stays visible, scoped, and recoverable.
 
-comux gives developers one cockpit for launching agent lanes, watching terminals, keeping branches isolated, and bringing work back through explicit review. It carries forward the proven VMUX primitives — tmux panes, git worktrees, agent launchers, and merge flows — with cleaner comux branding and a smaller public surface for now.
+comux gives developers one cockpit for launching agent lanes, watching terminals, keeping branches isolated, and bringing work back through explicit review. It carries forward the proven VMUX primitives — tmux panes, git worktrees, agent launchers, rituals, file browsing, and merge flows — with clean comux branding and a public package that can stand alone.
 
-> Full autonomy, inside a room you chose.
+> Branch, develop, inspect, and merge — all in parallel.
 
 ## Product shape
 
 ```text
-CLI / OpenMeow / future UI
+Human / OpenMeow / OpenClaw
           │
           ▼
-    comux control API
-          │
-          ▼
-   local comux daemon
+    comux tmux cockpit
           │
           ├─ projects
-          ├─ tmux panes
+          ├─ panes
           ├─ git worktrees
           ├─ agent launchers
-          ├─ Coven sessions
-          └─ status / attention events
+          ├─ rituals
+          ├─ file browser
+          ├─ merge / PR flows
+          └─ Coven sessions
 ```
 
 ## Core model
@@ -37,7 +37,8 @@ CLI / OpenMeow / future UI
 - **Cockpit** — the visible terminal control surface.
 - **Pane** — one terminal workspace, often backed by a worktree and agent process.
 - **Worktree** — an isolated git checkout for a task or branch.
-- **Agent** — Claude, Codex, OpenCode, Gemini, or another configured coding CLI.
+- **Agent** — Claude Code, Codex, OpenCode, Cline CLI, Gemini CLI, Qwen CLI, Amp CLI, pi CLI, Cursor CLI, Copilot CLI, Crush CLI, or another configured coding launcher.
+- **Ritual** — a reusable project setup recipe for opening a known pane layout.
 - **Conductor** — a human, OpenClaw familiar, Cody/OpenMeow, or bridge process coordinating work.
 - **Coven session** — an optional Coven-managed harness session that comux can launch or open when a local Coven daemon is available.
 
@@ -49,57 +50,56 @@ The early user is comfortable with terminal tools and wants:
 
 - parallel agent work without branch conflicts;
 - terminal-level visibility;
+- reusable setup rituals;
 - explicit merge/PR/review control;
 - project-scoped autonomy;
 - a future path for OpenMeow/OpenClaw/Coven orchestration.
 
 ## Product pillars
 
-### 1. Project-scoped autonomy
+### 1. Worktree isolation
 
-A user starts comux from a chosen project. Automation stays inside that room unless the user explicitly opens another one.
+Every agent lane should be able to work in its own branch and checkout. Parallelism should not trample the main tree.
 
 ### 2. Visible execution
 
 Every worker should be inspectable as a terminal pane. No mysterious hidden jobs as the primary experience.
 
-### 3. Worktree isolation
+### 3. Human-legible review
 
-Parallel work should not trample the main checkout. Coding lanes default toward branch/worktree isolation.
+comux helps with merge, PR, and cleanup flows, but review remains explicit and understandable.
 
-### 4. Explicit merge and PR flow
+### 4. Repeatable setup
 
-comux helps with merge, PR, and cleanup flows, but review remains human-legible and approval-driven.
+Rituals should make common project layouts fast without depending on brittle tmux snapshots.
 
 ### 5. Bridge-friendly local control
 
-OpenMeow, OpenClaw, Coven, and future clients should talk to a structured local control layer instead of blind terminal puppeteering.
+OpenMeow, OpenClaw, Coven, and future clients should talk to structured local state instead of blind terminal puppeteering.
 
-## What to carry forward from VMUX
+## VMUX parity targets
 
-Carry forward:
+comux should remain in parity with the VMUX user promise:
 
 - tmux pane orchestration;
 - git worktree isolation;
 - agent launcher registry;
+- multi-select launches;
+- AI naming for branches, panes, and commits;
 - project/pane metadata;
 - file browser and pane visibility controls;
-- attention/completion heuristics;
-- merge and PR workflow learnings;
+- attention/completion heuristics and notifications;
+- rituals for reusable layouts;
+- merge, PR, and cleanup workflows;
 - lifecycle hooks.
 
-Simplify for comux v0:
+comux-specific additions:
 
-- keep the README and public story compact;
-- focus on CLI/core/daemon behavior first;
-- avoid over-explaining native app or multi-client ambitions before they are real;
-- treat OpenMeow and Coven as integration paths, not required setup.
-
-Leave behind:
-
-- old product name/history as the main story;
-- hidden automation that is hard to inspect or interrupt;
-- assumptions that every user wants the full historical VMUX surface on day one.
+- public `comux` npm package and command;
+- cleaned public docs and branding;
+- local bridge/daemon direction;
+- Coven session list/open/launch integration;
+- OpenMeow/OpenClaw orchestration path.
 
 ## v0 scope
 
@@ -110,6 +110,8 @@ Leave behind:
 - Project-scoped tmux session.
 - Pane/worktree creation.
 - Agent launcher registry.
+- Multi-select agent launches.
+- Built-in rituals and project rituals.
 - Pane file browser and visibility controls.
 - Merge/PR-oriented pane menu flows.
 - Local daemon/control bridge.
@@ -118,7 +120,7 @@ Leave behind:
 
 ### Not yet
 
-- Full native desktop cockpit.
+- Full native desktop cockpit as the primary public experience.
 - Cloud terminals.
 - Team collaboration.
 - Hosted agent orchestration.
@@ -143,8 +145,10 @@ The bridge must stay conservative:
 3. Pick Codex, Claude, or another configured agent.
 4. comux creates an isolated worktree and terminal pane.
 5. The agent works visibly.
-6. Open the pane menu with `m` to inspect, merge, create a PR, or close.
-7. If Coven is running, open or launch a Coven-managed session from the bridge path.
+6. Press `f` to inspect files or `m` to open the pane menu.
+7. Merge, create a PR, attach another agent, or close the pane explicitly.
+8. Press `u` to open a reusable ritual when starting a known workflow.
+9. If Coven is running, open or launch a Coven-managed session from the bridge path.
 
 If this loop is boringly reliable, comux is doing its job.
 

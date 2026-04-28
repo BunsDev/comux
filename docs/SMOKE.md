@@ -51,9 +51,24 @@ Expected:
 - comux opens the terminal cockpit for the disposable project.
 - `n` creates an agent/worktree pane.
 - `t` creates a plain terminal pane.
+- `u` opens rituals.
 - `f` opens the file browser for a worktree pane.
 - `m` opens the pane menu.
+- `h` / `H` hide and restore pane visibility.
+- `p` adds another project to the sidebar.
+- `r` can reopen a closed worktree.
 - Closing comux leaves no orphaned controller process.
+
+## Merge / PR smoke
+
+Use only disposable branches for this check.
+
+Expected:
+
+- A worktree pane can be reviewed from the pane menu.
+- Merge and PR actions remain explicit menu choices.
+- comux does not push, merge, publish, delete, or clean up work without a user action.
+- Hooks can run on worktree create / pre-merge / post-merge when configured.
 
 ## Coven bridge smoke
 

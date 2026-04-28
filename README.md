@@ -1,10 +1,10 @@
 <h1 align="center">comux</h1>
 
-<h3 align="center">Parallel coding agents with tmux and worktrees</h3>
+<h3 align="center">Parallel agents with tmux, worktrees, and Coven</h3>
 
 <p align="center">
-  Coordinate Claude, Codex, and other coding agents in visible, project-scoped terminal workspaces.<br/>
-  Branch, develop, inspect, and merge — all in parallel.
+  Manage multiple AI coding agents in visible, isolated terminal workspaces.<br/>
+  Branch, develop, inspect, merge, and hand off — all in parallel.
 </p>
 
 <p align="center">
@@ -34,9 +34,11 @@ cd /path/to/your/project
 comux
 ```
 
-Press `n` to create a new pane, type a prompt, pick one or more agents, and comux handles the terminal pane, git worktree, branch, and agent launch.
+Press `n` to create a new pane, type a prompt, pick one or more agents (or none for a plain terminal), and comux handles the rest — tmux pane, git worktree, branch, and agent launch.
 
-Use `t` for a plain terminal pane. Open the selected pane menu with `m` when you want to inspect, merge, create a PR, attach another agent, or clean up.
+Press `u` to open rituals: reusable setup recipes for starting a project with a known pane layout. Built-ins include Start Coding, Terminal First, Review Stack, and Release Check. You can also save project rituals and attach a default ritual to a project.
+
+Open the selected pane menu with `m` when you want to inspect, merge, create a PR, attach another agent, or clean up.
 
 New to tmux? Run:
 
@@ -49,56 +51,69 @@ comux doctor --fix
 
 ## What it does
 
-comux creates a tmux pane for each task. Work panes get their own git worktree and branch so agents can work in isolation while you keep full terminal visibility.
+comux creates a tmux pane for each task. Every work pane gets its own git worktree and branch so agents work in complete isolation. When a task is done, open the pane menu with `m` and choose Merge to bring it back into your main branch, or Create GitHub PR to push the branch and file a pull request.
 
-- **Worktree isolation** — one branch and working copy per coding lane.
-- **Agent support** — launch coding CLIs from a shared registry instead of juggling terminals by hand.
-- **Visible execution** — every worker lives in a terminal you can inspect or take over.
-- **Project scope** — comux starts from an explicit project root and keeps automation tied to that room.
-- **Smart merging** — review, merge, PR, and cleanup flows stay explicit.
-- **File browser** — inspect a pane's worktree, search files, and preview code or diffs without leaving comux.
-- **Pane controls** — hide, isolate, rename, close, or reopen work without losing the project shape.
-- **Coven bridge** — open and launch Coven-managed sessions from comux when a local Coven daemon is available.
-- **Lifecycle hooks** — run scripts on worktree create, pre-merge, post-merge, and more.
+- **Worktree isolation** — each pane is a full working copy, no conflicts between agents
+- **Agent support** — Claude Code, Codex, OpenCode, Cline CLI, Gemini CLI, Qwen CLI, Amp CLI, pi CLI, Cursor CLI, Copilot CLI, and Crush CLI
+- **Multi-select launches** — choose any combination of enabled agents per prompt
+- **AI naming** — branches, pane labels, and commit messages can be generated automatically
+- **Smart merging** — review, auto-commit, merge, PR, and cleanup flows stay explicit
+- **macOS notifications** — background panes can send native attention alerts when they settle and need you
+- **Built-in file browser** — inspect a pane's worktree, search files, and preview code or diffs without leaving comux
+- **Pane visibility controls** — hide individual panes, isolate one project, or restore everything later without stopping work
+- **Multi-project cockpit** — add multiple repos to the same session and switch scope from the sidebar
+- **Rituals** — open, save, and attach reusable project setup recipes without restoring brittle tmux snapshots
+- **Coven bridge** — list, open, and launch Coven-managed sessions when a local Coven daemon is available
+- **Lifecycle hooks** — run scripts on worktree create, pre-merge, post-merge, and more
 
 ## Keyboard Shortcuts
 
 | Key | Action |
 |---|---|
-| `n` | New agent/worktree pane |
+| `n` | New pane (worktree + agent) |
 | `t` | New terminal pane |
-| `j` / `Enter` | Jump to selected pane |
-| `m` | Open selected pane menu |
+| `u` | Open or manage rituals |
+| `e` | Rename the selected pane/thread or project inline |
+| `j` / `Enter` | Jump to pane |
+| `m` | Open pane menu |
 | `f` | Browse files in selected pane's worktree |
 | `x` | Close pane |
 | `h` | Hide/show selected pane |
 | `H` | Hide/show all other panes |
+| `p` | Add project to sidebar |
 | `P` | Show only the selected project's panes, then show all |
-| `p` | Create GitHub PR from a worktree pane |
-| `a` | Add another agent to a worktree |
-| `A` | Add a terminal to a worktree |
-| `b` | Create a child worktree from a worktree |
+| `r` | Reopen closed worktrees for the active project |
+| `s` | Settings |
+| `l` | Logs |
+| `?` | Keyboard shortcuts and help |
 | `q` | Quit |
 
-When focus is inside a work pane, tmux receives your keys instead of comux. Use `Ctrl-b` then `Left Arrow` to return to the comux sidebar. When mouse events are enabled, click a pane/worktree row to select it and double-click a pane/worktree name or project header to edit it inline.
+When focus is inside a work pane, tmux receives your keys instead of comux. Use `Ctrl-b` then `Left Arrow` to return to the comux sidebar. When mouse events are enabled, click a pane/thread/worktree row to select it and double-click a pane/thread/worktree name or project header to edit it inline. On macOS, `Alt+Shift+M` opens the focused pane menu when your terminal sends Option as Meta. In Terminal.app, enable **Settings > Profiles > Keyboard > Use Option as Meta key**. In iTerm2, use **Settings > Profiles > Keys > Left/Right Option Key > Esc+**.
 
 ## Requirements
 
 - tmux 3.0+
 - Node.js 18+
 - Git 2.20+
-- At least one supported coding-agent CLI, such as Claude Code, Codex, OpenCode, Gemini CLI, or another configured launcher
-- OpenRouter API key (optional, for AI branch names, status analysis, and commit messages)
+- At least one supported agent CLI (for example [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [OpenCode](https://github.com/opencode-ai/opencode), [Cline CLI](https://docs.cline.bot/cline-cli/getting-started), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Qwen CLI](https://github.com/QwenLM/qwen-code), [Amp CLI](https://ampcode.com/manual), [pi CLI](https://www.npmjs.com/package/@mariozechner/pi-coding-agent), [Cursor CLI](https://docs.cursor.com/en/cli/overview), [Copilot CLI](https://github.com/github/copilot-cli), [Crush CLI](https://github.com/charmbracelet/crush))
+- [OpenRouter API key](https://openrouter.ai/) (optional, for AI branch names, status analysis, and commit messages)
+
+## Coven and OpenCoven
+
+comux works as a standalone tmux/worktree cockpit. It also speaks to Coven when a local Coven daemon is available, so OpenCoven-managed harness sessions can appear beside normal comux panes.
+
+Coven is the harness substrate. comux is the cockpit. OpenMeow and OpenClaw can sit above them as intake and orchestration layers.
 
 ## Docs
 
+- [Documentation index](./docs/README.md)
 - [Product spec](./docs/PRODUCT-SPEC.md)
 - [Smoke test](./docs/SMOKE.md)
 - [Contributing](./CONTRIBUTING.md)
 
-## Status
+## Contributing
 
-comux is early public software. The current package is the simplified public successor to the VMUX terminal/worktree engine: focused on the CLI, tmux cockpit, worktree isolation, local daemon bridge, and Coven integration path.
+See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for the recommended local "comux-on-comux" development loop, hook setup, and PR workflow.
 
 ## License
 
