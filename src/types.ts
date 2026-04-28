@@ -39,6 +39,16 @@ export interface SidebarProject {
   colorThemeSource?: 'auto' | 'manual';
 }
 
+export interface AgentSessionReference {
+  agent: AgentName;
+  id?: string;
+  transcriptPath?: string;
+  cwd?: string;
+  lastTurnId?: string;
+  updatedAt: string;
+  source?: string;
+}
+
 export interface ComuxPane {
   id: string;
   slug: string;
@@ -61,6 +71,7 @@ export interface ComuxPane {
   devStatus?: 'running' | 'stopped';
   devUrl?: string;        // Detected dev server URL
   agent?: AgentName;
+  agentSession?: AgentSessionReference;
   permissionMode?: PermissionMode;
   agentStatus?: AgentStatus;  // Agent working/attention status
   needsAttention?: boolean; // Pane has settled and is waiting on the user

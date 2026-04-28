@@ -493,6 +493,9 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
         if (event.analyzerError !== undefined) {
           updated.analyzerError = event.analyzerError
         }
+        if (event.agentSession !== undefined) {
+          updated.agentSession = event.agentSession
+        }
 
         // Clear option dialog data when transitioning away from 'waiting' state
         if (event.status !== "waiting" && pane.agentStatus === "waiting") {
@@ -525,7 +528,8 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
           pane.options === updated.options &&
           pane.potentialHarm === updated.potentialHarm &&
           pane.agentSummary === updated.agentSummary &&
-          pane.analyzerError === updated.analyzerError
+          pane.analyzerError === updated.analyzerError &&
+          pane.agentSession === updated.agentSession
 
         if (unchanged) {
           return prevPanes

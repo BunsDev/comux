@@ -45,6 +45,10 @@ export interface AnalysisNeededPayload {
 export interface CodexTurnStoppedPayload {
   captureSnapshot: string;
   turnId?: string;
+  sessionId?: string;
+  transcriptPath?: string;
+  cwd?: string;
+  timestamp?: number;
   lastAssistantMessage?: string;
   eventFile: string;
   source: string;
