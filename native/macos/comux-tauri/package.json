@@ -1,0 +1,12 @@
+{
+  "name": "comux-tauri",
+  "private": true,
+  "version": "0.0.9",
+  "scripts": {
+    "build": "pnpm exec tauri build",
+    "dev": "pnpm exec tauri dev"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.10.1"
+  }
+}

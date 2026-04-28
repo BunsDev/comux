@@ -50,7 +50,10 @@
     "typecheck": "pnpm run generate:hooks-docs && tsc --noEmit",
     "test": "vitest --run",
     "prepublishOnly": "pnpm run build",
-    "smoke:pack": "npm pack --dry-run"
+    "smoke:pack": "npm pack --dry-run",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "desktop:check": "pnpm run build:frontend && cargo check --manifest-path src-tauri/Cargo.toml"
   },
   "bin": {
     "comux": "comux"
@@ -86,7 +89,8 @@
     "tsx": "^4.7.0",
     "typescript": "^5.9.2",
     "vite": "^6.4.2",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "@tauri-apps/cli": "2.10.1"
   },
   "packageManager": "pnpm@10.14.0",
   "publishConfig": {

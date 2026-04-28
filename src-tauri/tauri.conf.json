@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Comux",
+  "version": "0.0.8",
+  "identifier": "dev.buns.comux",
+  "build": {
+    "beforeDevCommand": "pnpm --dir frontend dev --host 127.0.0.1",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "pnpm run build:frontend",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      { "title": "Comux", "width": 1280, "height": 820, "minWidth": 980, "minHeight": 680, "center": true, "decorations": true, "transparent": false, "resizable": true }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.png"]
+  }
+}

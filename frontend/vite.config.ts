@@ -10,6 +10,7 @@ export default defineConfig({
     emptyOutDir: false,     // Don't empty - TypeScript also uses this dir
     rollupOptions: {
       input: {
+        index: resolve(__dirname, 'src/index.html'),
         dashboard: resolve(__dirname, 'src/dashboard.html'),
         terminal: resolve(__dirname, 'src/terminal.html'),
       },
