@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "client",
+  "installCommand": "pnpm install --ignore-scripts",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

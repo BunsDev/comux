@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && rm -rf client && cp -R src/dist/client client",
     "preview": "vite build && vite preview",
     "deploy": "vite build && wrangler deploy -c wrangler.json"
   },
