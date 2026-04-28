@@ -1,0 +1,125 @@
+import React, { memo, useMemo } from 'react';
+import { Box, Text } from 'ink';
+import stringWidth from 'string-width';
+import { COLORS, getComuxThemeAccent } from '../../theme/colors.js';
+import type { ComuxThemeName } from '../../types.js';
+import {
+  isPathInsideOrEqual,
+  type CovenSessionVisibility,
+  type CovenSessionsLoadState,
+} from '../../utils/covenSessions.js';
+
+interface CovenSessionsPanelProps {
+  projectRoot: string;
+  state: CovenSessionsLoadState;
+  isActive: boolean;
+  themeName: ComuxThemeName;
+}
+
+const ROW_WIDTH = 40;
+const MAX_SESSIONS_PER_PROJECT = 4;
+
+const CovenSessionsPanel: React.FC<CovenSessionsPanelProps> = memo(({
+  projectRoot,
+  state,
+  isActive,
+  themeName,
+}) => {
+  const accent = getComuxThemeAccent(themeName);
+  const sessions = useMemo(
+    () => state.sessions.filter((session) => isPathInsideOrEqual(projectRoot, session.projectRoot)),
+    [projectRoot, state.sessions]
+  );
+
+  if (sessions.length === 0) {
+    if (!isActive) return null;
+
+    const message = state.status === 'unavailable'
+      ? `Coven unavailable: ${state.reason}`
+      : 'Coven: no sessions yet';
+
+    return (
+      <Box width={ROW_WIDTH}>
+        <Text color={COLORS.unselected}>{fit(`☾ ${message}`, ROW_WIDTH)}</Text>
+      </Box>
+    );
+  }
+
+  const visibleSessions = sessions.slice(0, MAX_SESSIONS_PER_PROJECT);
+  const hiddenCount = Math.max(0, sessions.length - visibleSessions.length);
+
+  return (
+    <Box flexDirection="column" width={ROW_WIDTH}>
+      <Text color={isActive ? accent : COLORS.border} bold={isActive}>
+        {fit('☾ Coven sessions', ROW_WIDTH)}
+      </Text>
+      {visibleSessions.map((session) => (
+        <Text key={session.id}>
+          <Text color={statusColor(session.status)}>{statusIcon(session.status)}</Text>
+          <Text color={COLORS.border}> </Text>
+          <Text color={COLORS.unselected}>{fit(formatSession(session), ROW_WIDTH - 2)}</Text>
+        </Text>
+      ))}
+      {hiddenCount > 0 && (
+        <Text color={COLORS.border}>{fit(`  +${hiddenCount} more Coven session${hiddenCount === 1 ? '' : 's'}`, ROW_WIDTH)}</Text>
+      )}
+    </Box>
+  );
+});
+
+function formatSession(session: CovenSessionVisibility): string {
+  const harness = session.harness ? `[${session.harness}] ` : '';
+  const title = session.title || session.id;
+  const status = session.status ? ` · ${session.status}` : '';
+  return `${harness}${title}${status}`;
+}
+
+function statusIcon(status: string | undefined): string {
+  switch (status) {
+    case 'running':
+    case 'starting':
+      return '●';
+    case 'waiting':
+      return '◐';
+    case 'completed':
+      return '✓';
+    case 'failed':
+    case 'killed':
+    case 'orphaned':
+      return '×';
+    default:
+      return '○';
+  }
+}
+
+function statusColor(status: string | undefined): string {
+  switch (status) {
+    case 'running':
+    case 'starting':
+      return COLORS.success;
+    case 'waiting':
+      return COLORS.warning;
+    case 'completed':
+      return COLORS.info;
+    case 'failed':
+    case 'killed':
+    case 'orphaned':
+      return COLORS.error;
+    default:
+      return COLORS.border;
+  }
+}
+
+function fit(value: string, width: number): string {
+  if (stringWidth(value) <= width) return value;
+  if (width <= 1) return '…';
+
+  let output = '';
+  for (const char of value) {
+    if (stringWidth(`${output}${char}…`) > width) break;
+    output += char;
+  }
+  return `${output}…`;
+}
+
+export default CovenSessionsPanel;

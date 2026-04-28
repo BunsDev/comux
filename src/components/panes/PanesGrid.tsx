@@ -8,6 +8,7 @@ import type {
 } from "../../types.js"
 import type { AgentStatusMap } from "../../hooks/useAgentStatus.js"
 import PaneCard from "./PaneCard.js"
+import CovenSessionsPanel from "./CovenSessionsPanel.js"
 import { COLORS } from "../../theme/colors.js"
 import {
   getComuxThemeAccent,
@@ -21,6 +22,7 @@ import {
 import { isActiveDevSourcePath } from "../../utils/devSource.js"
 import InlineNameEditor from "../ui/InlineNameEditor.js"
 import type { InlineRenameState } from "../../utils/inlineRename.js"
+import type { CovenSessionsLoadState } from "../../utils/covenSessions.js"
 
 interface PanesGridProps {
   panes: ComuxPane[]
@@ -36,6 +38,7 @@ interface PanesGridProps {
   fallbackProjectName: string
   isProjectBusy?: (projectRoot: string) => boolean
   inlineRename?: InlineRenameState | null
+  covenSessionsState?: CovenSessionsLoadState
 }
 
 const PROJECT_BUSY_FRAMES = ['◴', '◷', '◶', '◵']
@@ -55,6 +58,7 @@ const PanesGrid: React.FC<PanesGridProps> = memo(({
   fallbackProjectName,
   isProjectBusy,
   inlineRename,
+  covenSessionsState,
 }) => {
   const actionLayout = useMemo(
     () => buildProjectActionLayout(
@@ -205,6 +209,15 @@ const PanesGrid: React.FC<PanesGridProps> = memo(({
               </Text>
             )
           })()}
+
+          {covenSessionsState && (
+            <CovenSessionsPanel
+              projectRoot={group.projectRoot}
+              state={covenSessionsState}
+              isActive={activeProjectRoot === group.projectRoot}
+              themeName={getProjectThemeName(group.projectRoot)}
+            />
+          )}
 
           {group.panes.map((entry) => {
             const pane = entry.pane
