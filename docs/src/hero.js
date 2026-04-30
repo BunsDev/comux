@@ -10,7 +10,7 @@ export function renderHero(starCount) {
       <div class="hero-scanlines absolute inset-0 pointer-events-none z-0"></div>
       <div class="hero-grid relative z-1">
         <div class="hero-copy">
-          <div class="hero-kicker" style="animation: fade-up 0.7s cubic-bezier(0.16,1,0.3,1) both">Operator field manual / v0.0.9</div>
+          <div class="hero-kicker" style="animation: fade-up 0.7s cubic-bezier(0.16,1,0.3,1) both">Operator field manual / v0.0.10</div>
           <div class="relative inline-block mb-8">
             <img src="/comux.svg" alt="comux" class="hero-logo h-36 w-auto relative z-1 drop-shadow-[0_0_80px_rgba(139,92,246,0.35)] max-sm:h-24" style="animation: hero-logo-in 0.8s 0.04s cubic-bezier(0.16,1,0.3,1) both" />
           </div>

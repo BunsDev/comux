@@ -426,5 +426,5 @@ When creating a new hook:
 ---
 
 *This documentation was auto-generated from comux source code.*
-*Version: 2026-04-28*
+*Version: 2026-04-30*
 `;
