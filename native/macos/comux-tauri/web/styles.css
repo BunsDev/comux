@@ -195,12 +195,20 @@ kbd {
   --browser-min:    72px;
   --terminal-min-y: 160px;
   --browser-min-y:  54px;
+  --split-frac: 0.6;
   --terminal-col: calc(var(--split-frac, 0.6) * 100%);
   transition: grid-template-columns var(--transition-layout),
               grid-template-rows    var(--transition-layout);
   will-change: grid-template-columns, grid-template-rows;
 }
 .detail.resizing { transition: none; }
+
+.boot-error {
+  color: #ff6b6b;
+  padding: 24px;
+  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
 
 /* terminal-only & browser-only: hide unused side */
 .detail[data-layout="terminal"] {

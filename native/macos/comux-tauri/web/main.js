@@ -14,8 +14,7 @@
     if (!host) return;
     host.innerHTML = "";
     var pre = document.createElement("pre");
-    pre.style.cssText =
-      "color:#ff6b6b;padding:24px;font-family:ui-monospace,SF Mono,Menlo,monospace;white-space:pre-wrap;";
+    pre.className = "boot-error";
     pre.textContent = "comux boot error\n\n" + msg;
     host.appendChild(pre);
   }
@@ -33,8 +32,9 @@
   }
   if (!window.__TAURI__ || !window.__TAURI__.core || !window.__TAURI__.event) {
     showBootError(
-      "Tauri global API is not present. " +
-        "Check tauri.conf.json: app.withGlobalTauri must be true and the app must be rebuilt."
+      "Tauri global API is not present. This page was opened outside the Tauri runtime.\n\n" +
+        "Launch it with:\n  cd native/macos/comux-tauri\n  pnpm dev\n\n" +
+        "Opening web/index.html as file:// or in a normal browser will not inject window.__TAURI__."
     );
     return;
   }
@@ -254,10 +254,35 @@
   var browserCollapseBtn = document.getElementById("browser-collapse");
   var browserCycleSideBtn = document.getElementById("browser-cycle-side");
   var BROWSER_SIDES = ["right", "bottom", "left", "top"];
+  var detailStyleRule = null;
 
   function currentLayout() { return detail.dataset.layout || "terminal"; }
   function currentSide()   { return detail.dataset.browserSide || "right"; }
-  function currentSplitFrac() { return parseFloat(detail.style.getPropertyValue("--split-frac")) || 0.6; }
+  function getDetailStyleRule() {
+    if (detailStyleRule) return detailStyleRule;
+    for (var i = 0; i < document.styleSheets.length; i++) {
+      var rules;
+      try { rules = document.styleSheets[i].cssRules; } catch (_) { continue; }
+      for (var j = 0; j < rules.length; j++) {
+        if (rules[j].selectorText === ".detail") {
+          detailStyleRule = rules[j];
+          return detailStyleRule;
+        }
+      }
+    }
+    return null;
+  }
+  function setDetailSplitFrac(value) {
+    var rule = getDetailStyleRule();
+    if (rule) rule.style.setProperty("--split-frac", String(value));
+    else detail.style.setProperty("--split-frac", String(value));
+  }
+  function currentSplitFrac() {
+    var rule = getDetailStyleRule();
+    var value = rule ? rule.style.getPropertyValue("--split-frac") : "";
+    if (!value) value = window.getComputedStyle(detail).getPropertyValue("--split-frac");
+    return parseFloat(value) || 0.6;
+  }
   function ensureProjectLayout(project) {
     if (!project) return null;
     if (!project.layout) project.layout = { mode: "terminal", side: "right", splitFrac: 0.6 };
@@ -275,7 +300,7 @@
   function restoreProjectLayout(project) {
     var layout = ensureProjectLayout(project);
     if (!layout) return;
-    detail.style.setProperty("--split-frac", String(layout.splitFrac || 0.6));
+    setDetailSplitFrac(layout.splitFrac || 0.6);
     applyLayout(layout.mode || "terminal", { side: layout.side || "right", persist: false });
   }
 
@@ -1446,7 +1471,7 @@
   function syncUrlInput() {
     var tab = currentBrowserTab();
     if (urlInput) urlInput.value = tab && tab.url !== "about:blank" ? tab.url : "";
-    if (previewEmpty) previewEmpty.style.display = tab && tab.created ? "none" : "";
+    if (previewEmpty) previewEmpty.hidden = !!(tab && tab.created);
     if (preview) preview.classList.toggle("loading", !!(tab && tab.loading));
     updateBrowserControls();
   }
@@ -1470,7 +1495,7 @@
     invoke("browser_navigate", { label: label, url: normalised, x: b.x, y: b.y, w: b.w, h: b.h }).then(function () {
       tab.created = true; tab.url = normalised;
       if (!opts.fromHistory && !opts.preserveHistory) { tab.history = opts.replace ? [] : tab.history.slice(0, tab.historyIndex + 1); tab.history.push(normalised); tab.historyIndex = tab.history.length - 1; }
-      if (previewEmpty) previewEmpty.style.display = "none";
+      if (previewEmpty) previewEmpty.hidden = true;
       renderBrowserTabs(); syncUrlInput(); saveWorkspaceSoon(); invoke("browser_hide_all_except", { label: label }).catch(function () {});
       setTimeout(function () {
         if (tab.loading && tab.url === normalised) markBrowserTabLoaded(nativeBrowserLabel(label), normalised, "");
@@ -1540,7 +1565,7 @@
     function setSplitFrac(frac) {
       var bounds = splitClampBounds();
       var next = Math.max(bounds.min, Math.min(bounds.max, frac));
-      detail.style.setProperty("--split-frac", next.toFixed(4));
+      setDetailSplitFrac(next.toFixed(4));
       splitter.setAttribute("aria-valuenow", String(Math.round(next * 100)));
       rememberProjectLayout();
       scheduleSplitLayoutSync();
@@ -1594,7 +1619,7 @@
     // tracks the side so the splitter feels physical. Shift halves the step.
     splitter.addEventListener("keydown", function (e) {
       if (currentLayout() !== "split") return;
-      var current = parseFloat(detail.style.getPropertyValue("--split-frac")) || 0.6;
+      var current = currentSplitFrac();
       var step = e.shiftKey ? 0.01 : 0.04;
       var side = currentSide();
       var grow, shrink;
@@ -1605,7 +1630,7 @@
       if (e.key === shrink)    { setSplitFrac(current - step); e.preventDefault(); }
       else if (e.key === grow) { setSplitFrac(current + step); e.preventDefault(); }
     });
-    setSplitFrac(parseFloat(detail.style.getPropertyValue("--split-frac")) || 0.6);
+    setSplitFrac(currentSplitFrac());
   }
 
   // ============================================================

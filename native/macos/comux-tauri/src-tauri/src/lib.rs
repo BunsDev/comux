@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -8,8 +8,8 @@ use parking_lot::Mutex;
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 use tauri::{
-    webview::{PageLoadEvent, WebviewBuilder}, AppHandle, Emitter, LogicalPosition, LogicalSize,
-    Manager, Url, WebviewUrl,
+    webview::{PageLoadEvent, WebviewBuilder},
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Url, WebviewUrl,
 };
 
 const BROWSER_LABEL_PREFIX: &str = "comux-browser-";
@@ -21,7 +21,11 @@ fn safe_browser_label(label: Option<String>) -> String {
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
         .take(64)
         .collect();
-    format!("{}{}", BROWSER_LABEL_PREFIX, if safe.is_empty() { "default" } else { &safe })
+    format!(
+        "{}{}",
+        BROWSER_LABEL_PREFIX,
+        if safe.is_empty() { "default" } else { &safe }
+    )
 }
 
 // ----------------------------------------------------------------------------
@@ -35,6 +39,33 @@ struct PtySession {
 
 static SESSIONS: Lazy<Mutex<HashMap<String, PtySession>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
+static STARTING_SESSIONS: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
+static AUGMENTED_PATH: Lazy<String> = Lazy::new(compute_augmented_path);
+
+struct PendingPtyStart {
+    thread_id: String,
+}
+
+impl PendingPtyStart {
+    fn reserve(thread_id: &str) -> Result<Self, String> {
+        let sessions = SESSIONS.lock();
+        let mut starting = STARTING_SESSIONS.lock();
+        if sessions.contains_key(thread_id) || starting.contains(thread_id) {
+            return Err(format!("thread '{}' already running", thread_id));
+        }
+        starting.insert(thread_id.to_string());
+        Ok(Self {
+            thread_id: thread_id.to_string(),
+        })
+    }
+}
+
+impl Drop for PendingPtyStart {
+    fn drop(&mut self) {
+        let mut starting = STARTING_SESSIONS.lock();
+        starting.remove(&self.thread_id);
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartOptions {
@@ -70,13 +101,7 @@ pub struct BrowserPageLoadEvent {
 #[tauri::command]
 fn pty_start(app: AppHandle, options: StartOptions) -> Result<(), String> {
     let thread_id = options.thread_id.clone();
-
-    {
-        let guard = SESSIONS.lock();
-        if guard.contains_key(&thread_id) {
-            return Err(format!("thread '{}' already running", thread_id));
-        }
-    }
+    let pending_start = PendingPtyStart::reserve(&thread_id)?;
 
     let pty_system = native_pty_system();
     let pair = pty_system
@@ -88,9 +113,7 @@ fn pty_start(app: AppHandle, options: StartOptions) -> Result<(), String> {
         })
         .map_err(|e| e.to_string())?;
 
-    let command = options
-        .command
-        .unwrap_or_else(|| "/bin/zsh".to_string());
+    let command = options.command.unwrap_or_else(|| "/bin/zsh".to_string());
     let args = options.args.unwrap_or_else(|| vec!["-l".to_string()]);
     let mut cmd = CommandBuilder::new(command);
     cmd.args(args);
@@ -102,8 +125,7 @@ fn pty_start(app: AppHandle, options: StartOptions) -> Result<(), String> {
     // /opt/homebrew/bin, so comux can't find tmux/git/gh/etc. Augment PATH
     // with the conventional locations, and provide reasonable defaults for
     // TERM / COLORTERM / LANG so xterm.js renders unicode + truecolor.
-    let augmented_path = augmented_path();
-    cmd.env("PATH", &augmented_path);
+    cmd.env("PATH", augmented_path());
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
     cmd.env("COMUX_TAURI", "1");
@@ -134,35 +156,24 @@ fn pty_start(app: AppHandle, options: StartOptions) -> Result<(), String> {
     cmd.env_remove("PREFIX");
 
     let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
-    let exit_thread_id = thread_id.clone();
-    let app_for_exit = app.clone();
-    std::thread::spawn(move || {
-        let status = child.wait();
-        {
-            let mut guard = SESSIONS.lock();
-            guard.remove(&exit_thread_id);
-        }
-        let code = status.ok().and_then(|s| {
-            // ExitStatus is opaque; best-effort extraction.
-            #[allow(unused_variables)]
-            let success = s.success();
-            None
-        });
-        let _ = app_for_exit.emit(
-            "pty:exit",
-            PtyExitEvent {
-                thread_id: exit_thread_id,
-                code,
-            },
-        );
-    });
-
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
 
+    {
+        let mut guard = SESSIONS.lock();
+        guard.insert(
+            thread_id.clone(),
+            PtySession {
+                master: pair.master,
+                writer: Arc::new(Mutex::new(writer)),
+            },
+        );
+    }
+    drop(pending_start);
+
     let data_thread_id = thread_id.clone();
     let app_for_data = app.clone();
-    std::thread::spawn(move || {
+    let data_thread = std::thread::spawn(move || {
         let mut buf = [0u8; 4096];
         loop {
             match reader.read(&mut buf) {
@@ -179,27 +190,38 @@ fn pty_start(app: AppHandle, options: StartOptions) -> Result<(), String> {
         }
     });
 
-    {
-        let mut guard = SESSIONS.lock();
-        guard.insert(
-            thread_id,
-            PtySession {
-                master: pair.master,
-                writer: Arc::new(Mutex::new(writer)),
+    let exit_thread_id = thread_id.clone();
+    let app_for_exit = app.clone();
+    std::thread::spawn(move || {
+        let status = child.wait();
+        {
+            let mut guard = SESSIONS.lock();
+            guard.remove(&exit_thread_id);
+        }
+        let code = status.ok().map(|s| s.exit_code() as i32);
+        let _ = data_thread.join();
+        let _ = app_for_exit.emit(
+            "pty:exit",
+            PtyExitEvent {
+                thread_id: exit_thread_id,
+                code,
             },
         );
-    }
+    });
 
     Ok(())
 }
 
 #[tauri::command]
 fn pty_write(thread_id: String, bytes: Vec<u8>) -> Result<(), String> {
-    let guard = SESSIONS.lock();
-    let session = guard
-        .get(&thread_id)
-        .ok_or_else(|| format!("thread '{}' not found", thread_id))?;
-    let mut writer = session.writer.lock();
+    let writer = {
+        let guard = SESSIONS.lock();
+        let session = guard
+            .get(&thread_id)
+            .ok_or_else(|| format!("thread '{}' not found", thread_id))?;
+        Arc::clone(&session.writer)
+    };
+    let mut writer = writer.lock();
     writer.write_all(&bytes).map_err(|e| e.to_string())?;
     writer.flush().map_err(|e| e.to_string())?;
     Ok(())
@@ -246,9 +268,9 @@ fn ensure_browser(
     w: f64,
     h: f64,
     url: &str,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     if app.webviews().keys().any(|existing| existing == label) {
-        return Ok(());
+        return Ok(false);
     }
 
     let main = app
@@ -275,7 +297,7 @@ fn ensure_browser(
             if matches!(payload.event(), PageLoadEvent::Finished) {
                 let label_json = serde_json::to_string(&browser_label).unwrap_or_else(|_| "null".to_string());
                 let script = format!(
-                    r#"(function() {{
+                    r#"(function(browserLabel) {{
                       try {{
                         var emit = function(name, payload) {{
                           if (window.__TAURI__ && window.__TAURI__.event) {{
@@ -283,7 +305,7 @@ fn ensure_browser(
                           }}
                         }};
                         var title = document.title || location.hostname || location.href;
-                        emit("browser:title", {{ label: {}, title: title, url: location.href }});
+                        emit("browser:title", {{ label: browserLabel, title: title, url: location.href }});
                         if (!window.__COMUX_BROWSER_SHORTCUTS_INSTALLED__) {{
                           window.__COMUX_BROWSER_SHORTCUTS_INSTALLED__ = true;
                           window.addEventListener("keydown", function(event) {{
@@ -291,20 +313,20 @@ fn ensure_browser(
                               if ((event.metaKey || event.ctrlKey) && event.key && event.key.toLowerCase() === "t") {{
                                 event.preventDefault();
                                 event.stopPropagation();
-                                emit("browser:shortcut-new-tab", {{ label: {}, url: location.href }});
+                                emit("browser:shortcut-new-tab", {{ label: browserLabel, url: location.href }});
                               }}
                             }} catch (_) {{}}
                           }}, true);
                           window.addEventListener("pointerdown", function() {{
-                            emit("browser:focus", {{ label: {}, url: location.href }});
+                            emit("browser:focus", {{ label: browserLabel, url: location.href }});
                           }}, true);
                           window.addEventListener("focusin", function() {{
-                            emit("browser:focus", {{ label: {}, url: location.href }});
+                            emit("browser:focus", {{ label: browserLabel, url: location.href }});
                           }}, true);
                         }}
                       }} catch (_) {{}}
-                    }})();"#,
-                    label_json, label_json, label_json, label_json
+                    }})({});"#,
+                    label_json
                 );
                 let _ = webview.eval(&script);
             }
@@ -318,7 +340,7 @@ fn ensure_browser(
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(())
+    Ok(true)
 }
 
 fn hide_webview(webview: &tauri::Webview) -> Result<(), String> {
@@ -342,12 +364,20 @@ fn browser_navigate(
     h: f64,
 ) -> Result<(), String> {
     let label = safe_browser_label(label);
-    ensure_browser(&app, &label, x, y, w, h, &url)?;
-    let webview = app
-        .get_webview(&label)
-        .ok_or_else(|| "browser webview missing".to_string())?;
-    let parsed_url = Url::parse(&url).map_err(|e| e.to_string())?;
-    webview.navigate(parsed_url).map_err(|e| e.to_string())?;
+    let created = ensure_browser(&app, &label, x, y, w, h, &url)?;
+    if !created {
+        let webview = app
+            .get_webview(&label)
+            .ok_or_else(|| "browser webview missing".to_string())?;
+        webview
+            .set_position(LogicalPosition::new(x, y))
+            .map_err(|e| e.to_string())?;
+        webview
+            .set_size(LogicalSize::new(w.max(1.0), h.max(1.0)))
+            .map_err(|e| e.to_string())?;
+        let parsed_url = Url::parse(&url).map_err(|e| e.to_string())?;
+        webview.navigate(parsed_url).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -385,7 +415,8 @@ fn browser_hide(app: AppHandle, label: Option<String>) -> Result<(), String> {
 fn browser_hide_all_except(app: AppHandle, label: Option<String>) -> Result<(), String> {
     let keep = label.map(|raw| safe_browser_label(Some(raw)));
     for (existing_label, webview) in app.webviews() {
-        if existing_label.starts_with(BROWSER_LABEL_PREFIX) && Some(existing_label.clone()) != keep {
+        if existing_label.starts_with(BROWSER_LABEL_PREFIX) && Some(existing_label.clone()) != keep
+        {
             hide_webview(&webview)?;
         }
     }
@@ -481,6 +512,15 @@ pub struct AgentSkillEntry {
     pub path: String,
 }
 
+fn agent_skill_source_rank(source: &str) -> u8 {
+    match source {
+        "project" => 0,
+        "user" => 1,
+        "plugin" => 2,
+        _ => 3,
+    }
+}
+
 #[tauri::command]
 fn agent_skills(harness: Option<String>, project_root: Option<String>) -> Vec<AgentSkillEntry> {
     let harness = harness.unwrap_or_else(|| "claude".to_string());
@@ -506,7 +546,13 @@ fn agent_skills(harness: Option<String>, project_root: Option<String>) -> Vec<Ag
         }
     }
 
-    out.sort_by(|a, b| a.name.cmp(&b.name).then(a.source.cmp(&b.source)));
+    out.sort_by(|a, b| {
+        a.name
+            .cmp(&b.name)
+            .then(a.kind.cmp(&b.kind))
+            .then(agent_skill_source_rank(&a.source).cmp(&agent_skill_source_rank(&b.source)))
+            .then(a.source.cmp(&b.source))
+    });
     out.dedup_by(|a, b| a.name == b.name && a.kind == b.kind);
     out
 }
@@ -594,7 +640,11 @@ fn scan_claude_dir(
 /// the walk so we never recurse into node_modules or git history.
 fn scan_claude_plugins(root: &Path, out: &mut Vec<AgentSkillEntry>) {
     fn plugin_name_from_manifest(dir: &Path) -> Option<String> {
-        for rel in [".plugin/plugin.json", ".claude-plugin/plugin.json", "package.json"] {
+        for rel in [
+            ".plugin/plugin.json",
+            ".claude-plugin/plugin.json",
+            "package.json",
+        ] {
             let path = dir.join(rel);
             let Ok(content) = std::fs::read_to_string(&path) else {
                 continue;
@@ -667,11 +717,7 @@ fn read_md_description(path: &Path) -> Option<String> {
                 break;
             }
             if let Some(rest) = line.strip_prefix("description:") {
-                let value = rest
-                    .trim()
-                    .trim_matches('"')
-                    .trim_matches('\'')
-                    .to_string();
+                let value = rest.trim().trim_matches('"').trim_matches('\'').to_string();
                 if !value.is_empty() {
                     return Some(truncate_oneline(&value));
                 }
@@ -712,7 +758,11 @@ fn truncate_oneline(s: &str) -> String {
     }
 }
 
-fn augmented_path() -> String {
+fn augmented_path() -> &'static str {
+    AUGMENTED_PATH.as_str()
+}
+
+fn compute_augmented_path() -> String {
     let existing = std::env::var("PATH").unwrap_or_default();
     let extras = [
         "/opt/homebrew/bin",
@@ -723,32 +773,79 @@ fn augmented_path() -> String {
         "/usr/sbin",
         "/sbin",
     ];
-    let mut parts: Vec<String> = extras.iter().map(|s| s.to_string()).collect();
+    let mut parts: Vec<String> = Vec::new();
     for p in existing.split(':') {
         if !p.is_empty() && !parts.iter().any(|existing| existing == p) {
             parts.push(p.to_string());
         }
     }
+    for extra in extras {
+        if !parts.iter().any(|existing| existing == extra) {
+            parts.push(extra.to_string());
+        }
+    }
     // Plus common user-installed runtime managers on macOS.
     if let Ok(home) = std::env::var("HOME") {
+        let home_path = Path::new(&home);
         for suffix in [
             ".cargo/bin",
             ".local/bin",
-            ".nvm/versions/node/v24.13.0/bin",
             ".volta/bin",
             ".bun/bin",
             ".rbenv/shims",
             ".pyenv/shims",
         ] {
-            let candidate = format!("{}/{}", home, suffix);
-            if std::path::Path::new(&candidate).is_dir()
-                && !parts.iter().any(|p| p == &candidate)
-            {
-                parts.push(candidate);
-            }
+            push_path_if_dir(&mut parts, home_path.join(suffix));
+        }
+        if let Some(nvm_bin) = newest_nvm_node_bin(home_path) {
+            push_path_if_dir(&mut parts, nvm_bin);
         }
     }
     parts.join(":")
+}
+
+fn push_path_if_dir(parts: &mut Vec<String>, candidate: PathBuf) {
+    if !candidate.is_dir() {
+        return;
+    }
+    let candidate = candidate.to_string_lossy().to_string();
+    if !parts.iter().any(|p| p == &candidate) {
+        parts.push(candidate);
+    }
+}
+
+fn newest_nvm_node_bin(home: &Path) -> Option<PathBuf> {
+    let versions_dir = home.join(".nvm").join("versions").join("node");
+    let mut newest: Option<((u32, u32, u32), PathBuf)> = None;
+    for entry in std::fs::read_dir(versions_dir).ok()? {
+        let Ok(entry) = entry else {
+            continue;
+        };
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let name = entry.file_name();
+        let Some(version) = parse_nvm_node_version(&name.to_string_lossy()) else {
+            continue;
+        };
+        if newest
+            .as_ref()
+            .map_or(true, |(current, _)| version > *current)
+        {
+            newest = Some((version, path));
+        }
+    }
+    newest.map(|(_, path)| path.join("bin"))
+}
+
+fn parse_nvm_node_version(name: &str) -> Option<(u32, u32, u32)> {
+    let trimmed = name.strip_prefix('v').unwrap_or(name);
+    let mut parts = trimmed.split('.');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next().unwrap_or("0").parse().ok()?;
+    let patch = parts.next().unwrap_or("0").parse().ok()?;
+    Some((major, minor, patch))
 }
 
 fn which_on_path(binary: &str) -> Option<String> {
@@ -817,7 +914,9 @@ pub fn run() {
         .setup(|app| {
             #[cfg(target_os = "macos")]
             {
-                use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
+                use window_vibrancy::{
+                    apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState,
+                };
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = apply_vibrancy(
                         &window,
@@ -827,7 +926,6 @@ pub fn run() {
                     );
                 }
             }
-            let _ = app.get_webview_window("main");
             Ok(())
         })
         .run(tauri::generate_context!())
