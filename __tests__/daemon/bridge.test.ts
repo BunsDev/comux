@@ -349,7 +349,7 @@ describe('daemon bridge pane helpers', () => {
     execSync('git config user.email test@example.invalid', { cwd: root, stdio: 'ignore' });
     execSync('git config user.name Test', { cwd: root, stdio: 'ignore' });
     await writeFile(path.join(root, 'README.md'), '# demo\n');
-    execSync('git add README.md && git commit -m init', { cwd: root, stdio: 'ignore' });
+    execSync('git add README.md && git -c commit.gpgsign=false commit -m init', { cwd: root, stdio: 'ignore' });
     await writeConfig(root, {
       projectName: 'demo',
       projectRoot: root,

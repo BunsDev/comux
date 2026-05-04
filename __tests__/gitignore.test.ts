@@ -78,7 +78,7 @@ describe('ensureComuxRuntimeIgnored', () => {
       execSync('git init', { cwd: repo, stdio: 'pipe' });
       fs.writeFileSync(path.join(repo, 'README.md'), '# Test repo\n');
       execSync('git add README.md', { cwd: repo, stdio: 'pipe' });
-      execSync('git -c user.name=Comux -c user.email=comux@example.com commit -m init', {
+      execSync('git -c user.name=Comux -c user.email=comux@example.com -c commit.gpgsign=false commit -m init', {
         cwd: repo,
         stdio: 'pipe',
       });

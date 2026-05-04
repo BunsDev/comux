@@ -17,6 +17,8 @@ const projectRoot = join(__dirname, '..');
 // Read the hooks.ts file to extract types
 const hooksFile = join(projectRoot, 'src/utils/hooks.ts');
 const hooksContent = readFileSync(hooksFile, 'utf-8');
+const packageJson = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf-8'));
+const docsVersion = packageJson.version ?? 'unknown';
 
 // Extract hook types
 const hookTypesMatch = hooksContent.match(/export type HookType =\s*\|([\s\S]*?);/);
@@ -423,7 +425,7 @@ When creating a new hook:
 ---
 
 *This documentation was auto-generated from comux source code.*
-*Version: ${new Date().toISOString().split('T')[0]}*
+*Version: ${docsVersion}*
 `;
 
 // Write the generated markdown

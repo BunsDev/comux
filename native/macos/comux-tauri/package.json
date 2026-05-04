@@ -1,0 +1,9 @@
+{
+  "name": "comux-tauri",
+  "private": true,
+  "version": "0.0.7",
+  "scripts": {
+    "build": "pnpm exec tauri build",
+    "dev": "pnpm exec tauri dev"
+  }
+}
