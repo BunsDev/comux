@@ -1,6 +1,6 @@
 {
   "name": "comux",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Project-scoped agent cockpit for coordinating coding work across terminal sessions.",
   "type": "module",
   "author": "Valentina Alexander",
