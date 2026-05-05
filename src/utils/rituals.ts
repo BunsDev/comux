@@ -19,7 +19,45 @@ export interface RitualPaneDefinition {
   name?: string;
   prompt?: string;
   agent?: AgentName;
+  command?: string;
 }
+
+const FIX_OPENCLAW_COMMAND = 'coven fix openclaw --repo "$PWD" --keep-session';
+
+const FIX_OPENCLAW_VERIFY_COMMAND = `while true; do
+  clear
+  date
+  echo "Fix OpenClaw verification cockpit"
+  echo
+  git diff --check
+  echo
+  git status --short
+  echo
+  echo "Run focused checks here when the repair pane changes files."
+  sleep 5
+done`;
+
+const FIX_OPENCLAW_DIFF_COMMAND = `while true; do
+  clear
+  date
+  echo "Changed files"
+  git status --short
+  echo
+  echo "Diff stat"
+  git diff --stat
+  echo
+  echo "Names"
+  git diff --name-only
+  sleep 5
+done`;
+
+const FIX_OPENCLAW_SESSIONS_COMMAND = `while true; do
+  clear
+  date
+  echo "Coven sessions"
+  coven sessions --json 2>/dev/null || coven sessions 2>/dev/null || echo "No Coven sessions yet, or Coven is unavailable."
+  sleep 5
+done`;
 
 export interface RitualProjectDefinition {
   projectRoot?: string;
@@ -137,6 +175,40 @@ const BUILT_IN_RITUALS: RitualDefinition[] = [
       },
     ],
   },
+  {
+    version: RITUAL_VERSION,
+    id: 'fix-openclaw',
+    name: 'Fix OpenClaw',
+    description: 'Open a Coven repair cockpit with separate repair, verification, diff, and session panes.',
+    scope: 'builtin',
+    projects: [
+      {
+        projectRoot: '.',
+        panes: [
+          {
+            kind: 'terminal',
+            name: 'Fix OpenClaw',
+            command: FIX_OPENCLAW_COMMAND,
+          },
+          {
+            kind: 'terminal',
+            name: 'Verification',
+            command: FIX_OPENCLAW_VERIFY_COMMAND,
+          },
+          {
+            kind: 'terminal',
+            name: 'Diff Watch',
+            command: FIX_OPENCLAW_DIFF_COMMAND,
+          },
+          {
+            kind: 'terminal',
+            name: 'Coven Sessions',
+            command: FIX_OPENCLAW_SESSIONS_COMMAND,
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getBuiltInRituals(): RitualDefinition[] {
@@ -192,6 +264,10 @@ function normalizePane(value: unknown): RitualPaneDefinition | null {
 
   if (kind === 'agent' && typeof parsed.prompt === 'string' && parsed.prompt.trim()) {
     pane.prompt = parsed.prompt.trim();
+  }
+
+  if (kind === 'terminal' && typeof parsed.command === 'string' && parsed.command.trim()) {
+    pane.command = parsed.command.trim();
   }
 
   if (typeof parsed.agent === 'string' && isAgentName(parsed.agent)) {
