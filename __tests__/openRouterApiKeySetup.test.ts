@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
-import { join } from 'path';
 import {
   buildOpenRouterExportLine,
   getShellConfigCandidates,
@@ -49,10 +48,10 @@ describe('openRouterApiKeySetup', () => {
   });
 
   it('persists key to shell config file', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-openrouter-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-openrouter-'));
 
     try {
-      const zshrcPath = join(homeDir, '.zshrc');
+      const zshrcPath = path.join(homeDir, '.zshrc');
       writeFileSync(zshrcPath, '# existing config\n', 'utf-8');
 
       const result = await persistOpenRouterApiKeyToShell('sk-live-abc', {
@@ -69,13 +68,13 @@ describe('openRouterApiKeySetup', () => {
   });
 
   it('writes openrouter onboarding state without clobbering existing keys', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-openrouter-state-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-openrouter-state-'));
 
     try {
-      const onboardingDir = join(homeDir, '.comux');
+      const onboardingDir = path.join(homeDir, '.comux');
       mkdirSync(onboardingDir, { recursive: true });
       writeFileSync(
-        join(onboardingDir, 'onboarding.json'),
+        path.join(onboardingDir, 'onboarding.json'),
         JSON.stringify(
           {
             tmuxConfigOnboarding: {
@@ -90,7 +89,7 @@ describe('openRouterApiKeySetup', () => {
         'utf-8'
       );
 
-      await writeOpenRouterOnboardingState(homeDir, 'configured', join(homeDir, '.zshrc'));
+      await writeOpenRouterOnboardingState(homeDir, 'configured', path.join(homeDir, '.zshrc'));
 
       const state = await readOnboardingState(homeDir);
       expect(state.tmuxConfigOnboarding).toBeDefined();
