@@ -360,17 +360,23 @@ describe('SettingsManager defaults', () => {
   });
 
   it('loads team defaults beneath global and project settings', async () => {
+    const normalizeMockPath = (value: string) => value.replace(/\\/g, '/');
+
     vi.doMock('fs', async (importOriginal) => {
       const actual = await importOriginal<typeof import('fs')>();
       return {
         ...actual,
-        existsSync: vi.fn((path: string) => (
-          path.endsWith('.comux.defaults.json')
-          || path.endsWith('.comux.global.json')
-          || path.endsWith('/.comux/settings.json')
-        )),
-        readFileSync: vi.fn((path: string) => {
-          if (path.endsWith('.comux.defaults.json')) {
+        existsSync: vi.fn((filePath: string) => {
+          const normalizedPath = normalizeMockPath(filePath);
+          return (
+            normalizedPath.endsWith('.comux.defaults.json')
+            || normalizedPath.endsWith('.comux.global.json')
+            || normalizedPath.endsWith('/.comux/settings.json')
+          );
+        }),
+        readFileSync: vi.fn((filePath: string) => {
+          const normalizedPath = normalizeMockPath(filePath);
+          if (normalizedPath.endsWith('.comux.defaults.json')) {
             return JSON.stringify({
               defaultAgent: 'codex',
               branchPrefix: 'feat/',
@@ -378,19 +384,19 @@ describe('SettingsManager defaults', () => {
             });
           }
 
-          if (path.endsWith('.comux.global.json')) {
+          if (normalizedPath.endsWith('.comux.global.json')) {
             return JSON.stringify({
               colorTheme: 'red',
             });
           }
 
-          if (path.endsWith('/.comux/settings.json')) {
+          if (normalizedPath.endsWith('/.comux/settings.json')) {
             return JSON.stringify({
               branchPrefix: 'fix/',
             });
           }
 
-          throw new Error(`Unexpected path: ${path}`);
+          throw new Error(`Unexpected path: ${filePath}`);
         }),
         writeFileSync: vi.fn(),
         mkdirSync: vi.fn(),
