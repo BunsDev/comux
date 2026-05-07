@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from 'fs';
 import { tmpdir } from 'os';
+import path from 'path';
 import { join } from 'path';
 import {
   buildRecommendedTmuxConfig,
@@ -23,8 +24,8 @@ describe('tmux config onboarding utils', () => {
     const paths = getTmuxConfigCandidatePaths(home);
 
     expect(paths).toEqual([
-      '/tmp/example-home/.tmux.conf',
-      '/tmp/example-home/.config/tmux/tmux.conf',
+      path.join(home, '.tmux.conf'),
+      path.join(home, '.config', 'tmux', 'tmux.conf'),
     ]);
   });
 

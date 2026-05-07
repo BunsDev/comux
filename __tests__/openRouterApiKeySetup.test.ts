@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'fs';
 import { tmpdir } from 'os';
+import path from 'path';
 import { join } from 'path';
 import {
   buildOpenRouterExportLine,
@@ -18,8 +19,8 @@ describe('openRouterApiKeySetup', () => {
     const candidates = getShellConfigCandidates('/bin/zsh', homeDir);
 
     expect(candidates).toEqual([
-      '/tmp/example-home/.zshrc',
-      '/tmp/example-home/.zprofile',
+      path.join(homeDir, '.zshrc'),
+      path.join(homeDir, '.zprofile'),
     ]);
   });
 
