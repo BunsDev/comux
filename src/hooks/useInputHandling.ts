@@ -95,6 +95,18 @@ import {
   readWorktreeMetadata,
   writeWorktreeMetadata,
 } from "../utils/worktreeMetadata.js"
+import {
+  buildCovenAttachCommand,
+  createCovenClient,
+  launchProjectCovenSession,
+} from "../daemon/bridge.js"
+import {
+  buildDesktopUseQuickInput,
+  buildInitialDesktopUsePrompt,
+  getDesktopUseSessionId,
+  isDesktopUsePane,
+  type DesktopUseQuickAction,
+} from "../utils/covenDesktopUse.js"
 
 // Type for the action system returned by useActionSystem hook
 interface ActionSystem {
@@ -331,6 +343,88 @@ export function useInputHandling(params: UseInputHandlingParams) {
     } catch (error: any) {
       setIsCreatingPane(false)
       setStatusMessage(`Failed to create terminal pane: ${error.message}`)
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
+    }
+  }
+
+  const handleCreateDesktopUsePane = async (targetProjectRoot: string) => {
+    const projectDisplayName = getProjectDisplayName(targetProjectRoot)
+    const prompt = buildInitialDesktopUsePrompt(projectDisplayName)
+    const title = "desktop-use"
+
+    try {
+      setIsCreatingPane(true)
+      setStatusMessage("Launching Coven desktop-use session...")
+
+      const client = createCovenClient()
+      const session = await launchProjectCovenSession(targetProjectRoot, {
+        harness: "codex",
+        prompt,
+        title,
+        cwd: targetProjectRoot,
+      }, client)
+
+      const tmuxService = TmuxService.getInstance()
+      const newPaneId = await tmuxService.splitPane({ cwd: targetProjectRoot })
+      await new Promise((resolve) => setTimeout(resolve, ANIMATION_DELAY))
+
+      const nextId = getNextComuxId(panes)
+      const desktopPane: ComuxPane = {
+        id: `comux-${nextId}`,
+        slug: `desktop-use-${nextId}`,
+        displayName: "desktop-use",
+        prompt,
+        paneId: newPaneId,
+        projectRoot: targetProjectRoot,
+        projectName: projectDisplayName,
+        colorTheme: resolveProjectColorTheme(targetProjectRoot, sidebarProjects),
+        type: "desktop-use",
+        shellType: "computer-control",
+        covenSession: {
+          id: session.id,
+          harness: session.harness,
+          status: session.status,
+          projectRoot: session.projectRoot,
+        },
+        desktopUse: {
+          sessionId: session.id,
+          status: session.status,
+          currentAction: "inspect",
+          updatedAt: new Date().toISOString(),
+        },
+      }
+
+      await tmuxService.setPaneTitle(newPaneId, "desktop-use")
+      await tmuxService.sendShellCommand(newPaneId, buildCovenAttachCommand(session.id))
+      await tmuxService.sendTmuxKeys(newPaneId, "Enter")
+      await client.sendInput?.(session.id, buildDesktopUseQuickInput("test"))
+      await savePanes([...panes, desktopPane])
+      await loadPanes()
+
+      setStatusMessage("Desktop-use pane connected to Coven")
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+    } catch (error: any) {
+      setStatusMessage(`Failed to create desktop-use pane: ${error?.message || String(error)}`)
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
+    } finally {
+      setIsCreatingPane(false)
+    }
+  }
+
+  const sendDesktopUseQuickAction = async (pane: ComuxPane, action: DesktopUseQuickAction) => {
+    const sessionId = getDesktopUseSessionId(pane)
+    if (!sessionId) {
+      setStatusMessage("Desktop-use pane has no Coven session")
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+      return
+    }
+
+    try {
+      await createCovenClient().sendInput?.(sessionId, buildDesktopUseQuickInput(action))
+      setStatusMessage(`Sent desktop-use ${action}`)
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+    } catch (error: any) {
+      setStatusMessage(`Failed to send desktop-use ${action}: ${error?.message || String(error)}`)
       setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
     }
   }
@@ -1966,6 +2060,21 @@ export function useInputHandling(params: UseInputHandlingParams) {
       return
     }
 
+    const selectedPane = selectedIndex < panes.length ? panes[selectedIndex] : undefined
+    if (selectedPane && isDesktopUsePane(selectedPane) && ["g", "o", "v", "y", "X"].includes(input)) {
+      const quickAction: DesktopUseQuickAction = input === "g"
+        ? "screenshot"
+        : input === "o"
+          ? "inspect"
+          : input === "v"
+            ? "permissions"
+            : input === "y"
+              ? "approve"
+              : "deny"
+      await sendDesktopUseQuickAction(selectedPane, quickAction)
+      return
+    }
+
     if (
       selectedIndex < panes.length
       && ["a", "b", "f", "A", "m"].includes(input)
@@ -2163,6 +2272,10 @@ export function useInputHandling(params: UseInputHandlingParams) {
     } else if (!isLoading && input === "t") {
       completeStartupPrimerAfterAction()
       await handleCreateTerminalPane(getActiveProjectRoot())
+      return
+    } else if (!isLoading && input === "d") {
+      completeStartupPrimerAfterAction()
+      await handleCreateDesktopUsePane(getActiveProjectRoot())
       return
     } else if (
       !isLoading &&

@@ -60,8 +60,24 @@ export interface ComuxPane {
   projectRoot?: string; // Main repository root this pane belongs to
   projectName?: string; // Display name for pane's project
   colorTheme?: ComuxThemeName; // Cached effective project accent for fast focus/theme switches
-  type?: 'worktree' | 'shell';  // Type of pane (defaults to 'worktree' for backward compat)
-  shellType?: string;  // Shell type for shell panes (bash, zsh, fish, fb, etc)
+  type?: 'worktree' | 'shell' | 'desktop-use';  // Type of pane (defaults to 'worktree' for backward compat)
+  shellType?: string;  // Shell type for shell panes (bash, zsh, fish, fb, desktop-use, etc)
+  covenSession?: {
+    id: string;
+    harness?: string;
+    status?: string;
+    projectRoot?: string;
+  };
+  desktopUse?: {
+    sessionId?: string;
+    status?: string;
+    currentAction?: string;
+    screenState?: string;
+    accessibilityTree?: string;
+    permissions?: Record<string, string>;
+    screenshotPath?: string;
+    updatedAt?: string;
+  };
   worktreePath?: string;
   browserPath?: string; // Root path when a shell pane is a comux file browser
   testWindowId?: string;  // Background window for tests

@@ -12,6 +12,10 @@ import {
   type StreamId,
   encodeBinaryFrame,
 } from './protocol.js';
+import {
+  buildDesktopUseQuickInput,
+  buildDesktopUseStateFromEvents,
+} from '../utils/covenDesktopUse.js';
 import { TmuxControl, tmuxSessionNameForRoot, tmuxSessionExists } from './tmuxControl.js';
 import {
   bridgeErrorCode,
@@ -241,6 +245,30 @@ class Connection {
           });
         } catch (e) {
           this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'coven_session_open_failed'), message: bridgeErrorMessage(e) });
+        }
+        return;
+      }
+      case 'coven.desktop.state': {
+        try {
+          const client = createCovenClient();
+          const [session, events] = await Promise.all([
+            client.getSession?.(msg.sessionId),
+            client.listEvents?.(msg.sessionId) ?? Promise.resolve([]),
+          ]);
+          const state = buildDesktopUseStateFromEvents(msg.sessionId, msg.sessionId, events, session);
+          this.send({ type: 'coven.desktop.state.result', requestId: msg.requestId, state });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'coven_desktop_state_failed'), message: bridgeErrorMessage(e) });
+        }
+        return;
+      }
+      case 'coven.desktop.action': {
+        try {
+          const client = createCovenClient();
+          await client.sendInput?.(msg.sessionId, buildDesktopUseQuickInput(msg.action));
+          this.send({ type: 'coven.desktop.action.result', requestId: msg.requestId, sessionId: msg.sessionId, action: msg.action, accepted: true });
+        } catch (e) {
+          this.send({ type: 'error', requestId: msg.requestId, code: bridgeErrorCode(e, 'coven_desktop_action_failed'), message: bridgeErrorMessage(e) });
         }
         return;
       }

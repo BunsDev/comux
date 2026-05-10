@@ -20,6 +20,7 @@ import { useDialogState } from "./hooks/useDialogState.js"
 import { useDebugInfo } from "./hooks/useDebugInfo.js"
 import { useProjectActivity } from "./hooks/useProjectActivity.js"
 import useCovenSessions from "./hooks/useCovenSessions.js"
+import useCovenDesktopUse from "./hooks/useCovenDesktopUse.js"
 
 // Utils
 import { SIDEBAR_WIDTH } from "./utils/layoutManager.js"
@@ -646,6 +647,7 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
     [panes, sidebarProjects, sessionProjectRoot, projectName]
   )
   const covenSessionsState = useCovenSessions(sessionProjectRoot, sidebarProjects)
+  const desktopUseStates = useCovenDesktopUse(panes)
   const selectedPane = useMemo(() => {
     for (const group of projectActionLayout.groups) {
       const entry = group.panes.find((candidate) => candidate.index === selectedIndex)
@@ -1883,6 +1885,7 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
             isProjectBusy={isProjectHeaderBusy}
             inlineRename={inlineRename}
             covenSessionsState={covenSessionsState}
+            desktopUseStates={desktopUseStates}
           />
         )}
 

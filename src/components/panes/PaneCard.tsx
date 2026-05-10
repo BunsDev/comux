@@ -57,20 +57,24 @@ const PaneCard: React.FC<PaneCardProps> = memo(({
     if (pane.testStatus === 'failed') return { icon: '✗', color: COLORS.error };
     if (pane.testStatus === 'passed') return { icon: '✓', color: COLORS.success };
     if (pane.devStatus === 'running') return { icon: '▶', color: COLORS.success };
+    if (pane.type === 'desktop-use') return { icon: '⌘', color: COLORS.accent };
     return { icon: '◌', color: COLORS.border };
   };
 
   const status = getStatusIcon();
   const isFileBrowserPane = pane.type === 'shell' && pane.shellType === 'fb';
+  const isDesktopUsePane = pane.type === 'desktop-use';
   const paneName = getPaneDisplayName(pane);
   const editingName = inlineRename?.target.kind === 'pane'
     && inlineRename.target.paneId === pane.id;
 
   // Right-aligned columns: [cc] = 4 chars, (ap) = 4 chars, space between = 1
-  const hasAgent = pane.type === 'shell' || !!pane.agent;
-  const agentTag = pane.type === 'shell'
-    ? (pane.shellType || 'sh').substring(0, 2)
-    : pane.agent ? getAgentShortLabel(pane.agent) : null;
+  const hasAgent = pane.type === 'shell' || pane.type === 'desktop-use' || !!pane.agent;
+  const agentTag = pane.type === 'desktop-use'
+    ? 'du'
+    : pane.type === 'shell'
+      ? (pane.shellType || 'sh').substring(0, 2)
+      : pane.agent ? getAgentShortLabel(pane.agent) : null;
   const apTag = pane.autopilot ? 'ap' : null;
 
   // Keep non-title segments fixed; only slug is allowed to clip.
@@ -81,7 +85,7 @@ const PaneCard: React.FC<PaneCardProps> = memo(({
   const hiddenText = pane.hidden ? ' (hidden)' : '';
   const agentText = hasAgent ? ` [${agentTag}]` : '     ';
   const autopilotText = apTag ? ` (${apTag})` : '     ';
-  const shellPrefixText = isFileBrowserPane ? ' ' : '';
+  const shellPrefixText = isFileBrowserPane ? ' ' : isDesktopUsePane ? '⌘ ' : '';
   const fixedLeftWidth = stringWidth(prefix + statusText + attentionText + sourceText + shellPrefixText + hiddenText);
   const maxSlugWidth = Math.max(0, LEFT_COLUMN_WIDTH - fixedLeftWidth);
   const slugText = clipToWidth(paneName, maxSlugWidth);
@@ -91,14 +95,14 @@ const PaneCard: React.FC<PaneCardProps> = memo(({
   const paneSelectedColor = pane.colorTheme
     ? getComuxThemeAccent(pane.colorTheme)
     : projectSelectedColor;
-  const slugColor = isFileBrowserPane
+  const slugColor = isFileBrowserPane || isDesktopUsePane
     ? COLORS.accent
     : selected
       ? paneSelectedColor
       : COLORS.unselected;
   const shellTagColor = isFileBrowserPane
     ? COLORS.warning
-    : pane.type === 'shell'
+    : pane.type === 'shell' || pane.type === 'desktop-use'
       ? COLORS.accent
       : COLORS.muted;
 
@@ -113,7 +117,7 @@ const PaneCard: React.FC<PaneCardProps> = memo(({
         {isDevSource && (
           <Text color={COLORS.accent}>{sourceText}</Text>
         )}
-        {isFileBrowserPane && (
+        {(isFileBrowserPane || isDesktopUsePane) && (
           <Text color={COLORS.accent}>{shellPrefixText}</Text>
         )}
         {editingName ? (

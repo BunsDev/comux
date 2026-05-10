@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
+import http from 'node:http';
 import net from 'node:net';
-import os from 'node:os';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { AGENT_IDS, buildAgentCommand, buildInitialPromptCommand, type AgentName } from '../utils/agentLaunch.js';
@@ -50,14 +50,31 @@ export interface BridgeError {
   message: string;
 }
 
+export interface CovenHealth {
+  ok: boolean;
+  apiVersion: string;
+  supportedApiVersions: string[];
+  daemon?: Record<string, unknown> | null;
+}
+
 export interface CovenClient {
+  health?: () => Promise<CovenHealth>;
   listSessions: () => Promise<CovenSessionSummary[]>;
+  getSession?: (sessionId: string) => Promise<CovenSessionSummary>;
   launchSession?: (
     request: CovenSessionLaunchRequest & { projectRoot: string; cwd: string },
   ) => Promise<CovenSessionSummary>;
   listEvents?: (sessionId: string) => Promise<CovenSessionEvent[]>;
   sendInput?: (sessionId: string, data: string) => Promise<void>;
   killSession?: (sessionId: string) => Promise<void>;
+}
+
+export interface CovenClientOptions {
+  baseUrl?: string;
+  host?: string;
+  port?: number;
+  socketPath?: string;
+  covenHome?: string;
 }
 
 export interface BridgeCovenOpenResult {
@@ -267,35 +284,85 @@ function uniqueCovenPaneSlug(config: BridgeConfig, session: CovenSessionSummary)
   return `${base}-${Date.now()}`;
 }
 
-export function createCovenClient(covenHome = defaultCovenHome()): CovenClient {
+export function createCovenClient(options: string | CovenClientOptions = {}): CovenClient {
+  const endpoint = resolveCovenEndpoint(options);
+  let healthPromise: Promise<CovenHealth> | null = null;
+
+  const health = async (): Promise<CovenHealth> => {
+    const raw = await requestCovenApi(endpoint, 'GET', '/api/v1/health');
+    return normalizeCovenHealth(raw);
+  };
+
+  const ensureHealth = async (): Promise<void> => {
+    healthPromise ??= health();
+    const result = await healthPromise;
+    if (result.apiVersion !== 'v1' || !result.supportedApiVersions.includes('v1')) {
+      throw bridgeError('unsupported_coven_api_version', 'unsupported API version');
+    }
+  };
+
+  const request = async (method: string, requestPath: string, body?: unknown): Promise<unknown> => {
+    await ensureHealth();
+    return requestCovenApi(endpoint, method, versionedCovenPath(requestPath), body);
+  };
+
   return {
+    health,
     async listSessions() {
-      const raw = await requestCovenApi(covenHome, 'GET', '/sessions');
+      const raw = await request('GET', '/sessions');
       return Array.isArray(raw) ? raw.map(normalizeCovenSession) : [];
     },
-    async launchSession(request) {
-      const raw = await requestCovenApi(covenHome, 'POST', '/sessions', request);
+    async getSession(sessionId: string) {
+      const raw = await request('GET', `/sessions/${encodeURIComponent(sessionId)}`);
+      return normalizeCovenSession(raw);
+    },
+    async launchSession(launchRequest) {
+      const raw = await request('POST', '/sessions', launchRequest);
       return normalizeCovenSession(raw);
     },
     async listEvents(sessionId: string) {
-      const raw = await requestCovenApi(covenHome, 'GET', `/events?sessionId=${encodeURIComponent(sessionId)}`);
+      const raw = await request('GET', `/events?sessionId=${encodeURIComponent(sessionId)}`);
       return Array.isArray(raw) ? raw.map(normalizeCovenEvent) : [];
     },
     async sendInput(sessionId: string, data: string) {
-      await requestCovenApi(covenHome, 'POST', `/sessions/${sessionId}/input`, { data });
+      await request('POST', `/sessions/${encodeURIComponent(sessionId)}/input`, { data });
     },
     async killSession(sessionId: string) {
-      await requestCovenApi(covenHome, 'POST', `/sessions/${sessionId}/kill`);
+      await request('POST', `/sessions/${encodeURIComponent(sessionId)}/kill`);
     },
   };
 }
 
-function defaultCovenHome(): string {
-  return process.env.COVEN_HOME || path.join(os.homedir(), '.coven');
+function resolveCovenEndpoint(options: string | CovenClientOptions): { baseUrl?: string; socketPath?: string } {
+  if (typeof options === 'string') {
+    return { socketPath: path.join(options, 'coven.sock') };
+  }
+
+  if (options.socketPath) return { socketPath: options.socketPath };
+  if (options.covenHome) return { socketPath: path.join(options.covenHome, 'coven.sock') };
+  if (process.env.COVEN_SOCKET) return { socketPath: process.env.COVEN_SOCKET };
+  if (process.env.COVEN_HOME && !process.env.COVEN_PORT && !process.env.COVEN_URL) {
+    return { socketPath: path.join(process.env.COVEN_HOME, 'coven.sock') };
+  }
+
+  const baseUrl = options.baseUrl
+    || process.env.COVEN_URL
+    || `http://${options.host || '127.0.0.1'}:${options.port || Number(process.env.COVEN_PORT || 7777)}`;
+  return { baseUrl };
 }
 
-function requestCovenApi(covenHome: string, method: string, requestPath: string, body?: unknown): Promise<unknown> {
-  const socketPath = path.join(covenHome, 'coven.sock');
+function versionedCovenPath(requestPath: string): string {
+  if (requestPath.startsWith('/api/')) return requestPath;
+  return `/api/v1${requestPath.startsWith('/') ? requestPath : `/${requestPath}`}`;
+}
+
+function requestCovenApi(endpoint: { baseUrl?: string; socketPath?: string }, method: string, requestPath: string, body?: unknown): Promise<unknown> {
+  return endpoint.socketPath
+    ? requestCovenApiSocket(endpoint.socketPath, method, requestPath, body)
+    : requestCovenApiHttp(endpoint.baseUrl || 'http://127.0.0.1:7777', method, requestPath, body);
+}
+
+function requestCovenApiSocket(socketPath: string, method: string, requestPath: string, body?: unknown): Promise<unknown> {
   const bodyText = body === undefined ? '' : JSON.stringify(body);
   const request = [
     `${method} ${requestPath} HTTP/1.1`,
@@ -315,19 +382,82 @@ function requestCovenApi(covenHome: string, method: string, requestPath: string,
     socket.on('error', reject);
     socket.on('end', () => {
       try {
-        const response = Buffer.concat(chunks).toString('utf8');
-        const [head, payload = ''] = response.split('\r\n\r\n');
-        const status = Number(head.split(/\s+/)[1]);
-        if (!Number.isFinite(status) || status < 200 || status >= 300) {
-          reject(bridgeError('coven_api_failed', `Coven API returned HTTP ${status || 'unknown'}`));
-          return;
-        }
-        resolve(payload.trim() ? JSON.parse(payload) : null);
+        resolve(parseCovenHttpResponse(Buffer.concat(chunks).toString('utf8')));
       } catch (error) {
         reject(error);
       }
     });
   });
+}
+
+function requestCovenApiHttp(baseUrl: string, method: string, requestPath: string, body?: unknown): Promise<unknown> {
+  const url = new URL(requestPath, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+  const bodyText = body === undefined ? '' : JSON.stringify(body);
+
+  return new Promise((resolve, reject) => {
+    const req = http.request(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(bodyText),
+      },
+      timeout: 2_000,
+    }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      res.on('end', () => {
+        try {
+          resolve(parseCovenPayload(Number(res.statusCode), Buffer.concat(chunks).toString('utf8')));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    req.on('timeout', () => req.destroy(bridgeError('coven_api_timeout', 'Coven API timed out')));
+    req.on('error', reject);
+    req.end(bodyText);
+  });
+}
+
+function parseCovenHttpResponse(response: string): unknown {
+  const [head, payload = ''] = response.split('\r\n\r\n');
+  const status = Number(head.split(/\s+/)[1]);
+  return parseCovenPayload(status, payload);
+}
+
+function parseCovenPayload(status: number, payload: string): unknown {
+  if (!Number.isFinite(status) || status < 200 || status >= 300) {
+    let message = `Coven API returned HTTP ${status || 'unknown'}`;
+    try {
+      const parsed = payload.trim() ? JSON.parse(payload) : null;
+      if (parsed && typeof parsed === 'object' && typeof (parsed as { error?: unknown }).error === 'string') {
+        message = (parsed as { error: string }).error;
+      }
+    } catch {
+      // Keep generic HTTP message.
+    }
+    throw bridgeError('coven_api_failed', message);
+  }
+  return payload.trim() ? JSON.parse(payload) : null;
+}
+
+function normalizeCovenHealth(raw: unknown): CovenHealth {
+  const record = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const supportedRaw = Array.isArray(record.supportedApiVersions)
+    ? record.supportedApiVersions
+    : Array.isArray(record.supported_api_versions)
+      ? record.supported_api_versions
+      : [];
+  return {
+    ok: record.ok === true,
+    apiVersion: String(record.apiVersion ?? record.api_version ?? ''),
+    supportedApiVersions: supportedRaw.map((value) => String(value)),
+    daemon: record.daemon && typeof record.daemon === 'object'
+      ? record.daemon as Record<string, unknown>
+      : record.daemon === null
+        ? null
+        : undefined,
+  };
 }
 
 function normalizeCovenSession(raw: any): CovenSessionSummary {
