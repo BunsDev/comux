@@ -58,7 +58,7 @@ function shutdown(exitCode = 0) {
     }
   }
 
-  process.exitCode = exitCode;
+  process.exit(exitCode);
 }
 
 process.on('SIGINT', () => shutdown(0));
