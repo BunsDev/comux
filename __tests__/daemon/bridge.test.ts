@@ -356,6 +356,43 @@ describe('daemon bridge Coven API client', () => {
     expect(requests).toContain('/api/v1/events?sessionId=session-1&since=2026-05-10T08%3A00%3A02Z');
   });
 
+  it('retries Coven health after a transient failure', async () => {
+    let healthRequests = 0;
+    const server = http.createServer((req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      if (req.url === '/api/v1/health') {
+        healthRequests += 1;
+        if (healthRequests === 1) {
+          res.statusCode = 503;
+          res.end(JSON.stringify({ error: 'starting' }));
+          return;
+        }
+        res.end(JSON.stringify({ ok: true, apiVersion: 'v1', supportedApiVersions: ['v1'], daemon: null }));
+        return;
+      }
+      if (req.url === '/api/v1/sessions') {
+        res.end(JSON.stringify([]));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: 'not found' }));
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('expected TCP server');
+      const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
+
+      await expect(client.listSessions()).rejects.toThrow(/starting/);
+      await expect(client.listSessions()).resolves.toEqual([]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+
+    expect(healthRequests).toBe(2);
+  });
+
   it('uses the versioned localhost API after checking /api/v1/health', async () => {
     const requests: Array<{ method: string; url: string; body: string }> = [];
     const server = http.createServer((req, res) => {
