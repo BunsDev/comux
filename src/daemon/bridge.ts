@@ -295,9 +295,14 @@ export function createCovenClient(options: string | CovenClientOptions = {}): Co
 
   const ensureHealth = async (): Promise<void> => {
     healthPromise ??= health();
-    const result = await healthPromise;
-    if (result.apiVersion !== 'v1' || !result.supportedApiVersions.includes('v1')) {
-      throw bridgeError('unsupported_coven_api_version', 'unsupported API version');
+    try {
+      const result = await healthPromise;
+      if (result.apiVersion !== 'v1' || !result.supportedApiVersions.includes('v1')) {
+        throw bridgeError('unsupported_coven_api_version', 'unsupported API version');
+      }
+    } catch (error) {
+      healthPromise = null;
+      throw error;
     }
   };
 
