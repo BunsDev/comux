@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import http from 'node:http';
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -14,6 +14,7 @@ import {
   openProjectCovenSession,
   listScopedProjects,
   readPaneStatus,
+  resolveCovenEndpoint,
   resolveScopedCwd,
   spawnBridgePane,
   tailTextLines,
@@ -242,6 +243,119 @@ describe('daemon bridge Coven helpers', () => {
 });
 
 describe('daemon bridge Coven API client', () => {
+  it('accepts newer daemon API versions when v1 remains supported', async () => {
+    const server = http.createServer((req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      if (req.url === '/api/v1/health') {
+        res.end(JSON.stringify({ ok: true, apiVersion: 'v2', supportedApiVersions: ['v2', 'v1'], daemon: null }));
+        return;
+      }
+      if (req.url === '/api/v1/sessions') {
+        res.end(JSON.stringify([]));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: 'not found' }));
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('expected TCP server');
+      const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
+
+      await expect(client.listSessions()).resolves.toEqual([]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('defaults to the user Coven socket when no endpoint override is configured', async () => {
+    const previous = {
+      COVEN_HOME: process.env.COVEN_HOME,
+      COVEN_PORT: process.env.COVEN_PORT,
+      COVEN_SOCKET: process.env.COVEN_SOCKET,
+      COVEN_URL: process.env.COVEN_URL,
+      HOME: process.env.HOME,
+    };
+    try {
+      delete process.env.COVEN_HOME;
+      delete process.env.COVEN_PORT;
+      delete process.env.COVEN_SOCKET;
+      delete process.env.COVEN_URL;
+      const home = await tempDir('comux-coven-home-');
+      process.env.HOME = home;
+
+      expect(resolveCovenEndpoint({})).toEqual({ socketPath: path.join(home, '.coven', 'coven.sock') });
+    } finally {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) {
+          delete process.env[key as keyof NodeJS.ProcessEnv];
+        } else {
+          process.env[key as keyof NodeJS.ProcessEnv] = value;
+        }
+      }
+    }
+  });
+
+  it('uses os homedir instead of a relative socket path when HOME is unset', async () => {
+    const previous = {
+      COVEN_HOME: process.env.COVEN_HOME,
+      COVEN_PORT: process.env.COVEN_PORT,
+      COVEN_SOCKET: process.env.COVEN_SOCKET,
+      COVEN_URL: process.env.COVEN_URL,
+      HOME: process.env.HOME,
+    };
+    try {
+      delete process.env.COVEN_HOME;
+      delete process.env.COVEN_PORT;
+      delete process.env.COVEN_SOCKET;
+      delete process.env.COVEN_URL;
+      delete process.env.HOME;
+
+      expect(resolveCovenEndpoint({})).toEqual({ socketPath: path.join(homedir(), '.coven', 'coven.sock') });
+    } finally {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) {
+          delete process.env[key as keyof NodeJS.ProcessEnv];
+        } else {
+          process.env[key as keyof NodeJS.ProcessEnv] = value;
+        }
+      }
+    }
+  });
+
+  it('requests Coven events after a since cursor when provided', async () => {
+    const requests: string[] = [];
+    const server = http.createServer((req, res) => {
+      requests.push(req.url || '/');
+      res.setHeader('Content-Type', 'application/json');
+      if (req.url === '/api/v1/health') {
+        res.end(JSON.stringify({ ok: true, apiVersion: 'v1', supportedApiVersions: ['v1'], daemon: null }));
+        return;
+      }
+      if (req.url?.startsWith('/api/v1/events?')) {
+        res.end(JSON.stringify([]));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: 'not found' }));
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('expected TCP server');
+      const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
+
+      await expect(client.listEvents?.('session-1', { since: '2026-05-10T08:00:02Z' })).resolves.toEqual([]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+
+    expect(requests).toContain('/api/v1/events?sessionId=session-1&since=2026-05-10T08%3A00%3A02Z');
+  });
+
   it('uses the versioned localhost API after checking /api/v1/health', async () => {
     const requests: Array<{ method: string; url: string; body: string }> = [];
     const server = http.createServer((req, res) => {
