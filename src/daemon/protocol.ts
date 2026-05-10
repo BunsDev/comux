@@ -53,6 +53,22 @@ export type CovenSessionLaunchRequest = {
   title?: string;
 };
 
+export type CovenDesktopUseQuickAction = 'screenshot' | 'inspect' | 'permissions' | 'approve' | 'deny' | 'test';
+
+export type CovenDesktopUseState = {
+  sessionId?: string;
+  connected: boolean;
+  actions?: Array<{ id: string; label: string; status?: string; createdAt?: string; traceId?: string }>;
+  currentAction?: { id: string; label: string; status?: string; createdAt?: string; traceId?: string };
+  permissions?: Record<string, string>;
+  accessibilitySummary?: string;
+  screenSummary?: string;
+  screenshotPath?: string;
+  pendingApproval?: boolean;
+  error?: string;
+  updatedAt: string;
+};
+
 export interface PaneStatusResult {
   id: PaneId;
   exists?: boolean;
@@ -77,6 +93,8 @@ export type ClientRequest =
   | { type: 'coven.sessions.list'; requestId: string }
   | { type: 'coven.sessions.launch'; requestId: string; launch: CovenSessionLaunchRequest }
   | { type: 'coven.sessions.open'; requestId: string; id: string }
+  | { type: 'coven.desktop.state'; requestId: string; sessionId: string }
+  | { type: 'coven.desktop.action'; requestId: string; sessionId: string; action: CovenDesktopUseQuickAction }
   | { type: 'panes.spawn'; requestId: string; cwd: string; branch?: string; agent?: string; title?: string; prompt?: string }
   | { type: 'panes.capture'; requestId: string; id: PaneId; lines?: number }
   | { type: 'panes.status'; requestId: string; id: PaneId }
@@ -98,6 +116,8 @@ export type ServerResponse =
   | { type: 'coven.sessions.list.result'; requestId: string; sessions: CovenSessionSummary[] }
   | { type: 'coven.sessions.launch.result'; requestId: string; session: CovenSessionSummary }
   | { type: 'coven.sessions.open.result'; requestId: string; id: PaneId; pane: PaneSummary; session: CovenSessionSummary }
+  | { type: 'coven.desktop.state.result'; requestId: string; state: CovenDesktopUseState }
+  | { type: 'coven.desktop.action.result'; requestId: string; sessionId: string; action: CovenDesktopUseQuickAction; accepted: boolean }
   | { type: 'panes.spawn.result'; requestId: string; id: PaneId; pane?: PaneSummary; worktreePath?: string; branch?: string }
   | { type: 'panes.capture.result'; requestId: string; id: PaneId; text: string; lines: number }
   | { type: 'panes.status.result'; requestId: string; status: PaneStatusResult }

@@ -9,6 +9,7 @@ import type {
 import type { AgentStatusMap } from "../../hooks/useAgentStatus.js"
 import PaneCard from "./PaneCard.js"
 import CovenSessionsPanel from "./CovenSessionsPanel.js"
+import DesktopUsePanePanel from "./DesktopUsePanePanel.js"
 import { COLORS } from "../../theme/colors.js"
 import {
   getComuxThemeAccent,
@@ -23,6 +24,7 @@ import { isActiveDevSourcePath } from "../../utils/devSource.js"
 import InlineNameEditor from "../ui/InlineNameEditor.js"
 import type { InlineRenameState } from "../../utils/inlineRename.js"
 import type { CovenSessionsLoadState } from "../../utils/covenSessions.js"
+import type { DesktopUseStateMap } from "../../hooks/useCovenDesktopUse.js"
 
 interface PanesGridProps {
   panes: ComuxPane[]
@@ -39,6 +41,7 @@ interface PanesGridProps {
   isProjectBusy?: (projectRoot: string) => boolean
   inlineRename?: InlineRenameState | null
   covenSessionsState?: CovenSessionsLoadState
+  desktopUseStates?: DesktopUseStateMap
 }
 
 const PROJECT_BUSY_FRAMES = ['◴', '◷', '◶', '◵']
@@ -59,6 +62,7 @@ const PanesGrid: React.FC<PanesGridProps> = memo(({
   isProjectBusy,
   inlineRename,
   covenSessionsState,
+  desktopUseStates,
 }) => {
   const actionLayout = useMemo(
     () => buildProjectActionLayout(
@@ -234,15 +238,23 @@ const PanesGrid: React.FC<PanesGridProps> = memo(({
             )
 
             return (
-              <PaneCard
-                key={pane.id}
-                pane={paneWithStatus}
-                isDevSource={isDevSource}
-                selected={isSelected}
-                themeName={themeName}
-                projectThemeName={getProjectThemeName(group.projectRoot)}
-                inlineRename={inlineRename}
-              />
+              <React.Fragment key={pane.id}>
+                <PaneCard
+                  pane={paneWithStatus}
+                  isDevSource={isDevSource}
+                  selected={isSelected}
+                  themeName={themeName}
+                  projectThemeName={getProjectThemeName(group.projectRoot)}
+                  inlineRename={inlineRename}
+                />
+                {pane.type === "desktop-use" && (
+                  <DesktopUsePanePanel
+                    state={desktopUseStates?.get(pane.id)}
+                    selected={isSelected}
+                    themeName={getProjectThemeName(group.projectRoot)}
+                  />
+                )}
+              </React.Fragment>
             )
           })}
 
