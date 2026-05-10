@@ -12,8 +12,13 @@ const scripts = packageJson.scripts || {};
 
 const requiredMarkers = {
   dev: 'node dist/index.js',
+  'dev:watch': 'pnpm run dev:watch:run',
   'dev:watch:run': 'node scripts/dev-watch-run.js',
 };
+
+const requiredFiles = [
+  'scripts/dev-watch-run.js',
+];
 
 const disallowedMarkers = [
   'tsx src/index.ts',
@@ -32,6 +37,13 @@ for (const [scriptName, marker] of Object.entries(requiredMarkers)) {
     errors.push(
       `scripts.${scriptName} must include "${marker}" (current: ${JSON.stringify(scriptValue)})`
     );
+  }
+}
+
+for (const requiredFile of requiredFiles) {
+  const requiredPath = path.resolve(__dirname, '..', requiredFile);
+  if (!fs.existsSync(requiredPath)) {
+    errors.push(`${requiredFile} must exist`);
   }
 }
 
