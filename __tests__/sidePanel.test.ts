@@ -12,7 +12,8 @@ describe('side panel responsive helpers', () => {
     const sidePanel = await import('../src/utils/sidePanel.js');
 
     expect(sidePanel.shouldUseCompactSidePanel(89)).toBe(true);
-    expect(sidePanel.shouldUseCompactSidePanel(100)).toBe(false);
+    expect(sidePanel.shouldUseCompactSidePanel(139)).toBe(true);
+    expect(sidePanel.shouldUseCompactSidePanel(140)).toBe(false);
   });
 
   it('does not auto-collapse narrow terminals after a manual side panel override', async () => {
