@@ -36,7 +36,7 @@ comux
 
 Press `n` to create a new pane, type a prompt, pick one or more agents (or none for a plain terminal), and comux handles the rest — tmux pane, git worktree, branch, and agent launch.
 
-Press `u` to open rituals: reusable setup recipes for starting a project with a known pane layout. Built-ins include Start Coding, Terminal First, Review Stack, and Release Check. You can also save project rituals and attach a default ritual to a project.
+Press `u` to open rituals: reusable setup recipes for starting a project with a known pane layout. Built-ins include Start Coding, Terminal First, Review Stack, Release Check, and Fix OpenClaw. You can also save project rituals and attach a default ritual to a project.
 
 Open the selected pane menu with `m` when you want to inspect, merge, create a PR, attach another agent, or clean up.
 
@@ -63,6 +63,7 @@ comux creates a tmux pane for each task. Every work pane gets its own git worktr
 - **Pane visibility controls** — hide individual panes, isolate one project, or restore everything later without stopping work
 - **Multi-project cockpit** — add multiple repos to the same session and switch scope from the sidebar
 - **Rituals** — open, save, and attach reusable project setup recipes without restoring brittle tmux snapshots
+- **Fix OpenClaw cockpit** — a built-in ritual opens Coven repair, verification, diff watch, and session panes so rescue work stays visible
 - **Coven bridge** — list, open, and launch Coven-managed sessions when a local Coven daemon is available
 - **Lifecycle hooks** — run scripts on worktree create, pre-merge, post-merge, and more
 

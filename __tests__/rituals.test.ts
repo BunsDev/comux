@@ -34,8 +34,33 @@ describe('rituals', () => {
       'terminal-first',
       'review-stack',
       'release-check',
+      'fix-openclaw',
     ]);
     expect(rituals.find((ritual) => ritual.id === 'review-stack')?.projects[0].panes).toHaveLength(3);
+
+    const fixOpenClaw = rituals.find((ritual) => ritual.id === 'fix-openclaw');
+    expect(fixOpenClaw?.projects[0].panes).toEqual([
+      expect.objectContaining({
+        kind: 'terminal',
+        name: 'Fix OpenClaw',
+        command: expect.stringContaining('coven fix openclaw'),
+      }),
+      expect.objectContaining({
+        kind: 'terminal',
+        name: 'Verification',
+        command: expect.stringContaining('git diff --check'),
+      }),
+      expect.objectContaining({
+        kind: 'terminal',
+        name: 'Diff Watch',
+        command: expect.stringContaining('git diff --stat'),
+      }),
+      expect.objectContaining({
+        kind: 'terminal',
+        name: 'Coven Sessions',
+        command: expect.stringContaining('coven sessions'),
+      }),
+    ]);
   });
 
   it('creates stable ritual IDs from names', () => {
@@ -52,12 +77,18 @@ describe('rituals', () => {
       projects: [
         {
           projectRoot: '.',
-          panes: [{ kind: 'terminal', name: 'Shell' }],
+          panes: [{ kind: 'terminal', name: 'Shell', command: 'git status' }],
         },
       ],
     });
 
-    expect(listProjectRituals(tempDir).map((ritual) => ritual.id)).toEqual(['my-flow']);
+    const saved = listProjectRituals(tempDir);
+    expect(saved.map((ritual) => ritual.id)).toEqual(['my-flow']);
+    expect(saved[0].projects[0].panes[0]).toEqual({
+      kind: 'terminal',
+      name: 'Shell',
+      command: 'git status',
+    });
     expect(listAvailableRituals(tempDir).some((ritual) => ritual.id === 'my-flow')).toBe(true);
   });
 

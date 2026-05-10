@@ -62,7 +62,7 @@ import { getPaneBranchName } from "./utils/git.js"
 import { getGitStatus } from "./utils/mergeValidation.js"
 import { createMergeTargetChain } from "./utils/mergeTargets.js"
 import { claimProcessShutdown } from "./utils/processShutdown.js"
-import { getPaneDisplayName } from "./utils/paneTitle.js"
+import { getPaneDisplayName, getPaneTmuxTitle } from "./utils/paneTitle.js"
 import {
   FOOTER_TIP_ROTATION_INTERVAL,
   getFooterTips,
@@ -1049,7 +1049,8 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
 
   const createTerminalPaneForRitual = async (
     targetProjectRoot: string,
-    existingPanes: ComuxPane[]
+    existingPanes: ComuxPane[],
+    ritualPane?: { name?: string; command?: string }
   ): Promise<ComuxPane | null> => {
     try {
       setIsCreatingPane(true)
@@ -1063,9 +1064,24 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
         newPaneId,
         getNextComuxId(existingPanes)
       )
+      if (ritualPane?.name?.trim()) {
+        shellPane.displayName = ritualPane.name.trim()
+      }
       shellPane.projectRoot = targetProjectRoot
       shellPane.projectName = basename(targetProjectRoot)
       shellPane.colorTheme = resolveProjectColorTheme(targetProjectRoot, sidebarProjects)
+
+      if (shellPane.displayName) {
+        await tmuxService.setPaneTitle(
+          newPaneId,
+          getPaneTmuxTitle(shellPane, targetProjectRoot, shellPane.projectName)
+        )
+      }
+
+      if (ritualPane?.command?.trim()) {
+        await tmuxService.sendShellCommand(newPaneId, ritualPane.command.trim())
+        await tmuxService.sendTmuxKeys(newPaneId, "Enter")
+      }
 
       await savePanes([...existingPanes, shellPane])
       await loadPanes()
@@ -1096,7 +1112,8 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
         if (ritualPane.kind === "terminal") {
           const pane = await createTerminalPaneForRitual(
             targetProjectRoot,
-            workingPanes
+            workingPanes,
+            ritualPane
           )
           if (pane) {
             workingPanes = [...workingPanes, pane]
