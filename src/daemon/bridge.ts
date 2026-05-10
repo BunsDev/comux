@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import http from 'node:http';
 import net from 'node:net';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { AGENT_IDS, buildAgentCommand, buildInitialPromptCommand, type AgentName } from '../utils/agentLaunch.js';
 import { buildPromptReadAndDeleteSnippet, writePromptFile } from '../utils/promptStore.js';
@@ -64,7 +65,7 @@ export interface CovenClient {
   launchSession?: (
     request: CovenSessionLaunchRequest & { projectRoot: string; cwd: string },
   ) => Promise<CovenSessionSummary>;
-  listEvents?: (sessionId: string) => Promise<CovenSessionEvent[]>;
+  listEvents?: (sessionId: string, options?: { since?: string }) => Promise<CovenSessionEvent[]>;
   sendInput?: (sessionId: string, data: string) => Promise<void>;
   killSession?: (sessionId: string) => Promise<void>;
 }
@@ -296,7 +297,7 @@ export function createCovenClient(options: string | CovenClientOptions = {}): Co
   const ensureHealth = async (): Promise<void> => {
     healthPromise ??= health();
     const result = await healthPromise;
-    if (result.apiVersion !== 'v1' || !result.supportedApiVersions.includes('v1')) {
+    if (!result.supportedApiVersions.includes('v1')) {
       throw bridgeError('unsupported_coven_api_version', 'unsupported API version');
     }
   };
@@ -320,8 +321,10 @@ export function createCovenClient(options: string | CovenClientOptions = {}): Co
       const raw = await request('POST', '/sessions', launchRequest);
       return normalizeCovenSession(raw);
     },
-    async listEvents(sessionId: string) {
-      const raw = await request('GET', `/events?sessionId=${encodeURIComponent(sessionId)}`);
+    async listEvents(sessionId: string, options?: { since?: string }) {
+      const params = new URLSearchParams({ sessionId });
+      if (options?.since) params.set('since', options.since);
+      const raw = await request('GET', `/events?${params.toString()}`);
       return Array.isArray(raw) ? raw.map(normalizeCovenEvent) : [];
     },
     async sendInput(sessionId: string, data: string) {
@@ -333,7 +336,7 @@ export function createCovenClient(options: string | CovenClientOptions = {}): Co
   };
 }
 
-function resolveCovenEndpoint(options: string | CovenClientOptions): { baseUrl?: string; socketPath?: string } {
+export function resolveCovenEndpoint(options: string | CovenClientOptions): { baseUrl?: string; socketPath?: string } {
   if (typeof options === 'string') {
     return { socketPath: path.join(options, 'coven.sock') };
   }
@@ -343,6 +346,10 @@ function resolveCovenEndpoint(options: string | CovenClientOptions): { baseUrl?:
   if (process.env.COVEN_SOCKET) return { socketPath: process.env.COVEN_SOCKET };
   if (process.env.COVEN_HOME && !process.env.COVEN_PORT && !process.env.COVEN_URL) {
     return { socketPath: path.join(process.env.COVEN_HOME, 'coven.sock') };
+  }
+
+  if (!options.baseUrl && !options.host && !options.port && !process.env.COVEN_URL && !process.env.COVEN_PORT) {
+    return { socketPath: path.join(process.env.HOME || homedir(), '.coven', 'coven.sock') };
   }
 
   const baseUrl = options.baseUrl
