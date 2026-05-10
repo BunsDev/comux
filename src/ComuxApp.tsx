@@ -247,8 +247,17 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
   }, [setStatusMessage])
 
   useEffect(() => {
-    if (shouldAutoCollapseSidePanel(terminalWidth, sidePanelManualOverride)) {
+    if (sidePanelManualOverride) {
+      // User has manually overridden, respect their choice
+      return
+    }
+    
+    // Auto-collapse on small terminals
+    if (shouldUseCompactSidePanel(terminalWidth)) {
       setSidePanelCollapsed(true)
+    } else {
+      // Expand when terminal is large enough
+      setSidePanelCollapsed(false)
     }
   }, [terminalWidth, sidePanelManualOverride])
 
