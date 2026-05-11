@@ -1,19 +1,28 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(not(target_os = "ios"))]
+use std::collections::HashSet;
+#[cfg(not(target_os = "ios"))]
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+#[cfg(not(target_os = "ios"))]
 use std::sync::Arc;
 
 use once_cell::sync::Lazy;
+#[cfg(not(target_os = "ios"))]
 use parking_lot::Mutex;
+#[cfg(not(target_os = "ios"))]
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
-use tauri::{
-    webview::{PageLoadEvent, WebviewBuilder},
-    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Url, WebviewUrl,
-};
+#[cfg(not(target_os = "ios"))]
+use tauri::webview::{PageLoadEvent, WebviewBuilder};
+use tauri::{AppHandle, Emitter, Manager};
+#[cfg(not(target_os = "ios"))]
+use tauri::{LogicalPosition, LogicalSize, Url, WebviewUrl};
 
+#[cfg(not(target_os = "ios"))]
 const BROWSER_LABEL_PREFIX: &str = "comux-browser-";
 
+#[cfg(not(target_os = "ios"))]
 fn safe_browser_label(label: Option<String>) -> String {
     let raw = label.unwrap_or_else(|| "default".to_string());
     let safe: String = raw
@@ -32,20 +41,25 @@ fn safe_browser_label(label: Option<String>) -> String {
 // Multi-PTY backend
 // ----------------------------------------------------------------------------
 
+#[cfg(not(target_os = "ios"))]
 struct PtySession {
     master: Box<dyn MasterPty + Send>,
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
 }
 
+#[cfg(not(target_os = "ios"))]
 static SESSIONS: Lazy<Mutex<HashMap<String, PtySession>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
+#[cfg(not(target_os = "ios"))]
 static STARTING_SESSIONS: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 static AUGMENTED_PATH: Lazy<String> = Lazy::new(compute_augmented_path);
 
+#[cfg(not(target_os = "ios"))]
 struct PendingPtyStart {
     thread_id: String,
 }
 
+#[cfg(not(target_os = "ios"))]
 impl PendingPtyStart {
     fn reserve(thread_id: &str) -> Result<Self, String> {
         let sessions = SESSIONS.lock();
@@ -60,6 +74,7 @@ impl PendingPtyStart {
     }
 }
 
+#[cfg(not(target_os = "ios"))]
 impl Drop for PendingPtyStart {
     fn drop(&mut self) {
         let mut starting = STARTING_SESSIONS.lock();
@@ -92,6 +107,7 @@ pub struct PtyExitEvent {
 }
 
 #[derive(Debug, Serialize, Clone)]
+#[cfg(not(target_os = "ios"))]
 pub struct BrowserPageLoadEvent {
     pub label: String,
     pub url: String,
@@ -99,6 +115,7 @@ pub struct BrowserPageLoadEvent {
 }
 
 #[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn pty_start(app: AppHandle, options: StartOptions) -> Result<(), String> {
     let thread_id = options.thread_id.clone();
     let pending_start = PendingPtyStart::reserve(&thread_id)?;
@@ -213,6 +230,13 @@ fn pty_start(app: AppHandle, options: StartOptions) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn pty_start(_app: AppHandle, _options: StartOptions) -> Result<(), String> {
+    Err("PTY sessions are not available in the iOS TestFlight build".to_string())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn pty_write(thread_id: String, bytes: Vec<u8>) -> Result<(), String> {
     let writer = {
         let guard = SESSIONS.lock();
@@ -228,6 +252,13 @@ fn pty_write(thread_id: String, bytes: Vec<u8>) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn pty_write(_thread_id: String, _bytes: Vec<u8>) -> Result<(), String> {
+    Err("PTY sessions are not available in the iOS TestFlight build".to_string())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn pty_resize(thread_id: String, cols: u16, rows: u16) -> Result<(), String> {
     let guard = SESSIONS.lock();
     if let Some(session) = guard.get(&thread_id) {
@@ -245,21 +276,40 @@ fn pty_resize(thread_id: String, cols: u16, rows: u16) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn pty_resize(_thread_id: String, _cols: u16, _rows: u16) -> Result<(), String> {
+    Err("PTY sessions are not available in the iOS TestFlight build".to_string())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn pty_stop(thread_id: String) {
     let mut guard = SESSIONS.lock();
     guard.remove(&thread_id);
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn pty_stop(_thread_id: String) {}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn pty_list() -> Vec<String> {
     let guard = SESSIONS.lock();
     guard.keys().cloned().collect()
+}
+
+#[tauri::command]
+#[cfg(target_os = "ios")]
+fn pty_list() -> Vec<String> {
+    Vec::new()
 }
 
 // ----------------------------------------------------------------------------
 // Embedded browser pane (Tauri child Webview)
 // ----------------------------------------------------------------------------
 
+#[cfg(not(target_os = "ios"))]
 fn ensure_browser(
     app: &AppHandle,
     label: &str,
@@ -343,6 +393,7 @@ fn ensure_browser(
     Ok(true)
 }
 
+#[cfg(not(target_os = "ios"))]
 fn hide_webview(webview: &tauri::Webview) -> Result<(), String> {
     webview
         .set_position(LogicalPosition::new(-10000.0, -10000.0))
@@ -354,6 +405,7 @@ fn hide_webview(webview: &tauri::Webview) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn browser_navigate(
     app: AppHandle,
     label: Option<String>,
@@ -382,6 +434,21 @@ fn browser_navigate(
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn browser_navigate(
+    _app: AppHandle,
+    _label: Option<String>,
+    _url: String,
+    _x: f64,
+    _y: f64,
+    _w: f64,
+    _h: f64,
+) -> Result<(), String> {
+    Err("embedded browser panes are not available in the iOS TestFlight build".to_string())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn browser_set_bounds(
     app: AppHandle,
     label: Option<String>,
@@ -403,6 +470,20 @@ fn browser_set_bounds(
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn browser_set_bounds(
+    _app: AppHandle,
+    _label: Option<String>,
+    _x: f64,
+    _y: f64,
+    _w: f64,
+    _h: f64,
+) -> Result<(), String> {
+    Err("embedded browser panes are not available in the iOS TestFlight build".to_string())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn browser_hide(app: AppHandle, label: Option<String>) -> Result<(), String> {
     let label = safe_browser_label(label);
     if let Some(webview) = app.get_webview(&label) {
@@ -412,6 +493,13 @@ fn browser_hide(app: AppHandle, label: Option<String>) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn browser_hide(_app: AppHandle, _label: Option<String>) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn browser_hide_all_except(app: AppHandle, label: Option<String>) -> Result<(), String> {
     let keep = label.map(|raw| safe_browser_label(Some(raw)));
     for (existing_label, webview) in app.webviews() {
@@ -424,6 +512,13 @@ fn browser_hide_all_except(app: AppHandle, label: Option<String>) -> Result<(), 
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn browser_hide_all_except(_app: AppHandle, _label: Option<String>) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn browser_reload(app: AppHandle, label: Option<String>) -> Result<(), String> {
     let label = safe_browser_label(label);
     if let Some(webview) = app.get_webview(&label) {
@@ -433,12 +528,25 @@ fn browser_reload(app: AppHandle, label: Option<String>) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg(target_os = "ios")]
+fn browser_reload(_app: AppHandle, _label: Option<String>) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+#[cfg(not(target_os = "ios"))]
 fn browser_eval(app: AppHandle, label: Option<String>, script: String) -> Result<(), String> {
     let label = safe_browser_label(label);
     if let Some(webview) = app.get_webview(&label) {
         webview.eval(&script).map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[tauri::command]
+#[cfg(target_os = "ios")]
+fn browser_eval(_app: AppHandle, _label: Option<String>, _script: String) -> Result<(), String> {
+    Err("embedded browser panes are not available in the iOS TestFlight build".to_string())
 }
 
 // ----------------------------------------------------------------------------
