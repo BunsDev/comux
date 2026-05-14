@@ -40,6 +40,8 @@ Press `u` to open rituals: reusable setup recipes for starting a project with a 
 
 Open the selected pane menu with `m` when you want to inspect, merge, create a PR, attach another agent, or clean up.
 
+For the full comux + Coven walkthrough, see [Demo loop](./docs/DEMO-LOOP.md).
+
 New to tmux? Run:
 
 ```sh
@@ -71,7 +73,7 @@ comux creates a tmux pane for each task. Every work pane gets its own git worktr
 - **Multi-project cockpit** — add multiple repos to the same session and switch scope from the sidebar
 - **Rituals** — open, save, and attach reusable project setup recipes without restoring brittle tmux snapshots
 - **Fix OpenClaw cockpit** — a built-in ritual opens Coven repair, verification, diff watch, and session panes so rescue work stays visible
-- **Coven bridge** — list, open, and launch Coven-managed sessions when a local Coven daemon is available
+- **Coven sessions** — when Coven is running locally, the sidebar shows live session status and `[o]` opens any session as a visible comux pane
 - **Lifecycle hooks** — run scripts on worktree create, pre-merge, post-merge, and more
 
 ## Keyboard Shortcuts
@@ -115,6 +117,7 @@ Coven is the harness substrate. comux is the cockpit. OpenMeow and OpenClaw can 
 ## Docs
 
 - [Documentation index](./docs/README.md)
+- [Demo loop](./docs/DEMO-LOOP.md)
 - [Product spec](./docs/PRODUCT-SPEC.md)
 - [Smoke test](./docs/SMOKE.md)
 - [Contributing](./CONTRIBUTING.md)

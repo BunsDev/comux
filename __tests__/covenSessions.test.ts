@@ -1,15 +1,24 @@
-import { mkdtemp, realpath, rename } from 'node:fs/promises';
+import { chmod, mkdtemp, realpath, rename, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   filterCovenSessionsForProjectRoots,
+  listCovenSessionsFromCli,
   pickCovenSessionToOpen,
   parseCovenSessionsJson,
 } from '../src/utils/covenSessions.js';
 
 async function tempDir(prefix: string): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), prefix));
+}
+
+async function fakeCoven(script: string): Promise<string> {
+  const dir = await tempDir('comux-fake-coven-');
+  const command = path.join(dir, 'coven');
+  await writeFile(command, script, 'utf8');
+  await chmod(command, 0o755);
+  return command;
 }
 
 describe('coven session adapter', () => {
@@ -122,5 +131,75 @@ describe('coven session adapter', () => {
     ]);
 
     expect(session?.id).toBe('latest-archived');
+  });
+
+  it('returns a ready load state with sessions from coven sessions --json --all', async () => {
+    const command = await fakeCoven(`#!/bin/sh
+if [ "$1 $2 $3" = "sessions --json --all" ]; then
+  printf '%s\\n' '{"sessions":[{"id":"session-ready","projectRoot":"/repo","status":"running"}]}'
+  exit 0
+fi
+exit 2
+`);
+
+    const state = await listCovenSessionsFromCli({ command });
+
+    expect(state.status).toBe('ready');
+    expect(state.sessions.map((session) => session.id)).toEqual(['session-ready']);
+    if (state.status === 'ready') {
+      expect(state.source).toBe('coven sessions --json --all');
+    }
+  });
+
+  it('returns an empty load state when Coven returns no sessions', async () => {
+    const command = await fakeCoven(`#!/bin/sh
+if [ "$1 $2 $3" = "sessions --json --all" ]; then
+  printf '%s\\n' '{"sessions":[]}'
+  exit 0
+fi
+exit 2
+`);
+
+    const state = await listCovenSessionsFromCli({ command });
+
+    expect(state).toMatchObject({
+      status: 'empty',
+      sessions: [],
+      source: 'coven sessions --json --all',
+    });
+  });
+
+  it('falls back to coven sessions --json when --all fails', async () => {
+    const command = await fakeCoven(`#!/bin/sh
+if [ "$1 $2 $3" = "sessions --json --all" ]; then
+  echo 'unsupported --all' >&2
+  exit 2
+fi
+if [ "$1 $2" = "sessions --json" ]; then
+  printf '%s\\n' '[{"id":"session-fallback","project_root":"/repo"}]'
+  exit 0
+fi
+exit 2
+`);
+
+    const state = await listCovenSessionsFromCli({ command });
+
+    expect(state.status).toBe('ready');
+    if (state.status === 'ready') {
+      expect(state.source).toBe('coven sessions --json');
+      expect(state.sessions.map((session) => session.id)).toEqual(['session-fallback']);
+    }
+  });
+
+  it('returns an unavailable load state when the Coven CLI is missing', async () => {
+    const state = await listCovenSessionsFromCli({
+      command: path.join(os.tmpdir(), 'missing-coven-command'),
+    });
+
+    expect(state).toMatchObject({
+      status: 'unavailable',
+      sessions: [],
+      reason: 'coven CLI not found',
+    });
   });
 });

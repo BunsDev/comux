@@ -39,13 +39,18 @@ const CovenSessionsPanel: React.FC<CovenSessionsPanelProps> = memo(({
   if (sessions.length === 0) {
     if (!isActive) return null;
 
-    const message = state.status === 'unavailable'
-      ? `Coven unavailable: ${state.reason}`
-      : 'Coven: no sessions yet';
+    if (state.status === 'unavailable') {
+      return (
+        <Box flexDirection="column" width={ROW_WIDTH}>
+          <Text color={COLORS.unselected}>{fit('☾ Coven not running', ROW_WIDTH)}</Text>
+          <Text color={COLORS.border}>{fit(covenUnavailableHint(state.reason), ROW_WIDTH)}</Text>
+        </Box>
+      );
+    }
 
     return (
       <Box width={ROW_WIDTH}>
-        <Text color={COLORS.unselected}>{fit(`☾ ${message}`, ROW_WIDTH)}</Text>
+        <Text color={COLORS.unselected}>{fit('☾ Coven: no sessions yet', ROW_WIDTH)}</Text>
       </Box>
     );
   }
@@ -80,6 +85,16 @@ function formatSession(session: CovenSessionVisibility): string {
   const title = session.title || session.id;
   const status = session.status ? ` · ${session.status}` : '';
   return `${harness}${title}${status}`;
+}
+
+function covenUnavailableHint(reason: string): string {
+  return isCovenCliMissing(reason)
+    ? '  install: npm i -g @opencoven/cli'
+    : '  run: coven start';
+}
+
+function isCovenCliMissing(reason: string): boolean {
+  return /\bnot found\b/i.test(reason) || /\bENOENT\b/i.test(reason);
 }
 
 function statusIcon(status: string | undefined): string {

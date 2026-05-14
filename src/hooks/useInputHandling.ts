@@ -428,7 +428,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
     }
 
     if (covenSessionsState.status === "unavailable") {
-      setStatusMessage(`Coven unavailable: ${covenSessionsState.reason}`)
+      setStatusMessage("Coven not running — start it with: coven start")
       setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
       return
     }
