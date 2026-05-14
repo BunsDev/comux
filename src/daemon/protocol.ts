@@ -39,6 +39,7 @@ export type CovenSessionSummary = {
 };
 
 export type CovenSessionEvent = {
+  seq?: number;
   id: string;
   sessionId: string;
   kind: 'output' | 'input' | 'kill' | 'exit' | string;

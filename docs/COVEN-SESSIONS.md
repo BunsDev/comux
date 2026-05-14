@@ -1,16 +1,29 @@
 # Coven session visibility
 
-comux treats Coven as an optional local runtime. The first integration slice is deliberately thin: comux can render a read-only Coven sessions section in the side panel when a future `coven sessions --json` command is available.
+comux treats Coven as an optional local runtime. comux stays useful on its own, and when a local Coven daemon is available it can show, launch, and attach Coven-managed sessions beside normal comux panes.
 
 ## Adapter boundary
 
-The TUI calls:
+The preferred bridge path is the local daemon API:
+
+```text
+GET  /api/v1/health
+GET  /api/v1/sessions
+POST /api/v1/sessions
+GET  /api/v1/sessions/:id
+GET  /api/v1/events?sessionId=...
+POST /api/v1/sessions/:id/input
+```
+
+comux first checks `GET /api/v1/health` and accepts the current stable `apiVersion: "coven.daemon.v1"` contract. Event polling accepts the current paginated envelope and stores `nextCursor.afterSeq`-style sequence progress by reading event `seq` values.
+
+The legacy visibility-only CLI fallback is still supported for tests and older local builds when explicitly configured:
 
 ```bash
 coven sessions --json
 ```
 
-If the command is missing, unsupported, invalid JSON, or too slow, comux keeps running and shows a compact unavailable state. No unpublished Coven APIs are imported.
+If the daemon or command is missing, unsupported, invalid JSON, or too slow, comux keeps running and shows a compact unavailable state. No unpublished Coven APIs are imported.
 
 ## Proposed JSON contract
 
@@ -57,5 +70,7 @@ Required fields for comux visibility are `id` and `projectRoot`/`project_root`. 
 - Sessions whose project roots cannot be verified are hidden.
 - The side panel renders a small `☾ Coven sessions` section under each project with matching sessions.
 - Empty and unavailable states are non-fatal and stay inside the side panel.
+- Desktop-use panes launch through the daemon API and attach with `coven attach <session-id>`.
+- Socket/daemon failures are reported as action-oriented messages, such as starting Coven with `coven daemon start`.
 
-Future slices can add selection, attach/open actions, and live event timelines without changing this adapter boundary.
+See [comux + Coven demo loop](COVEN-DEMO-LOOP.md) for the end-to-end demo path and the [OpenCoven public roadmap](https://github.com/OpenCoven/coven/blob/main/docs/ROADMAP.md) for the upstream milestone.

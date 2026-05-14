@@ -55,6 +55,7 @@ export interface CovenHealth {
   ok: boolean;
   apiVersion: string;
   supportedApiVersions: string[];
+  capabilities: Record<string, unknown>;
   daemon?: Record<string, unknown> | null;
 }
 
@@ -65,7 +66,7 @@ export interface CovenClient {
   launchSession?: (
     request: CovenSessionLaunchRequest & { projectRoot: string; cwd: string },
   ) => Promise<CovenSessionSummary>;
-  listEvents?: (sessionId: string, options?: { since?: string }) => Promise<CovenSessionEvent[]>;
+  listEvents?: (sessionId: string, options?: { afterSeq?: number; afterEventId?: string; since?: string }) => Promise<CovenSessionEvent[]>;
   sendInput?: (sessionId: string, data: string) => Promise<void>;
   killSession?: (sessionId: string) => Promise<void>;
 }
@@ -298,7 +299,11 @@ export function createCovenClient(options: string | CovenClientOptions = {}): Co
     healthPromise ??= health();
     try {
       const result = await healthPromise;
-      if (!result.supportedApiVersions.includes('v1')) {
+      const supportsV1 = result.apiVersion === 'coven.daemon.v1'
+        || result.apiVersion === 'v1'
+        || result.supportedApiVersions.includes('v1')
+        || result.supportedApiVersions.includes('coven.daemon.v1');
+      if (!supportsV1) {
         throw bridgeError('unsupported_coven_api_version', 'unsupported API version');
       }
     } catch (error) {
@@ -326,11 +331,21 @@ export function createCovenClient(options: string | CovenClientOptions = {}): Co
       const raw = await request('POST', '/sessions', launchRequest);
       return normalizeCovenSession(raw);
     },
-    async listEvents(sessionId: string, options?: { since?: string }) {
+    async listEvents(sessionId: string, options?: { afterSeq?: number; afterEventId?: string; since?: string }) {
       const params = new URLSearchParams({ sessionId });
-      if (options?.since) params.set('since', options.since);
+      if (typeof options?.afterSeq === 'number' && Number.isFinite(options.afterSeq)) {
+        params.set('afterSeq', String(Math.trunc(options.afterSeq)));
+      } else if (options?.afterEventId) {
+        params.set('afterEventId', options.afterEventId);
+      } else if (options?.since) {
+        params.set('since', options.since);
+      }
       const raw = await request('GET', `/events?${params.toString()}`);
-      return Array.isArray(raw) ? raw.map(normalizeCovenEvent) : [];
+      if (Array.isArray(raw)) return raw.map(normalizeCovenEvent);
+      if (raw && typeof raw === 'object' && Array.isArray((raw as { events?: unknown }).events)) {
+        return ((raw as { events: unknown[] }).events).map(normalizeCovenEvent);
+      }
+      return [];
     },
     async sendInput(sessionId: string, data: string) {
       await request('POST', `/sessions/${encodeURIComponent(sessionId)}/input`, { data });
@@ -391,7 +406,16 @@ function requestCovenApiSocket(socketPath: string, method: string, requestPath: 
     const chunks: Buffer[] = [];
     socket.on('connect', () => socket.end(request));
     socket.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-    socket.on('error', reject);
+    socket.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT' || error.code === 'ECONNREFUSED') {
+        reject(bridgeError(
+          'coven_daemon_unavailable',
+          'Coven daemon is not running; start it with `coven daemon start`',
+        ));
+        return;
+      }
+      reject(error);
+    });
     socket.on('end', () => {
       try {
         resolve(parseCovenHttpResponse(Buffer.concat(chunks).toString('utf8')));
@@ -426,7 +450,16 @@ function requestCovenApiHttp(baseUrl: string, method: string, requestPath: strin
       });
     });
     req.on('timeout', () => req.destroy(bridgeError('coven_api_timeout', 'Coven API timed out')));
-    req.on('error', reject);
+    req.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ECONNREFUSED') {
+        reject(bridgeError(
+          'coven_daemon_unavailable',
+          'Coven daemon is not running; start it with `coven daemon start`',
+        ));
+        return;
+      }
+      reject(error);
+    });
     req.end(bodyText);
   });
 }
@@ -440,15 +473,29 @@ function parseCovenHttpResponse(response: string): unknown {
 function parseCovenPayload(status: number, payload: string): unknown {
   if (!Number.isFinite(status) || status < 200 || status >= 300) {
     let message = `Coven API returned HTTP ${status || 'unknown'}`;
+    let code = 'coven_api_failed';
     try {
       const parsed = payload.trim() ? JSON.parse(payload) : null;
       if (parsed && typeof parsed === 'object' && typeof (parsed as { error?: unknown }).error === 'string') {
         message = (parsed as { error: string }).error;
+      } else if (
+        parsed
+        && typeof parsed === 'object'
+        && (parsed as { error?: unknown }).error
+        && typeof (parsed as { error: { code?: unknown; message?: unknown } }).error === 'object'
+      ) {
+        const envelope = (parsed as { error: { code?: unknown; message?: unknown } }).error;
+        code = typeof envelope.code === 'string' && envelope.code.trim()
+          ? envelope.code.trim()
+          : code;
+        message = typeof envelope.message === 'string' && envelope.message.trim()
+          ? envelope.message.trim()
+          : message;
       }
     } catch {
       // Keep generic HTTP message.
     }
-    throw bridgeError('coven_api_failed', message);
+    throw bridgeError(code, message);
   }
   return payload.trim() ? JSON.parse(payload) : null;
 }
@@ -464,6 +511,9 @@ function normalizeCovenHealth(raw: unknown): CovenHealth {
     ok: record.ok === true,
     apiVersion: String(record.apiVersion ?? record.api_version ?? ''),
     supportedApiVersions: supportedRaw.map((value) => String(value)),
+    capabilities: record.capabilities && typeof record.capabilities === 'object'
+      ? record.capabilities as Record<string, unknown>
+      : {},
     daemon: record.daemon && typeof record.daemon === 'object'
       ? record.daemon as Record<string, unknown>
       : record.daemon === null
@@ -486,6 +536,7 @@ function normalizeCovenSession(raw: any): CovenSessionSummary {
 
 function normalizeCovenEvent(raw: any): CovenSessionEvent {
   return {
+    seq: typeof raw.seq === 'number' && Number.isFinite(raw.seq) ? raw.seq : undefined,
     id: String(raw.id),
     sessionId: String(raw.sessionId ?? raw.session_id),
     kind: String(raw.kind),

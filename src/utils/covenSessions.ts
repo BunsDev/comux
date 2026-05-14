@@ -1,6 +1,9 @@
 import { execFile } from 'node:child_process';
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { createCovenClient, type CovenClient } from '../daemon/bridge.js';
+
+export type CovenSessionsSource = 'coven daemon API' | 'coven sessions --json';
 
 export type CovenSessionVisibilityStatus =
   | 'created'
@@ -28,13 +31,13 @@ export type CovenSessionsLoadState =
   | {
       status: 'ready';
       sessions: CovenSessionVisibility[];
-      source: 'coven sessions --json';
+      source: CovenSessionsSource;
       loadedAt: string;
     }
   | {
       status: 'empty';
       sessions: [];
-      source: 'coven sessions --json';
+      source: CovenSessionsSource;
       loadedAt: string;
     }
   | {
@@ -49,6 +52,30 @@ export interface ListCovenSessionsOptions {
   cwd?: string;
   timeoutMs?: number;
   env?: NodeJS.ProcessEnv;
+}
+
+export interface ListCovenDaemonSessionsOptions {
+  client?: Pick<CovenClient, 'listSessions'>;
+}
+
+export async function listCovenSessionsFromDaemon(
+  options: ListCovenDaemonSessionsOptions = {},
+): Promise<CovenSessionsLoadState> {
+  try {
+    const client = options.client || createCovenClient();
+    const sessions = await client.listSessions();
+    const loadedAt = new Date().toISOString();
+    return sessions.length > 0
+      ? { status: 'ready', sessions, source: 'coven daemon API', loadedAt }
+      : { status: 'empty', sessions: [], source: 'coven daemon API', loadedAt };
+  } catch (error) {
+    return {
+      status: 'unavailable',
+      sessions: [],
+      reason: describeCovenUnavailable(error),
+      loadedAt: new Date().toISOString(),
+    };
+  }
 }
 
 export function parseCovenSessionsJson(stdout: string): CovenSessionVisibility[] {
