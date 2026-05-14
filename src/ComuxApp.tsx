@@ -1810,6 +1810,7 @@ const ComuxApp: React.FC<ComuxAppProps> = ({
     panesFile,
     projectRoot: sessionProjectRoot,
     projectActionItems: projectActionLayout.actionItems,
+    covenSessionsState,
     findCardInDirection,
     completeStartupPrimer,
     showStartupPrimer,

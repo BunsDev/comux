@@ -4,7 +4,8 @@ import stringWidth from 'string-width';
 import { COLORS, getComuxThemeAccent } from '../../theme/colors.js';
 import type { ComuxThemeName } from '../../types.js';
 import {
-  isPathInsideOrEqual,
+  covenSessionsForProject,
+  pickCovenSessionToOpen,
   type CovenSessionVisibility,
   type CovenSessionsLoadState,
 } from '../../utils/covenSessions.js';
@@ -27,7 +28,11 @@ const CovenSessionsPanel: React.FC<CovenSessionsPanelProps> = memo(({
 }) => {
   const accent = getComuxThemeAccent(themeName);
   const sessions = useMemo(
-    () => state.sessions.filter((session) => isPathInsideOrEqual(projectRoot, session.projectRoot)),
+    () => covenSessionsForProject(projectRoot, state.sessions),
+    [projectRoot, state.sessions]
+  );
+  const openTarget = useMemo(
+    () => pickCovenSessionToOpen(projectRoot, state.sessions),
     [projectRoot, state.sessions]
   );
 
@@ -51,7 +56,7 @@ const CovenSessionsPanel: React.FC<CovenSessionsPanelProps> = memo(({
   return (
     <Box flexDirection="column" width={ROW_WIDTH}>
       <Text color={isActive ? accent : COLORS.border} bold={isActive}>
-        {fit('☾ Coven sessions', ROW_WIDTH)}
+        {fit(isActive && openTarget ? '☾ Coven sessions  [o]pen' : '☾ Coven sessions', ROW_WIDTH)}
       </Text>
       {visibleSessions.map((session) => (
         <Text key={session.id}>
@@ -62,6 +67,9 @@ const CovenSessionsPanel: React.FC<CovenSessionsPanelProps> = memo(({
       ))}
       {hiddenCount > 0 && (
         <Text color={COLORS.border}>{fit(`  +${hiddenCount} more Coven session${hiddenCount === 1 ? '' : 's'}`, ROW_WIDTH)}</Text>
+      )}
+      {isActive && openTarget && (
+        <Text color={COLORS.border}>{fit(`  [o] open ${openTarget.title || openTarget.id}`, ROW_WIDTH)}</Text>
       )}
     </Box>
   );
@@ -83,6 +91,8 @@ function statusIcon(status: string | undefined): string {
       return '◐';
     case 'completed':
       return '✓';
+    case 'archived':
+      return '◇';
     case 'failed':
     case 'killed':
     case 'orphaned':

@@ -11,6 +11,7 @@ export type CovenSessionVisibilityStatus =
   | 'failed'
   | 'killed'
   | 'orphaned'
+  | 'archived'
   | string;
 
 export interface CovenSessionVisibility {
@@ -22,19 +23,24 @@ export interface CovenSessionVisibility {
   status?: CovenSessionVisibilityStatus;
   createdAt?: string;
   updatedAt?: string;
+  archivedAt?: string;
 }
+
+export type CovenSessionsSource =
+  | 'coven sessions --json --all'
+  | 'coven sessions --json';
 
 export type CovenSessionsLoadState =
   | {
       status: 'ready';
       sessions: CovenSessionVisibility[];
-      source: 'coven sessions --json';
+      source: CovenSessionsSource;
       loadedAt: string;
     }
   | {
       status: 'empty';
       sessions: [];
-      source: 'coven sessions --json';
+      source: CovenSessionsSource;
       loadedAt: string;
     }
   | {
@@ -75,16 +81,16 @@ export async function listCovenSessionsFromCli(
   const timeoutMs = options.timeoutMs ?? 1_500;
 
   try {
-    const stdout = await execFileText(command, ['sessions', '--json'], {
+    const result = await listCovenSessionsJson(command, {
       cwd: options.cwd,
       timeout: timeoutMs,
       env: options.env,
     });
-    const sessions = parseCovenSessionsJson(stdout);
+    const sessions = parseCovenSessionsJson(result.stdout);
     const loadedAt = new Date().toISOString();
     return sessions.length > 0
-      ? { status: 'ready', sessions, source: 'coven sessions --json', loadedAt }
-      : { status: 'empty', sessions: [], source: 'coven sessions --json', loadedAt };
+      ? { status: 'ready', sessions, source: result.source, loadedAt }
+      : { status: 'empty', sessions: [], source: result.source, loadedAt };
   } catch (error) {
     return {
       status: 'unavailable',
@@ -93,6 +99,27 @@ export async function listCovenSessionsFromCli(
       loadedAt: new Date().toISOString(),
     };
   }
+}
+
+async function listCovenSessionsJson(
+  command: string,
+  options: { cwd?: string; timeout: number; env?: NodeJS.ProcessEnv },
+): Promise<{ stdout: string; source: CovenSessionsSource }> {
+  try {
+    return {
+      stdout: await execFileText(command, ['sessions', '--json', '--all'], options),
+      source: 'coven sessions --json --all',
+    };
+  } catch (error) {
+    if (isCommandMissing(error)) {
+      throw error;
+    }
+  }
+
+  return {
+    stdout: await execFileText(command, ['sessions', '--json'], options),
+    source: 'coven sessions --json',
+  };
 }
 
 export async function filterCovenSessionsForProjectRoots(
@@ -136,6 +163,21 @@ export function isPathInsideOrEqual(parent: string, candidate: string): boolean 
   return rel === '' || (!!rel && !rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
+export function covenSessionsForProject(
+  projectRoot: string,
+  sessions: CovenSessionVisibility[],
+): CovenSessionVisibility[] {
+  return sessions.filter((session) => isPathInsideOrEqual(projectRoot, session.projectRoot));
+}
+
+export function pickCovenSessionToOpen(
+  projectRoot: string,
+  sessions: CovenSessionVisibility[],
+): CovenSessionVisibility | undefined {
+  return covenSessionsForProject(projectRoot, sessions)
+    .sort(compareCovenSessionsForOpen)[0];
+}
+
 function normalizeCovenSession(raw: unknown): CovenSessionVisibility | null {
   if (!isRecord(raw)) return null;
 
@@ -143,16 +185,40 @@ function normalizeCovenSession(raw: unknown): CovenSessionVisibility | null {
   const projectRoot = stringValue(raw.projectRoot) || stringValue(raw.project_root) || stringValue(raw.root);
   if (!id || !projectRoot) return null;
 
+  const archivedAt = stringValue(raw.archivedAt) || stringValue(raw.archived_at);
+
   return {
     id,
     projectRoot,
     cwd: stringValue(raw.cwd),
     harness: stringValue(raw.harness),
     title: stringValue(raw.title) || id,
-    status: stringValue(raw.status),
+    status: archivedAt ? 'archived' : stringValue(raw.status),
     createdAt: stringValue(raw.createdAt) || stringValue(raw.created_at),
     updatedAt: stringValue(raw.updatedAt) || stringValue(raw.updated_at),
+    archivedAt,
   };
+}
+
+function compareCovenSessionsForOpen(
+  left: CovenSessionVisibility,
+  right: CovenSessionVisibility,
+): number {
+  return sessionTimestamp(right) - sessionTimestamp(left);
+}
+
+function sessionTimestamp(session: CovenSessionVisibility): number {
+  return Math.max(
+    parseTimestamp(session.updatedAt),
+    parseTimestamp(session.createdAt),
+    parseTimestamp(session.archivedAt),
+  );
+}
+
+function parseTimestamp(value: string | undefined): number {
+  if (!value) return 0;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 function execFileText(
@@ -207,6 +273,10 @@ function describeCovenUnavailable(error: unknown): string {
   return error instanceof Error
     ? error.message.split('\n')[0] || 'coven sessions --json failed'
     : 'coven sessions --json unavailable';
+}
+
+function isCommandMissing(error: unknown): boolean {
+  return isRecord(error) && stringValue(error.code) === 'ENOENT';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

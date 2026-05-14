@@ -98,8 +98,15 @@ import {
 import {
   buildCovenAttachCommand,
   createCovenClient,
+  type CovenClient,
   launchProjectCovenSession,
+  openProjectCovenSession,
 } from "../daemon/bridge.js"
+import type { CovenSessionSummary } from "../daemon/protocol.js"
+import {
+  pickCovenSessionToOpen,
+  type CovenSessionsLoadState,
+} from "../utils/covenSessions.js"
 import {
   buildDesktopUseQuickInput,
   buildInitialDesktopUsePrompt,
@@ -180,6 +187,7 @@ interface UseInputHandlingParams {
   // Project info
   projectRoot: string
   projectActionItems: ProjectActionItem[]
+  covenSessionsState?: CovenSessionsLoadState
   completeStartupPrimer?: (outcome: "dismissed" | "completed-first-action") => void
   showStartupPrimer?: boolean
   inlineRename?: InlineRenameState | null
@@ -249,6 +257,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
     panesFile,
     projectRoot,
     projectActionItems,
+    covenSessionsState,
     completeStartupPrimer,
     showStartupPrimer,
     inlineRename,
@@ -410,6 +419,68 @@ export function useInputHandling(params: UseInputHandlingParams) {
       setIsCreatingPane(false)
     }
   }
+
+  const handleOpenCovenSession = async (targetProjectRoot: string) => {
+    if (!covenSessionsState) {
+      setStatusMessage("Coven sessions are not loaded yet")
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+      return
+    }
+
+    if (covenSessionsState.status === "unavailable") {
+      setStatusMessage(`Coven unavailable: ${covenSessionsState.reason}`)
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
+      return
+    }
+
+    const session = pickCovenSessionToOpen(targetProjectRoot, covenSessionsState.sessions)
+    if (!session) {
+      setStatusMessage("No Coven sessions for this project")
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+      return
+    }
+
+    const sessionName = getCurrentTmuxSessionName()
+    if (!sessionName) {
+      setStatusMessage("Cannot open Coven session: tmux session unknown")
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
+      return
+    }
+
+    try {
+      setIsCreatingPane(true)
+      setStatusMessage(`Opening Coven session ${session.title || session.id}...`)
+      await openProjectCovenSession(
+        targetProjectRoot,
+        sessionName,
+        session.id,
+        createKnownCovenSessionClient(covenSessionsState)
+      )
+      await loadPanes()
+      setStatusMessage(`Opened Coven session ${session.title || session.id}`)
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_SHORT)
+    } catch (error: any) {
+      setStatusMessage(`Failed to open Coven session: ${error?.message || String(error)}`)
+      setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_DURATION_LONG)
+    } finally {
+      setIsCreatingPane(false)
+    }
+  }
+
+  const createKnownCovenSessionClient = (
+    state: Exclude<CovenSessionsLoadState, { status: "unavailable" }>
+  ): CovenClient => ({
+    listSessions: async () => state.sessions.map((candidate) => ({
+      id: candidate.id,
+      projectRoot: candidate.projectRoot,
+      harness: candidate.harness || "coven",
+      title: candidate.title || candidate.id,
+      status: (candidate.status || "created") as CovenSessionSummary["status"],
+      createdAt: candidate.createdAt || "",
+      updatedAt: candidate.updatedAt || candidate.archivedAt || candidate.createdAt || "",
+      archivedAt: candidate.archivedAt,
+    })),
+  })
 
   const sendDesktopUseQuickAction = async (pane: ComuxPane, action: DesktopUseQuickAction) => {
     const sessionId = getDesktopUseSessionId(pane)
@@ -2276,6 +2347,10 @@ export function useInputHandling(params: UseInputHandlingParams) {
     } else if (!isLoading && input === "d") {
       completeStartupPrimerAfterAction()
       await handleCreateDesktopUsePane(getActiveProjectRoot())
+      return
+    } else if (!isLoading && input === "o") {
+      completeStartupPrimerAfterAction()
+      await handleOpenCovenSession(getActiveProjectRoot())
       return
     } else if (
       !isLoading &&

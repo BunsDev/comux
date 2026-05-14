@@ -17,6 +17,14 @@ const READY_STATE: CovenSessionsLoadState = {
       title: 'Fix tests',
       status: 'running',
     },
+    {
+      id: 'session-2',
+      projectRoot: '/repo',
+      harness: 'codex',
+      title: 'Archived plan',
+      status: 'archived',
+      archivedAt: '2026-04-28T12:02:00.000Z',
+    },
   ],
 };
 
@@ -39,7 +47,10 @@ describe('Coven sessions panel', () => {
 
     const frame = stripAnsi(lastFrame() ?? '');
     expect(frame).toContain('☾ Coven sessions');
+    expect(frame).toContain('[o]pen');
     expect(frame).toContain('[codex] Fix tests · running');
+    expect(frame).toContain('[codex] Archived plan · archived');
+    expect(frame).toContain('[o] open Archived plan');
   });
 
   it('renders a compact unavailable state without failing the pane grid', () => {

@@ -53,6 +53,7 @@ export const ShortcutsPopupApp: React.FC<ShortcutsPopupAppProps> = ({
     { key: 'n', description: 'New agent pane in selected project' },
     { key: 't', description: 'New terminal pane in selected project' },
     { key: 'd', description: 'New desktop-use Coven pane' },
+    { key: 'o', description: 'Open latest Coven session in selected project' },
     { key: 'g/o/v/y/X', description: 'Desktop-use quick actions when selected' },
     { key: 'u', description: 'Open or manage rituals' },
     { key: 'z', description: 'Show/hide side panel' },
