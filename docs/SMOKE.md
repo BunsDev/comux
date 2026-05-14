@@ -108,5 +108,7 @@ When a local Coven daemon is available for the same project:
 - launching a Coven session is scoped to the current project root.
 - out-of-project `cwd` values are rejected before work starts.
 - opening a Coven session creates a pane that runs `coven attach <session-id>`.
+- desktop-use event polling follows Coven `seq` cursors from the `/api/v1/events` envelope.
+- stopped or missing daemons surface a recoverable `coven daemon start` message instead of breaking normal comux panes.
 
 Keep this smoke conservative: it should prove project scoping and visibility, not hidden automation.

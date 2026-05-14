@@ -243,6 +243,43 @@ describe('daemon bridge Coven helpers', () => {
 });
 
 describe('daemon bridge Coven API client', () => {
+  it('accepts the current Coven daemon v1 health contract without legacy supported versions', async () => {
+    const server = http.createServer((req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      if (req.url === '/api/v1/health') {
+        res.end(JSON.stringify({
+          ok: true,
+          apiVersion: 'coven.daemon.v1',
+          capabilities: {
+            sessions: true,
+            events: true,
+            eventCursor: 'sequence',
+            structuredErrors: true,
+          },
+          daemon: null,
+        }));
+        return;
+      }
+      if (req.url === '/api/v1/sessions') {
+        res.end(JSON.stringify([]));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: { code: 'not_found', message: 'not found' } }));
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('expected TCP server');
+      const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
+
+      await expect(client.listSessions()).resolves.toEqual([]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   it('accepts newer daemon API versions when v1 remains supported', async () => {
     const server = http.createServer((req, res) => {
       res.setHeader('Content-Type', 'application/json');
@@ -363,17 +400,17 @@ describe('daemon bridge Coven API client', () => {
     }
   });
 
-  it('requests Coven events after a since cursor when provided', async () => {
+  it('requests Coven events after a sequence cursor when provided', async () => {
     const requests: string[] = [];
     const server = http.createServer((req, res) => {
       requests.push(req.url || '/');
       res.setHeader('Content-Type', 'application/json');
       if (req.url === '/api/v1/health') {
-        res.end(JSON.stringify({ ok: true, apiVersion: 'v1', supportedApiVersions: ['v1'], daemon: null }));
+        res.end(JSON.stringify({ ok: true, apiVersion: 'coven.daemon.v1', capabilities: { eventCursor: 'sequence' }, daemon: null }));
         return;
       }
       if (req.url?.startsWith('/api/v1/events?')) {
-        res.end(JSON.stringify([]));
+        res.end(JSON.stringify({ events: [], nextCursor: null, hasMore: false }));
         return;
       }
       res.statusCode = 404;
@@ -386,12 +423,44 @@ describe('daemon bridge Coven API client', () => {
       if (!address || typeof address === 'string') throw new Error('expected TCP server');
       const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
 
-      await expect(client.listEvents?.('session-1', { since: '2026-05-10T08:00:02Z' })).resolves.toEqual([]);
+      await expect(client.listEvents?.('session-1', { afterSeq: 42 })).resolves.toEqual([]);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
 
-    expect(requests).toContain('/api/v1/events?sessionId=session-1&since=2026-05-10T08%3A00%3A02Z');
+    expect(requests).toContain('/api/v1/events?sessionId=session-1&afterSeq=42');
+  });
+
+  it('surfaces structured Coven API errors by code and message', async () => {
+    const server = http.createServer((req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      if (req.url === '/api/v1/health') {
+        res.end(JSON.stringify({ ok: true, apiVersion: 'coven.daemon.v1', capabilities: { structuredErrors: true }, daemon: null }));
+        return;
+      }
+      res.statusCode = 409;
+      res.end(JSON.stringify({
+        error: {
+          code: 'session_not_live',
+          message: 'Session is not live.',
+          details: { sessionId: 'session-1' },
+        },
+      }));
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('expected TCP server');
+      const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
+
+      await expect(client.getSession?.('session-1')).rejects.toMatchObject({
+        code: 'session_not_live',
+        message: 'Session is not live.',
+      });
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 
   it('retries Coven health after a transient failure', async () => {
@@ -459,15 +528,20 @@ describe('daemon bridge Coven API client', () => {
           return;
         }
         if (req.url === '/api/v1/events?sessionId=session-1') {
-          res.end(JSON.stringify([
-            {
-              id: 'event-1',
-              session_id: 'session-1',
-              kind: 'output',
-              payload_json: '{"data":"hello"}',
-              created_at: '2026-05-10T08:00:02Z',
-            },
-          ]));
+          res.end(JSON.stringify({
+            events: [
+              {
+                seq: 42,
+                id: 'event-1',
+                session_id: 'session-1',
+                kind: 'output',
+                payload_json: '{"data":"hello"}',
+                created_at: '2026-05-10T08:00:02Z',
+              },
+            ],
+            nextCursor: { afterSeq: 42 },
+            hasMore: false,
+          }));
           return;
         }
         if (req.url === '/api/v1/sessions/session-1/input') {
@@ -486,7 +560,7 @@ describe('daemon bridge Coven API client', () => {
       const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
 
       await expect(client.listSessions()).resolves.toMatchObject([{ id: 'session-1', projectRoot: '/repo' }]);
-      await expect(client.listEvents?.('session-1')).resolves.toMatchObject([{ id: 'event-1', sessionId: 'session-1' }]);
+      await expect(client.listEvents?.('session-1')).resolves.toMatchObject([{ seq: 42, id: 'event-1', sessionId: 'session-1' }]);
       await expect(client.sendInput?.('session-1', 'hello')).resolves.toBeUndefined();
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));

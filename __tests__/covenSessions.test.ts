@@ -6,6 +6,7 @@ import {
   filterCovenSessionsForProjectRoots,
   listCovenSessionsFromCli,
   pickCovenSessionToOpen,
+  listCovenSessionsFromDaemon,
   parseCovenSessionsJson,
 } from '../src/utils/covenSessions.js';
 
@@ -82,6 +83,30 @@ describe('coven session adapter', () => {
     }));
 
     expect(sessions.map((session) => session.id)).toEqual(['session-2']);
+  });
+
+  it('loads sessions from the current Coven daemon API by default', async () => {
+    const result = await listCovenSessionsFromDaemon({
+      client: {
+        listSessions: async () => [
+          {
+            id: 'session-3',
+            projectRoot: '/repo',
+            harness: 'claude',
+            title: 'Review branch',
+            status: 'running',
+            createdAt: '2026-05-10T08:00:00Z',
+            updatedAt: '2026-05-10T08:01:00Z',
+          },
+        ],
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: 'ready',
+      source: 'coven daemon API',
+      sessions: [{ id: 'session-3', harness: 'claude' }],
+    });
   });
 
   it('filters sessions to verified comux project roots', async () => {
