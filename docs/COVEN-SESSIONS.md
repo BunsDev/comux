@@ -6,6 +6,10 @@ comux treats Coven as an optional local runtime. comux stays useful on its own, 
 
 See [DEMO-LOOP.md](./DEMO-LOOP.md) for the full developer walkthrough.
 
+## Demo loop
+
+See [DEMO-LOOP.md](./DEMO-LOOP.md) for the full developer walkthrough.
+
 ## Adapter boundary
 
 The preferred bridge path is the local daemon API:
@@ -79,6 +83,11 @@ Required fields for comux visibility are `id` and `projectRoot`/`project_root`. 
 - Empty and unavailable states are non-fatal and stay inside the side panel.
 - Desktop-use panes launch through the daemon API and attach with `coven attach <session-id>`.
 - Socket/daemon failures are reported as action-oriented messages, such as starting Coven with `coven daemon start`.
+
+## Known gaps
+
+- Verified on 2026-05-14: the locally installed Coven binary at `~/.cargo/bin/coven` supports `coven sessions --all`, `--manage`, and `--plain`, but does not currently support `coven sessions --json` or `coven sessions --json --all`. comux therefore treats this CLI shape as unavailable until Coven restores or publishes the JSON contract above.
+- The same local binary does not expose `coven --version`; use `coven --help` to confirm command availability for now.
 
 ## Known gaps
 
