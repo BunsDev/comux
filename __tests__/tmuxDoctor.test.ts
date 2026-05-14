@@ -14,15 +14,15 @@ import { buildComuxManagedTmuxConfigBlock } from '../src/utils/tmuxManagedConfig
 function createRuntime(overrides: Partial<TmuxDoctorRuntime> = {}): TmuxDoctorRuntime {
   return {
     env: {},
+    findAgentCommand(definition) {
+      return definition.id === 'claude' ? '/usr/local/bin/claude' : null;
+    },
     run(command, args) {
       if (command === 'tmux' && args.join(' ') === '-V') {
         return { status: 0, stdout: 'tmux 3.4\n', stderr: '' };
       }
       if (command === 'git' && args.join(' ') === '--version') {
         return { status: 0, stdout: 'git version 2.45.0\n', stderr: '' };
-      }
-      if (command === 'sh' && args.join(' ') === '-lc command -v claude 2>/dev/null || which claude 2>/dev/null') {
-        return { status: 0, stdout: '/usr/local/bin/claude\n', stderr: '' };
       }
       return { status: 1, stdout: '', stderr: '' };
     },
@@ -103,6 +103,7 @@ describe('tmux doctor', () => {
       const result = await runTmuxDoctor({
         runtime: createRuntime({
           homeDir,
+          findAgentCommand: () => null,
           run(command, args) {
             if (command === 'tmux' && args.join(' ') === '-V') {
               return { status: 0, stdout: 'tmux 3.4\n', stderr: '' };

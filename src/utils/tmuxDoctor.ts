@@ -1,5 +1,6 @@
 import { spawnSync } from 'child_process';
 import chalk from 'chalk';
+import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import os from 'os';
 import {
@@ -8,6 +9,7 @@ import {
 } from './systemCheck.js';
 import {
   getAgentDefinitions,
+  type AgentRegistryEntry,
 } from './agentLaunch.js';
 import {
   getTmuxConfigCandidatePaths,
@@ -81,6 +83,7 @@ export interface TmuxDoctorRuntime {
   run?: (command: string, args: string[]) => CommandResult;
   projectRoot?: string;
   themeName?: ComuxThemeName;
+  findAgentCommand?: (definition: AgentRegistryEntry) => string | null;
 }
 
 interface ResolvedTmuxDoctorRuntime {
@@ -88,6 +91,7 @@ interface ResolvedTmuxDoctorRuntime {
   env: NodeJS.ProcessEnv;
   run: (command: string, args: string[]) => CommandResult;
   themeName: ComuxThemeName;
+  findAgentCommand?: (definition: AgentRegistryEntry) => string | null;
 }
 
 export interface RunTmuxDoctorOptions {
@@ -124,6 +128,7 @@ function getRuntime(options?: RunTmuxDoctorOptions): ResolvedTmuxDoctorRuntime {
     env: options?.runtime?.env || process.env,
     run: options?.runtime?.run || defaultRun,
     themeName: resolveDoctorTheme(options?.runtime),
+    findAgentCommand: options?.runtime?.findAgentCommand,
   };
 }
 
@@ -236,12 +241,35 @@ function checkVersionWithRuntime(
   };
 }
 
+function detectAgentCommand(
+  runtime: ResolvedTmuxDoctorRuntime,
+  definition: AgentRegistryEntry
+): string {
+  if (runtime.findAgentCommand) {
+    return runtime.findAgentCommand(definition) || '';
+  }
+
+  const shell = runtime.env.SHELL || process.env.SHELL || '/bin/sh';
+  const result = runtime.run(shell, ['-i', '-c', definition.installTestCommand]);
+  const command = result.status === 0 ? result.stdout.trim().split('\n')[0] : '';
+  if (command) {
+    return command;
+  }
+
+  for (const candidate of definition.commonPaths) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return '';
+}
+
 function detectSupportedAgentCommands(runtime: ResolvedTmuxDoctorRuntime): DetectedAgentCommand[] {
   const detected: DetectedAgentCommand[] = [];
 
   for (const definition of getAgentDefinitions()) {
-    const result = runtime.run('sh', ['-lc', definition.installTestCommand]);
-    const command = result.status === 0 ? result.stdout.trim().split('\n')[0] : '';
+    const command = detectAgentCommand(runtime, definition);
 
     if (command) {
       detected.push({
