@@ -473,14 +473,21 @@ function normalizeCovenHealth(raw: unknown): CovenHealth {
 }
 
 function normalizeCovenSession(raw: any): CovenSessionSummary {
+  const archivedAt = typeof raw.archivedAt === 'string'
+    ? raw.archivedAt
+    : typeof raw.archived_at === 'string'
+      ? raw.archived_at
+      : undefined;
+
   return {
     id: String(raw.id),
     projectRoot: String(raw.projectRoot ?? raw.project_root),
     harness: String(raw.harness),
     title: String(raw.title),
-    status: raw.status,
+    status: archivedAt ? 'archived' : (raw.status || 'created'),
     createdAt: String(raw.createdAt ?? raw.created_at),
     updatedAt: String(raw.updatedAt ?? raw.updated_at),
+    archivedAt,
   };
 }
 

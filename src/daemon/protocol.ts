@@ -33,9 +33,10 @@ export type CovenSessionSummary = {
   projectRoot: string;
   harness: string;
   title: string;
-  status: 'starting' | 'running' | 'waiting' | 'completed' | 'failed' | 'killed' | 'orphaned' | 'created';
+  status: 'starting' | 'running' | 'waiting' | 'completed' | 'failed' | 'killed' | 'orphaned' | 'created' | 'archived';
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string;
 };
 
 export type CovenSessionEvent = {

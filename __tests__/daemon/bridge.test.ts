@@ -270,6 +270,44 @@ describe('daemon bridge Coven API client', () => {
     }
   });
 
+  it('normalizes missing Coven session status to created', async () => {
+    const server = http.createServer((req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      if (req.url === '/api/v1/health') {
+        res.end(JSON.stringify({ ok: true, apiVersion: 'v1', supportedApiVersions: ['v1'], daemon: null }));
+        return;
+      }
+      if (req.url === '/api/v1/sessions') {
+        res.end(JSON.stringify([
+          {
+            id: 'session-1',
+            project_root: '/repo',
+            harness: 'codex',
+            title: 'Missing status',
+            created_at: '2026-04-27T10:00:00Z',
+            updated_at: '2026-04-27T10:01:00Z',
+          },
+        ]));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ error: 'not found' }));
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('expected TCP server');
+      const client = createCovenClient({ baseUrl: `http://127.0.0.1:${address.port}` });
+
+      await expect(client.listSessions()).resolves.toMatchObject([
+        { id: 'session-1', status: 'created' },
+      ]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   it('defaults to the user Coven socket when no endpoint override is configured', async () => {
     const previous = {
       COVEN_HOME: process.env.COVEN_HOME,

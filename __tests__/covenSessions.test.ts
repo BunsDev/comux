@@ -4,6 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   filterCovenSessionsForProjectRoots,
+  pickCovenSessionToOpen,
   parseCovenSessionsJson,
 } from '../src/utils/covenSessions.js';
 
@@ -39,6 +40,29 @@ describe('coven session adapter', () => {
     ]);
   });
 
+  it('marks archived records from archived_at while preserving final status text elsewhere', () => {
+    const sessions = parseCovenSessionsJson(JSON.stringify([
+      {
+        id: 'session-archived',
+        project_root: '/repo',
+        harness: 'codex',
+        title: 'Old work',
+        status: 'completed',
+        archived_at: '2026-04-28T12:03:00.000Z',
+      },
+      {
+        id: 'session-completed',
+        project_root: '/repo',
+        harness: 'codex',
+        title: 'Done work',
+        status: 'completed',
+      },
+    ]));
+
+    expect(sessions.map((session) => session.status)).toEqual(['archived', 'completed']);
+    expect(sessions[0]?.archivedAt).toBe('2026-04-28T12:03:00.000Z');
+  });
+
   it('parses object responses and skips records without a verified session id/root', () => {
     const sessions = parseCovenSessionsJson(JSON.stringify({
       sessions: [
@@ -70,5 +94,33 @@ describe('coven session adapter', () => {
 
     expect(realRoot).toBe(await realpath(root));
     expect(visible.map((session) => session.id)).toEqual(['inside', 'nested']);
+  });
+
+  it('chooses the latest scoped Coven session for the open action', () => {
+    const session = pickCovenSessionToOpen('/repo', [
+      {
+        id: 'old-running',
+        projectRoot: '/repo',
+        title: 'Old running',
+        status: 'running',
+        updatedAt: '2026-04-28T12:00:00.000Z',
+      },
+      {
+        id: 'latest-archived',
+        projectRoot: '/repo',
+        title: 'Latest archived',
+        status: 'archived',
+        archivedAt: '2026-04-28T12:05:00.000Z',
+      },
+      {
+        id: 'outside',
+        projectRoot: '/other',
+        title: 'Outside',
+        status: 'running',
+        updatedAt: '2026-04-28T12:10:00.000Z',
+      },
+    ]);
+
+    expect(session?.id).toBe('latest-archived');
   });
 });
