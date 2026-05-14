@@ -2,6 +2,10 @@
 
 comux treats Coven as an optional local runtime. The integration is deliberately thin: comux renders a Coven sessions section in the side panel and can open a session through `coven attach`, but Coven remains the session runtime.
 
+## Demo loop
+
+See [DEMO-LOOP.md](./DEMO-LOOP.md) for the full developer walkthrough.
+
 ## Adapter boundary
 
 The TUI first calls:
@@ -66,5 +70,10 @@ Required fields for comux visibility are `id` and `projectRoot`/`project_root`. 
 - The side panel renders a small `☾ Coven sessions` section under each project with matching running, completed, and archived sessions.
 - The active project shows `[o]pen`; pressing `o` opens the latest matching session as a comux shell pane with `coven attach <session-id>`.
 - Empty and unavailable states are non-fatal and stay inside the side panel.
+
+## Known gaps
+
+- Verified on 2026-05-14: the locally installed Coven binary at `~/.cargo/bin/coven` supports `coven sessions --all`, `--manage`, and `--plain`, but does not currently support `coven sessions --json` or `coven sessions --json --all`. comux therefore treats this CLI shape as unavailable until Coven restores or publishes the JSON contract above.
+- The same local binary does not expose `coven --version`; use `coven --help` to confirm command availability for now.
 
 Future slices can add per-session selection, summon/archive controls, and live event timelines without changing this adapter boundary.

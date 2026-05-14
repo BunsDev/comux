@@ -59,6 +59,17 @@ Expected:
 - `r` can reopen a closed worktree.
 - Closing comux leaves no orphaned controller process.
 
+## Coven integration smoke
+
+Run this section when Coven is installed locally and you want to verify the optional sessions panel.
+
+Expected:
+
+- `coven doctor` and the local Coven daemon/status command report a usable runtime.
+- When Coven is running for the same project, the sidebar shows matching `☾ Coven sessions` entries.
+- Pressing `o` on the active project opens the latest matching session as a visible comux pane with `coven attach <session-id>`.
+- When Coven is not installed or not running, the active project shows the compact unavailable hint and comux keeps running.
+
 ## Merge / PR smoke
 
 Use only disposable branches for this check.

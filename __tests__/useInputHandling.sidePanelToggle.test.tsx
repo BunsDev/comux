@@ -4,6 +4,7 @@ import { render } from 'ink-testing-library';
 import { Text } from 'ink';
 import { useInputHandling } from '../src/hooks/useInputHandling.js';
 import type { ComuxPane } from '../src/types.js';
+import type { CovenSessionsLoadState } from '../src/utils/covenSessions.js';
 
 vi.mock('../src/utils/remotePaneActions.js', () => ({
   drainRemotePaneActions: vi.fn(async () => []),
@@ -27,9 +28,13 @@ function pane(overrides: Partial<ComuxPane> = {}): ComuxPane {
 function Harness({
   onToggleSidePanel,
   sidePanelCollapsed = false,
+  setStatusMessage = vi.fn(),
+  covenSessionsState,
 }: {
   onToggleSidePanel: ReturnType<typeof vi.fn>;
   sidePanelCollapsed?: boolean;
+  setStatusMessage?: ReturnType<typeof vi.fn>;
+  covenSessionsState?: CovenSessionsLoadState;
 }) {
   const params = {
     panes: [pane()],
@@ -69,7 +74,7 @@ function Harness({
     },
     controlPaneId: '%0',
     trackProjectActivity: vi.fn(async (work: () => unknown) => await work()),
-    setStatusMessage: vi.fn(),
+    setStatusMessage,
     copyNonGitFiles: vi.fn(),
     runCommandInternal: vi.fn(),
     handlePaneCreationWithAgent: vi.fn(),
@@ -86,6 +91,7 @@ function Harness({
     panesFile: '/tmp/comux.config.json',
     projectRoot: '/repo',
     projectActionItems: [],
+    covenSessionsState,
     findCardInDirection: vi.fn(() => null),
     onToggleSidePanel,
     sidePanelCollapsed,
@@ -190,6 +196,31 @@ describe('useInputHandling side panel toggle', () => {
     expect(onStateChange).toHaveBeenNthCalledWith(1, false);
     expect(onStateChange).toHaveBeenNthCalledWith(2, true);
     expect(onStateChange).toHaveBeenNthCalledWith(3, false);
+
+    unmount();
+  });
+
+  it('shows a friendly status message when opening unavailable Coven sessions', async () => {
+    const setStatusMessage = vi.fn();
+    const unavailableState: CovenSessionsLoadState = {
+      status: 'unavailable',
+      sessions: [],
+      reason: 'coven CLI not found',
+      loadedAt: '2026-04-28T12:00:00.000Z',
+    };
+    const { stdin, unmount } = render(
+      <Harness
+        onToggleSidePanel={vi.fn()}
+        setStatusMessage={setStatusMessage}
+        covenSessionsState={unavailableState}
+      />
+    );
+
+    await sleep(20);
+    stdin.write('o');
+    await sleep(40);
+
+    expect(setStatusMessage).toHaveBeenCalledWith('Coven not running — start it with: coven start');
 
     unmount();
   });

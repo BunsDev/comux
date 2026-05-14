@@ -35,6 +35,8 @@ npm run preview
 
 ## Related docs
 
+- [Demo loop](DEMO-LOOP.md)
+- [Coven sessions](COVEN-SESSIONS.md)
 - [Product spec](PRODUCT-SPEC.md)
 - [Smoke test](SMOKE.md)
 - [Contributing](../CONTRIBUTING.md)
