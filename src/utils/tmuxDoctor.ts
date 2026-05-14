@@ -7,6 +7,9 @@ import {
   parseVersion,
 } from './systemCheck.js';
 import {
+  getAgentDefinitions,
+} from './agentLaunch.js';
+import {
   getTmuxConfigCandidatePaths,
 } from './tmuxConfigOnboarding.js';
 import {
@@ -65,6 +68,11 @@ interface LiveSessionRepairCommand {
 interface LiveSessionFixResult {
   fixedAny: boolean;
   fixedCheckIds: Set<string>;
+}
+
+interface DetectedAgentCommand {
+  name: string;
+  command: string;
 }
 
 export interface TmuxDoctorRuntime {
@@ -228,6 +236,65 @@ function checkVersionWithRuntime(
   };
 }
 
+function detectSupportedAgentCommands(runtime: ResolvedTmuxDoctorRuntime): DetectedAgentCommand[] {
+  const detected: DetectedAgentCommand[] = [];
+
+  for (const definition of getAgentDefinitions()) {
+    const result = runtime.run('sh', ['-lc', definition.installTestCommand]);
+    const command = result.status === 0 ? result.stdout.trim().split('\n')[0] : '';
+
+    if (command) {
+      detected.push({
+        name: definition.name,
+        command,
+      });
+    }
+  }
+
+  return detected;
+}
+
+function buildAgentCliCheck(runtime: ResolvedTmuxDoctorRuntime): TmuxDoctorCheck {
+  const supportedAgents = getAgentDefinitions();
+  const detectedAgents = detectSupportedAgentCommands(runtime);
+
+  if (detectedAgents.length > 0) {
+    const detectedSummary = detectedAgents
+      .map((agent) => `${agent.name} (${agent.command})`)
+      .join(', ');
+
+    return {
+      id: 'agent-cli-guidance',
+      label: 'agent CLIs',
+      severity: 'ok',
+      message: `Detected ${detectedSummary}`,
+    };
+  }
+
+  const defaultEnabled = supportedAgents
+    .filter((agent) => agent.defaultEnabled)
+    .map((agent) => agent.name)
+    .join(', ');
+  const supported = supportedAgents.map((agent) => agent.name).join(', ');
+
+  return {
+    id: 'agent-cli-guidance',
+    label: 'agent CLIs',
+    severity: 'warning',
+    message: `No supported agent CLI detected. comux can still open plain terminal panes; install one of the default agents (${defaultEnabled}) or enable another supported CLI in settings.`,
+    fix: `Supported agent CLIs: ${supported}`,
+  };
+}
+
+function buildCovenGuidanceCheck(): TmuxDoctorCheck {
+  return {
+    id: 'coven-guidance',
+    label: 'Coven integration',
+    severity: 'ok',
+    message: 'Coven is optional. Without it, comux still manages tmux panes, git worktrees, agents, merge, and PR flows; with a local Coven daemon, comux can also list, open, and launch scoped Coven harness sessions.',
+  };
+}
+
 async function readConfigContents(homeDir: string): Promise<Array<{ path: string; content: string }>> {
   const paths = getTmuxConfigCandidatePaths(homeDir);
   return Promise.all(paths.map(async (configPath) => {
@@ -320,6 +387,9 @@ export async function runTmuxDoctor(
     'git is not installed or not in PATH',
     'git'
   ));
+
+  checks.push(buildAgentCliCheck(runtime));
+  checks.push(buildCovenGuidanceCheck());
 
   const configContents = await readConfigContents(runtime.homeDir);
   const managedConfig = configContents.find((entry) => hasComuxManagedTmuxConfigBlock(entry.content));

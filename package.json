@@ -49,6 +49,7 @@
     "generate:hooks-docs": "node scripts/generate-hooks-docs.js",
     "clean": "rm -rf dist src/utils/generated-agents-doc.ts",
     "dev": "pnpm run generate:hooks-docs && tsc && COMUX_DEV=true COMUX_DEV_WATCH=false node dist/index.js",
+    "dev:doctor": "pnpm run generate:hooks-docs && tsc && node ./comux doctor",
     "typecheck": "pnpm run generate:hooks-docs && tsc --noEmit",
     "test": "vitest --run",
     "prepublishOnly": "pnpm run build",

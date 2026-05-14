@@ -28,8 +28,8 @@ pnpm dev
 If tmux setup looks wrong, run:
 
 ```bash
-comux doctor
-comux doctor --fix
+pnpm run dev:doctor
+node ./comux doctor --fix
 ```
 
 `comux doctor --fix` applies safe tmux repairs, backs up an existing `~/.tmux.conf`, and only edits the comux-managed block.
