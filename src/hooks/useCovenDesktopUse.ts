@@ -20,13 +20,13 @@ const MAX_CACHED_EVENTS_PER_SESSION = 200;
 
 export interface DesktopUseLoadCache {
   eventsBySessionId: Map<string, CovenSessionEvent[]>;
-  sinceBySessionId: Map<string, string>;
+  cursorBySessionId: Map<string, { afterSeq?: number; afterEventId?: string }>;
 }
 
 export function createDesktopUseLoadCache(): DesktopUseLoadCache {
   return {
     eventsBySessionId: new Map(),
-    sinceBySessionId: new Map(),
+    cursorBySessionId: new Map(),
   };
 }
 
@@ -53,15 +53,19 @@ export async function loadCovenDesktopUseStates(
 
   await Promise.all([...panesBySessionId.entries()].map(async ([sessionId, panes]) => {
     try {
-      const since = cache.sinceBySessionId.get(sessionId);
+      const cursor = cache.cursorBySessionId.get(sessionId);
       const [session, newEvents] = await Promise.all([
         client.getSession?.(sessionId),
-        client.listEvents?.(sessionId, since ? { since } : undefined) ?? Promise.resolve([]),
+        client.listEvents?.(sessionId, cursor) ?? Promise.resolve([]),
       ]);
       const events = mergeCachedEvents(cache.eventsBySessionId.get(sessionId) ?? [], newEvents);
       cache.eventsBySessionId.set(sessionId, events);
-      const latestCreatedAt = events.at(-1)?.createdAt;
-      if (latestCreatedAt) cache.sinceBySessionId.set(sessionId, latestCreatedAt);
+      const latestEvent = events.at(-1);
+      if (typeof latestEvent?.seq === 'number') {
+        cache.cursorBySessionId.set(sessionId, { afterSeq: latestEvent.seq });
+      } else if (latestEvent?.id) {
+        cache.cursorBySessionId.set(sessionId, { afterEventId: latestEvent.id });
+      }
       for (const pane of panes) {
         next.set(pane.id, buildDesktopUseStateFromEvents(pane.id, sessionId, events, session));
       }
@@ -80,8 +84,8 @@ function pruneDesktopUseLoadCache(cache: DesktopUseLoadCache, activeSessionIds: 
   for (const sessionId of cache.eventsBySessionId.keys()) {
     if (!activeSessionIds.has(sessionId)) cache.eventsBySessionId.delete(sessionId);
   }
-  for (const sessionId of cache.sinceBySessionId.keys()) {
-    if (!activeSessionIds.has(sessionId)) cache.sinceBySessionId.delete(sessionId);
+  for (const sessionId of cache.cursorBySessionId.keys()) {
+    if (!activeSessionIds.has(sessionId)) cache.cursorBySessionId.delete(sessionId);
   }
 }
 
@@ -90,7 +94,12 @@ function mergeCachedEvents(previousEvents: CovenSessionEvent[], newEvents: Coven
   for (const event of previousEvents) byId.set(event.id, event);
   for (const event of newEvents) byId.set(event.id, event);
   return [...byId.values()]
-    .sort((lhs, rhs) => lhs.createdAt.localeCompare(rhs.createdAt) || lhs.id.localeCompare(rhs.id))
+    .sort((lhs, rhs) => {
+      if (typeof lhs.seq === 'number' && typeof rhs.seq === 'number' && lhs.seq !== rhs.seq) {
+        return lhs.seq - rhs.seq;
+      }
+      return lhs.createdAt.localeCompare(rhs.createdAt) || lhs.id.localeCompare(rhs.id);
+    })
     .slice(-MAX_CACHED_EVENTS_PER_SESSION);
 }
 

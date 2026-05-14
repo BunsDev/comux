@@ -18,7 +18,8 @@ const session: CovenSessionSummary = {
   updatedAt: '2026-05-10T08:00:03Z',
 };
 
-const event = (id: string, createdAt: string): CovenSessionEvent => ({
+const event = (id: string, createdAt: string, seq?: number): CovenSessionEvent => ({
+  seq,
   id,
   sessionId: 'session-1',
   kind: 'tool_result',
@@ -73,7 +74,7 @@ describe('loadCovenDesktopUseStates', () => {
   it('prunes cached session events for desktop-use panes that are no longer active', async () => {
     const cache = createDesktopUseLoadCache();
     cache.eventsBySessionId.set('stale-session', [event('stale-event', '2026-05-10T07:59:00Z')]);
-    cache.sinceBySessionId.set('stale-session', '2026-05-10T07:59:00Z');
+    cache.cursorBySessionId.set('stale-session', { afterSeq: 1 });
 
     const client: Pick<CovenClient, 'getSession' | 'listEvents'> = {
       getSession: vi.fn(async () => session),
@@ -83,20 +84,20 @@ describe('loadCovenDesktopUseStates', () => {
     await loadCovenDesktopUseStates([pane('pane-1')], client, cache);
 
     expect(cache.eventsBySessionId.has('stale-session')).toBe(false);
-    expect(cache.sinceBySessionId.has('stale-session')).toBe(false);
+    expect(cache.cursorBySessionId.has('stale-session')).toBe(false);
     expect(cache.eventsBySessionId.has('session-1')).toBe(true);
   });
 
-  it('uses a since cursor and bounded cached events for subsequent refreshes', async () => {
+  it('uses the Coven event sequence cursor and bounded cached events for subsequent refreshes', async () => {
     const cache = createDesktopUseLoadCache();
-    const calls: Array<{ sessionId: string; since?: string }> = [];
+    const calls: Array<{ sessionId: string; afterSeq?: number }> = [];
     const client: Pick<CovenClient, 'getSession' | 'listEvents'> = {
       getSession: vi.fn(async () => session),
-      listEvents: vi.fn(async (sessionId: string, options?: { since?: string }) => {
-        calls.push({ sessionId, since: options?.since });
+      listEvents: vi.fn(async (sessionId: string, options?: { afterSeq?: number }) => {
+        calls.push({ sessionId, afterSeq: options?.afterSeq });
         return calls.length === 1
-          ? [event('event-1', '2026-05-10T08:00:01Z')]
-          : [event('event-2', '2026-05-10T08:00:02Z')];
+          ? [event('event-1', '2026-05-10T08:00:01Z', 41)]
+          : [event('event-2', '2026-05-10T08:00:02Z', 42)];
       }),
     };
 
@@ -104,8 +105,8 @@ describe('loadCovenDesktopUseStates', () => {
     const second = await loadCovenDesktopUseStates([pane('pane-1')], client, cache);
 
     expect(calls).toEqual([
-      { sessionId: 'session-1', since: undefined },
-      { sessionId: 'session-1', since: '2026-05-10T08:00:01Z' },
+      { sessionId: 'session-1', afterSeq: undefined },
+      { sessionId: 'session-1', afterSeq: 41 },
     ]);
     expect(first.get('pane-1')?.screenshotPath).toBe('/tmp/event-1.png');
     expect(second.get('pane-1')?.actions.map((action) => action.id)).toEqual(['event-2', 'event-1']);

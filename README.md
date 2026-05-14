@@ -112,9 +112,20 @@ comux works as a standalone tmux/worktree cockpit. It also speaks to Coven when 
 
 Coven is the harness substrate. comux is the cockpit. OpenMeow and OpenClaw can sit above them as intake and orchestration layers.
 
+Demo loop:
+
+1. Open a project in comux.
+2. Launch a Coven-backed Codex or Claude Code session.
+3. Watch it as a visible pane/session.
+4. Inspect files and diffs.
+5. Merge, create a PR, archive, or clean up explicitly.
+
+See [comux + Coven demo loop](./docs/COVEN-DEMO-LOOP.md) and the [OpenCoven public roadmap](https://github.com/OpenCoven/coven/blob/main/docs/ROADMAP.md).
+
 ## Docs
 
 - [Documentation index](./docs/README.md)
+- [comux + Coven demo loop](./docs/COVEN-DEMO-LOOP.md)
 - [Product spec](./docs/PRODUCT-SPEC.md)
 - [Smoke test](./docs/SMOKE.md)
 - [Contributing](./CONTRIBUTING.md)
