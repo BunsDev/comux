@@ -3,7 +3,7 @@ export const meta = { title: 'Getting Started' };
 export function render() {
   return `
     <h1>Getting Started</h1>
-    <p>Get comux running in under a minute. All you need is tmux, Node.js, and at least one AI coding agent.</p>
+    <p>Get comux running in under a minute. All you need is tmux and Node.js; install a supported AI coding agent when you want prompt-launched agent panes.</p>
 
     <h2>Install comux</h2>
     <pre><code data-lang="bash">npm install -g comux</code></pre>
