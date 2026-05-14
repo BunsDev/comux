@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { render } from 'ink-testing-library';
 import stripAnsi from 'strip-ansi';
+import CovenSessionsPanel from '../src/components/panes/CovenSessionsPanel.js';
 import PanesGrid from '../src/components/panes/PanesGrid.js';
 import type { CovenSessionsLoadState } from '../src/utils/covenSessions.js';
 
@@ -53,7 +54,7 @@ describe('Coven sessions panel', () => {
     expect(frame).toContain('[o] open Archived plan');
   });
 
-  it('renders a compact unavailable state without failing the pane grid', () => {
+  it('renders nothing when inactive and Coven is unavailable', () => {
     const state: CovenSessionsLoadState = {
       status: 'unavailable',
       sessions: [],
@@ -62,20 +63,78 @@ describe('Coven sessions panel', () => {
     };
 
     const { lastFrame } = render(
-      <PanesGrid
-        panes={[]}
-        selectedIndex={0}
-        activeProjectRoot="/repo"
-        isLoading={false}
+      <CovenSessionsPanel
+        projectRoot="/repo"
+        state={state}
+        isActive={false}
         themeName="purple"
-        projectThemeByRoot={new Map([['/repo', 'purple']])}
-        sidebarProjects={[]}
-        fallbackProjectRoot="/repo"
-        fallbackProjectName="repo"
-        covenSessionsState={state}
       />
     );
 
-    expect(stripAnsi(lastFrame() ?? '')).toContain('☾ Coven unavailable: coven CLI not found');
+    expect(stripAnsi(lastFrame() ?? '')).toBe('');
+  });
+
+  it('renders a friendly install hint when active and the Coven CLI is missing', () => {
+    const state: CovenSessionsLoadState = {
+      status: 'unavailable',
+      sessions: [],
+      reason: 'coven CLI not found',
+      loadedAt: '2026-04-28T12:00:00.000Z',
+    };
+
+    const { lastFrame } = render(
+      <CovenSessionsPanel
+        projectRoot="/repo"
+        state={state}
+        isActive
+        themeName="purple"
+      />
+    );
+
+    const frame = stripAnsi(lastFrame() ?? '');
+    expect(frame).toContain('☾ Coven not running');
+    expect(frame).toContain('  install: npm i -g @opencoven/cli');
+  });
+
+  it('renders a friendly start hint when active and Coven is unavailable', () => {
+    const state: CovenSessionsLoadState = {
+      status: 'unavailable',
+      sessions: [],
+      reason: 'coven sessions --json timed out',
+      loadedAt: '2026-04-28T12:00:00.000Z',
+    };
+
+    const { lastFrame } = render(
+      <CovenSessionsPanel
+        projectRoot="/repo"
+        state={state}
+        isActive
+        themeName="purple"
+      />
+    );
+
+    const frame = stripAnsi(lastFrame() ?? '');
+    expect(frame).toContain('☾ Coven not running');
+    expect(frame).toContain('  run: coven start');
+  });
+
+  it('renders a friendly empty hint when active and there are no Coven sessions', () => {
+    const state: CovenSessionsLoadState = {
+      status: 'empty',
+      sessions: [],
+      source: 'coven sessions --json',
+      loadedAt: '2026-04-28T12:00:00.000Z',
+    };
+
+    const { lastFrame } = render(
+      <CovenSessionsPanel
+        projectRoot="/repo"
+        state={state}
+        isActive
+        themeName="purple"
+      />
+    );
+
+    expect(stripAnsi(lastFrame() ?? '')).toContain('☾ Coven: no sessions yet');
   });
 });
