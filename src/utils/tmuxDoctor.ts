@@ -1,11 +1,16 @@
 import { spawnSync } from 'child_process';
 import chalk from 'chalk';
+import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import os from 'os';
 import {
   compareVersions,
   parseVersion,
 } from './systemCheck.js';
+import {
+  getAgentDefinitions,
+  type AgentRegistryEntry,
+} from './agentLaunch.js';
 import {
   getTmuxConfigCandidatePaths,
 } from './tmuxConfigOnboarding.js';
@@ -67,12 +72,18 @@ interface LiveSessionFixResult {
   fixedCheckIds: Set<string>;
 }
 
+interface DetectedAgentCommand {
+  name: string;
+  command: string;
+}
+
 export interface TmuxDoctorRuntime {
   homeDir?: string;
   env?: NodeJS.ProcessEnv;
   run?: (command: string, args: string[]) => CommandResult;
   projectRoot?: string;
   themeName?: ComuxThemeName;
+  findAgentCommand?: (definition: AgentRegistryEntry) => string | null;
 }
 
 interface ResolvedTmuxDoctorRuntime {
@@ -80,6 +91,7 @@ interface ResolvedTmuxDoctorRuntime {
   env: NodeJS.ProcessEnv;
   run: (command: string, args: string[]) => CommandResult;
   themeName: ComuxThemeName;
+  findAgentCommand?: (definition: AgentRegistryEntry) => string | null;
 }
 
 export interface RunTmuxDoctorOptions {
@@ -116,6 +128,7 @@ function getRuntime(options?: RunTmuxDoctorOptions): ResolvedTmuxDoctorRuntime {
     env: options?.runtime?.env || process.env,
     run: options?.runtime?.run || defaultRun,
     themeName: resolveDoctorTheme(options?.runtime),
+    findAgentCommand: options?.runtime?.findAgentCommand,
   };
 }
 
@@ -228,6 +241,87 @@ function checkVersionWithRuntime(
   };
 }
 
+function detectAgentCommand(
+  runtime: ResolvedTmuxDoctorRuntime,
+  definition: AgentRegistryEntry
+): string {
+  if (runtime.findAgentCommand) {
+    return runtime.findAgentCommand(definition) || '';
+  }
+
+  const result = runtime.run('/bin/sh', ['-c', definition.installTestCommand]);
+  const command = result.status === 0 ? result.stdout.trim().split('\n')[0] : '';
+  if (command) {
+    return command;
+  }
+
+  for (const candidate of definition.commonPaths) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return '';
+}
+
+function detectSupportedAgentCommands(runtime: ResolvedTmuxDoctorRuntime): DetectedAgentCommand[] {
+  const detected: DetectedAgentCommand[] = [];
+
+  for (const definition of getAgentDefinitions()) {
+    const command = detectAgentCommand(runtime, definition);
+
+    if (command) {
+      detected.push({
+        name: definition.name,
+        command,
+      });
+    }
+  }
+
+  return detected;
+}
+
+function buildAgentCliCheck(runtime: ResolvedTmuxDoctorRuntime): TmuxDoctorCheck {
+  const supportedAgents = getAgentDefinitions();
+  const detectedAgents = detectSupportedAgentCommands(runtime);
+
+  if (detectedAgents.length > 0) {
+    const detectedSummary = detectedAgents
+      .map((agent) => `${agent.name} (${agent.command})`)
+      .join(', ');
+
+    return {
+      id: 'agent-cli-guidance',
+      label: 'agent CLIs',
+      severity: 'ok',
+      message: `Detected ${detectedSummary}`,
+    };
+  }
+
+  const defaultEnabled = supportedAgents
+    .filter((agent) => agent.defaultEnabled)
+    .map((agent) => agent.name)
+    .join(', ');
+  const supported = supportedAgents.map((agent) => agent.name).join(', ');
+
+  return {
+    id: 'agent-cli-guidance',
+    label: 'agent CLIs',
+    severity: 'warning',
+    message: `No supported agent CLI detected. comux can still open plain terminal panes; install one of the default agents (${defaultEnabled}) or enable another supported CLI in settings.`,
+    fix: `Supported agent CLIs: ${supported}`,
+  };
+}
+
+function buildCovenGuidanceCheck(): TmuxDoctorCheck {
+  return {
+    id: 'coven-guidance',
+    label: 'Coven integration',
+    severity: 'ok',
+    message: 'Coven is optional. Without it, comux still manages tmux panes, git worktrees, agents, merge, and PR flows; with a local Coven daemon, comux can also list, open, and launch scoped Coven harness sessions.',
+  };
+}
+
 async function readConfigContents(homeDir: string): Promise<Array<{ path: string; content: string }>> {
   const paths = getTmuxConfigCandidatePaths(homeDir);
   return Promise.all(paths.map(async (configPath) => {
@@ -320,6 +414,9 @@ export async function runTmuxDoctor(
     'git is not installed or not in PATH',
     'git'
   ));
+
+  checks.push(buildAgentCliCheck(runtime));
+  checks.push(buildCovenGuidanceCheck());
 
   const configContents = await readConfigContents(runtime.homeDir);
   const managedConfig = configContents.find((entry) => hasComuxManagedTmuxConfigBlock(entry.content));

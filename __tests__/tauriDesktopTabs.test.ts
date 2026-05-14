@@ -43,8 +43,12 @@ describe('Tauri desktop tab shortcuts', () => {
     expect(tauriLib).toMatch(/static\s+AUGMENTED_PATH:\s*Lazy<String>\s*=\s*Lazy::new\(compute_augmented_path\);/);
     expect(tauriLib).toMatch(/fn\s+augmented_path\(\)\s*->\s*&'static\s+str/);
     expect(tauriLib).toMatch(/fn\s+compute_augmented_path\(\)\s*->\s*String/);
-    expect(tauriLib).toMatch(/let\s+mut\s+parts:\s*Vec<String>\s*=\s*Vec::new\(\);/);
-    expect(tauriLib).toMatch(/for\s+p\s+in\s+existing\.split\(':'\)[\s\S]*?parts\.push\(p\.to_string\(\)\);[\s\S]*?for\s+extra\s+in\s+extras/);
+    expect(tauriLib).toMatch(/let\s+mut\s+parts:\s*Vec<PathBuf>\s*=\s*Vec::new\(\);/);
+    expect(tauriLib).toMatch(/for\s+p\s+in\s+std::env::split_paths\(&existing\)[\s\S]*?parts\.push\(p\);[\s\S]*?for\s+extra\s+in\s+extras/);
+    expect(tauriLib).toMatch(/std::env::join_paths\(&parts\)/);
+    expect(tauriLib).toMatch(/\.unwrap_or_else\(\|_\|\s+existing\.clone\(\)\)/);
+    expect(tauriLib).not.toMatch(/std::env::join_paths\(&parts\)[\s\S]*?\.unwrap_or_default\(\)/);
+    expect(tauriLib).toMatch(/for\s+dir\s+in\s+std::env::split_paths\(augmented_path\(\)\)/);
     expect(tauriLib).toMatch(/fn\s+newest_nvm_node_bin\(/);
     expect(tauriLib).not.toMatch(/\.nvm\/versions\/node\/v\d+\.\d+\.\d+\/bin/);
   });

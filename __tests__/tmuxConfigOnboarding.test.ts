@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import path from 'path';
 import {
   buildRecommendedTmuxConfig,
   getTmuxConfigCandidatePaths,
@@ -23,13 +23,13 @@ describe('tmux config onboarding utils', () => {
     const paths = getTmuxConfigCandidatePaths(home);
 
     expect(paths).toEqual([
-      '/tmp/example-home/.tmux.conf',
-      '/tmp/example-home/.config/tmux/tmux.conf',
+      path.join(home, '.tmux.conf'),
+      path.join(home, '.config', 'tmux', 'tmux.conf'),
     ]);
   });
 
   it('detects missing tmux config', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-onboarding-'));
 
     try {
       const result = await hasMeaningfulTmuxConfig(homeDir);
@@ -40,10 +40,10 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('detects existing tmux config from ~/.tmux.conf', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-onboarding-'));
 
     try {
-      writeFileSync(join(homeDir, '.tmux.conf'), "set -g mouse on\n", 'utf-8');
+      writeFileSync(path.join(homeDir, '.tmux.conf'), "set -g mouse on\n", 'utf-8');
       const result = await hasMeaningfulTmuxConfig(homeDir);
       expect(result).toBe(true);
     } finally {
@@ -52,10 +52,10 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('treats empty tmux config as not configured', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-onboarding-'));
 
     try {
-      writeFileSync(join(homeDir, '.tmux.conf'), '', 'utf-8');
+      writeFileSync(path.join(homeDir, '.tmux.conf'), '', 'utf-8');
       const result = await hasMeaningfulTmuxConfig(homeDir);
       expect(result).toBe(false);
     } finally {
@@ -64,12 +64,12 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('detects existing tmux config from ~/.config/tmux/tmux.conf', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-onboarding-'));
 
     try {
-      const configDir = join(homeDir, '.config', 'tmux');
+      const configDir = path.join(homeDir, '.config', 'tmux');
       mkdirSync(configDir, { recursive: true });
-      writeFileSync(join(configDir, 'tmux.conf'), "set -g mouse on\n", 'utf-8');
+      writeFileSync(path.join(configDir, 'tmux.conf'), "set -g mouse on\n", 'utf-8');
 
       const result = await hasMeaningfulTmuxConfig(homeDir);
       expect(result).toBe(true);
@@ -92,7 +92,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('writes managed config and onboarding state when setup is accepted', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-onboarding-'));
     const sourcedPaths: string[] = [];
 
     try {
@@ -106,8 +106,8 @@ describe('tmux config onboarding utils', () => {
         },
       });
 
-      const configPath = join(homeDir, '.tmux.conf');
-      const statePath = join(homeDir, '.comux', 'onboarding.json');
+      const configPath = path.join(homeDir, '.tmux.conf');
+      const statePath = path.join(homeDir, '.comux', 'onboarding.json');
       const config = readFileSync(configPath, 'utf-8');
       const state = JSON.parse(readFileSync(statePath, 'utf-8'));
 
@@ -127,7 +127,7 @@ describe('tmux config onboarding utils', () => {
   });
 
   it('marks onboarding skipped without creating tmux config', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-onboarding-'));
 
     try {
       await runTmuxConfigOnboardingIfNeeded({
@@ -140,21 +140,21 @@ describe('tmux config onboarding utils', () => {
         },
       });
 
-      const state = JSON.parse(readFileSync(join(homeDir, '.comux', 'onboarding.json'), 'utf-8'));
+      const state = JSON.parse(readFileSync(path.join(homeDir, '.comux', 'onboarding.json'), 'utf-8'));
       expect(state.tmuxConfigOnboarding).toMatchObject({
         completed: true,
         completedAt: '2026-04-24T12:00:00.000Z',
         outcome: 'skip',
       });
-      expect(existsSync(join(homeDir, '.tmux.conf'))).toBe(false);
+      expect(existsSync(path.join(homeDir, '.tmux.conf'))).toBe(false);
     } finally {
       rmSync(homeDir, { recursive: true, force: true });
     }
   });
 
   it('preserves existing tmux config and creates a backup when setup is accepted', async () => {
-    const homeDir = mkdtempSync(join(tmpdir(), 'comux-onboarding-'));
-    const configPath = join(homeDir, '.tmux.conf');
+    const homeDir = mkdtempSync(path.join(tmpdir(), 'comux-onboarding-'));
+    const configPath = path.join(homeDir, '.tmux.conf');
 
     try {
       writeFileSync(configPath, 'set -g history-limit 5000\n', 'utf-8');

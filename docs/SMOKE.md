@@ -19,9 +19,28 @@ Expected:
 
 - TypeScript and tests pass.
 - `doctor --json` reports tmux and git checks.
+- `doctor --json` reports `agent-cli-guidance` and `coven-guidance`.
 - `usable` is `true` when there are no blocking errors.
 - `healthy` may be `false` if only recommended setup warnings remain.
 - `npm pack --dry-run --json` includes the README and docs files intended for npm.
+
+## First-run onboarding smoke
+
+Use this check when touching setup, doctor, agent discovery, or Coven docs.
+
+```bash
+pnpm run dev:doctor
+node ./comux doctor
+node ./comux doctor --json
+```
+
+Expected:
+
+- Text output says whether comux can run, even when recommended setup warnings remain.
+- If no supported agent CLI is detected, doctor explains that plain terminal panes still work and lists the supported agent CLIs.
+- Doctor explains that Coven is optional for core tmux/worktree/agent/merge/PR workflows.
+- JSON output includes stable check IDs for automation: `agent-cli-guidance` and `coven-guidance`.
+- `comux doctor --fix` only applies safe tmux repairs and the managed tmux config block.
 
 ## Interactive cockpit smoke
 

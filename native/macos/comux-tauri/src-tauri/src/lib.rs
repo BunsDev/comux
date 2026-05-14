@@ -773,15 +773,16 @@ fn compute_augmented_path() -> String {
         "/usr/sbin",
         "/sbin",
     ];
-    let mut parts: Vec<String> = Vec::new();
-    for p in existing.split(':') {
-        if !p.is_empty() && !parts.iter().any(|existing| existing == p) {
-            parts.push(p.to_string());
+    let mut parts: Vec<PathBuf> = Vec::new();
+    for p in std::env::split_paths(&existing) {
+        if !p.as_os_str().is_empty() && !parts.iter().any(|existing| existing == &p) {
+            parts.push(p);
         }
     }
     for extra in extras {
-        if !parts.iter().any(|existing| existing == extra) {
-            parts.push(extra.to_string());
+        let extra = PathBuf::from(extra);
+        if !parts.iter().any(|existing| existing == &extra) {
+            parts.push(extra);
         }
     }
     // Plus common user-installed runtime managers on macOS.
@@ -801,14 +802,15 @@ fn compute_augmented_path() -> String {
             push_path_if_dir(&mut parts, nvm_bin);
         }
     }
-    parts.join(":")
+    std::env::join_paths(&parts)
+        .map(|joined| joined.to_string_lossy().to_string())
+        .unwrap_or_else(|_| existing.clone())
 }
 
-fn push_path_if_dir(parts: &mut Vec<String>, candidate: PathBuf) {
+fn push_path_if_dir(parts: &mut Vec<PathBuf>, candidate: PathBuf) {
     if !candidate.is_dir() {
         return;
     }
-    let candidate = candidate.to_string_lossy().to_string();
     if !parts.iter().any(|p| p == &candidate) {
         parts.push(candidate);
     }
@@ -849,8 +851,8 @@ fn parse_nvm_node_version(name: &str) -> Option<(u32, u32, u32)> {
 }
 
 fn which_on_path(binary: &str) -> Option<String> {
-    for dir in augmented_path().split(':') {
-        let candidate = std::path::Path::new(dir).join(binary);
+    for dir in std::env::split_paths(augmented_path()) {
+        let candidate = dir.join(binary);
         if candidate.is_file() {
             return Some(candidate.to_string_lossy().to_string());
         }

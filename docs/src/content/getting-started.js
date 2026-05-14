@@ -3,7 +3,7 @@ export const meta = { title: 'Getting Started' };
 export function render() {
   return `
     <h1>Getting Started</h1>
-    <p>Get comux running in under a minute. All you need is tmux, Node.js, and at least one AI coding agent.</p>
+    <p>Get comux running in under a minute. All you need is tmux and Node.js; install a supported AI coding agent when you want prompt-launched agent panes.</p>
 
     <h2>Install comux</h2>
     <pre><code data-lang="bash">npm install -g comux</code></pre>
@@ -18,6 +18,11 @@ export function render() {
       <li>
         <p><strong>Navigate to a git repository:</strong></p>
         <pre><code data-lang="bash">cd /path/to/your/project</code></pre>
+      </li>
+      <li>
+        <p><strong>Check setup:</strong></p>
+        <pre><code data-lang="bash">comux doctor</code></pre>
+        <p>Doctor confirms tmux and git, shows whether any supported agent CLIs are detected, and explains which Coven features are optional.</p>
       </li>
       <li>
         <p><strong>Launch comux:</strong></p>
@@ -74,6 +79,7 @@ export function render() {
     </div>
 
     <h2>tmux Configuration</h2>
+    <p>If tmux is new on your machine, start with <code>comux doctor</code>. Use <code>comux doctor --fix</code> to install the comux-managed tmux config block and apply safe live-session repairs. The command backs up an existing config and only edits the block between <code># &gt;&gt;&gt; comux</code> and <code># &lt;&lt;&lt; comux</code>.</p>
     <p>On first run, comux will detect if you have no tmux config and offer to install a recommended preset (dark or light theme). This handles pane borders, navigation bindings, mouse support, and clipboard integration automatically.</p>
     <p>If you'd rather configure tmux manually, edit <code>~/.tmux.conf</code> (or <code>~/.config/tmux/tmux.conf</code>). Here's a solid starting point:</p>
     <pre><code data-lang="bash"># Extended keys for Ctrl-Shift-Arrow support
@@ -120,6 +126,10 @@ set -ga update-environment "TERM_PROGRAM"</code></pre>
       <div class="callout-title">Note</div>
       On Linux, swap <code>pbcopy</code> for <code>wl-copy</code> (Wayland) or <code>xclip -selection clipboard -in</code> (X11) in the clipboard bindings.
     </div>
+
+    <h2>Standalone vs Coven</h2>
+    <p>comux does not require Coven for the core cockpit. Without Coven, you can create tmux panes, open plain terminals, launch installed agent CLIs, isolate work in git worktrees, inspect files, merge, create PRs, and run rituals.</p>
+    <p>When a local Coven daemon is available, comux adds harness-aware session actions: list scoped Coven sessions, open them in panes, and launch new scoped Coven sessions for the current project.</p>
 
     <h2>Next Steps</h2>
     <ul>

@@ -1,3 +1,4 @@
+import path from 'path';
 import { describe, expect, it } from 'vitest';
 import type { ComuxPane, SidebarProject } from '../src/types.js';
 import {
@@ -5,6 +6,8 @@ import {
   buildVisualNavigationRows,
   resolveSelectionAfterPaneClose,
 } from '../src/utils/projectActions.js';
+
+const repo = (name: string) => path.resolve(`/${name}`);
 
 function pane(id: string, slug: string, projectRoot: string): ComuxPane {
   return {
@@ -19,19 +22,19 @@ function pane(id: string, slug: string, projectRoot: string): ComuxPane {
 describe('projectActions', () => {
   it('adds remove-project only for empty non-root sidebar projects', () => {
     const panes: ComuxPane[] = [
-      pane('comux-1', 'main-pane', '/repo-main'),
-      pane('comux-2', 'aux-pane', '/repo-aux'),
+      pane('comux-1', 'main-pane', repo('repo-main')),
+      pane('comux-2', 'aux-pane', repo('repo-aux')),
     ];
     const sidebarProjects: SidebarProject[] = [
-      { projectRoot: '/repo-main', projectName: 'repo-main' },
-      { projectRoot: '/repo-empty', projectName: 'repo-empty' },
-      { projectRoot: '/repo-aux', projectName: 'repo-aux' },
+      { projectRoot: repo('repo-main'), projectName: 'repo-main' },
+      { projectRoot: repo('repo-empty'), projectName: 'repo-empty' },
+      { projectRoot: repo('repo-aux'), projectName: 'repo-aux' },
     ];
 
     const layout = buildProjectActionLayout(
       panes,
       sidebarProjects,
-      '/repo-main',
+      repo('repo-main'),
       'repo-main'
     );
 
@@ -40,17 +43,17 @@ describe('projectActions', () => {
       layout.actionItems
         .filter((action) => action.kind === 'remove-project')
         .map((action) => action.projectRoot)
-    ).toEqual(['/repo-empty']);
+    ).toEqual([repo('repo-empty')]);
   });
 
   it('adds action rows to navigation for empty projects', () => {
     const layout = buildProjectActionLayout(
       [],
       [
-        { projectRoot: '/repo-main', projectName: 'repo-main' },
-        { projectRoot: '/repo-empty', projectName: 'repo-empty' },
+        { projectRoot: repo('repo-main'), projectName: 'repo-main' },
+        { projectRoot: repo('repo-empty'), projectName: 'repo-empty' },
       ],
-      '/repo-main',
+      repo('repo-main'),
       'repo-main'
     );
 
@@ -62,21 +65,21 @@ describe('projectActions', () => {
 
   it('selects the next pane down in the same project after closing a pane', () => {
     const panes: ComuxPane[] = [
-      pane('comux-1', 'main-pane', '/repo-main'),
-      pane('comux-2', 'aux-one', '/repo-aux'),
-      pane('comux-3', 'aux-two', '/repo-aux'),
-      pane('comux-4', 'main-two', '/repo-main'),
+      pane('comux-1', 'main-pane', repo('repo-main')),
+      pane('comux-2', 'aux-one', repo('repo-aux')),
+      pane('comux-3', 'aux-two', repo('repo-aux')),
+      pane('comux-4', 'main-two', repo('repo-main')),
     ];
     const sidebarProjects: SidebarProject[] = [
-      { projectRoot: '/repo-main', projectName: 'repo-main' },
-      { projectRoot: '/repo-aux', projectName: 'repo-aux' },
+      { projectRoot: repo('repo-main'), projectName: 'repo-main' },
+      { projectRoot: repo('repo-aux'), projectName: 'repo-aux' },
     ];
 
     const selection = resolveSelectionAfterPaneClose(
       panes,
       '%2',
       sidebarProjects,
-      '/repo-main',
+      repo('repo-main'),
       'repo-main'
     );
 
@@ -86,25 +89,25 @@ describe('projectActions', () => {
 
   it('selects the project new-agent action when closing the last pane in that project', () => {
     const panes: ComuxPane[] = [
-      pane('comux-1', 'main-pane', '/repo-main'),
-      pane('comux-2', 'aux-one', '/repo-aux'),
+      pane('comux-1', 'main-pane', repo('repo-main')),
+      pane('comux-2', 'aux-one', repo('repo-aux')),
     ];
     const sidebarProjects: SidebarProject[] = [
-      { projectRoot: '/repo-main', projectName: 'repo-main' },
-      { projectRoot: '/repo-aux', projectName: 'repo-aux' },
+      { projectRoot: repo('repo-main'), projectName: 'repo-main' },
+      { projectRoot: repo('repo-aux'), projectName: 'repo-aux' },
     ];
 
     const selection = resolveSelectionAfterPaneClose(
       panes,
       '%2',
       sidebarProjects,
-      '/repo-main',
+      repo('repo-main'),
       'repo-main'
     );
 
     expect(selection?.pane).toBeUndefined();
     expect(selection?.action?.kind).toBe('new-agent');
-    expect(selection?.action?.projectRoot).toBe('/repo-aux');
+    expect(selection?.action?.projectRoot).toBe(repo('repo-aux'));
     expect(selection?.selectedIndex).toBe(3);
   });
 });
