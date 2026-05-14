@@ -249,7 +249,8 @@ function detectAgentCommand(
     return runtime.findAgentCommand(definition) || '';
   }
 
-  const result = runtime.run('/bin/sh', ['-c', definition.installTestCommand]);
+  const shell = runtime.env.SHELL || process.env.SHELL || '/bin/sh';
+  const result = runtime.run(shell, ['-i', '-c', definition.installTestCommand]);
   const command = result.status === 0 ? result.stdout.trim().split('\n')[0] : '';
   if (command) {
     return command;
