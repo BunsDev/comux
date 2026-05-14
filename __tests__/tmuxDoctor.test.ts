@@ -14,6 +14,9 @@ import { buildComuxManagedTmuxConfigBlock } from '../src/utils/tmuxManagedConfig
 function createRuntime(overrides: Partial<TmuxDoctorRuntime> = {}): TmuxDoctorRuntime {
   return {
     env: {},
+    findAgentCommand(definition) {
+      return definition.id === 'claude' ? '/usr/local/bin/claude' : null;
+    },
     run(command, args) {
       if (command === 'tmux' && args.join(' ') === '-V') {
         return { status: 0, stdout: 'tmux 3.4\n', stderr: '' };
@@ -82,6 +85,49 @@ describe('tmux doctor', () => {
 
       expect(text).toMatch(/comux can run|usable/i);
       expect(text).toContain('recommended');
+    } finally {
+      await fs.rm(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it('explains plain terminal fallback when no agent CLI is detected', async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comux-doctor-'));
+
+    try {
+      await fs.writeFile(
+        path.join(homeDir, '.tmux.conf'),
+        buildComuxManagedTmuxConfigBlock('dark'),
+        'utf-8'
+      );
+
+      const result = await runTmuxDoctor({
+        runtime: createRuntime({
+          homeDir,
+          findAgentCommand: () => null,
+          run(command, args) {
+            if (command === 'tmux' && args.join(' ') === '-V') {
+              return { status: 0, stdout: 'tmux 3.4\n', stderr: '' };
+            }
+            if (command === 'git' && args.join(' ') === '--version') {
+              return { status: 0, stdout: 'git version 2.45.0\n', stderr: '' };
+            }
+            return { status: 1, stdout: '', stderr: '' };
+          },
+        }),
+      });
+
+      const agentCheck = result.checks.find((check) => check.id === 'agent-cli-guidance');
+      const covenCheck = result.checks.find((check) => check.id === 'coven-guidance');
+      const text = formatTmuxDoctorText(result);
+
+      expect(result.canRun).toBe(true);
+      expect(result.healthy).toBe(false);
+      expect(agentCheck?.severity).toBe('warning');
+      expect(agentCheck?.message).toContain('plain terminal panes');
+      expect(agentCheck?.fix).toContain('Claude Code');
+      expect(covenCheck?.message).toContain('Coven is optional');
+      expect(text).toContain('agent CLIs');
+      expect(text).toContain('Coven integration');
     } finally {
       await fs.rm(homeDir, { recursive: true, force: true });
     }

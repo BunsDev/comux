@@ -49,6 +49,13 @@ comux doctor --fix
 
 `comux doctor` checks tmux, git, clipboard/navigation support, comux session styling, and the comux-managed tmux config block. `--fix` applies safe repairs, backs up an existing `~/.tmux.conf`, and only edits the block between `# >>> comux` and `# <<< comux`.
 
+The doctor output also calls out supported agent CLIs and the Coven boundary:
+
+- Without an agent CLI, comux can still open and manage plain terminal panes.
+- With a supported agent CLI, comux can launch agent panes from prompts.
+- Without Coven, comux still manages tmux panes, worktrees, merge, PR, settings, rituals, and local file browsing.
+- With a local Coven daemon, comux can also list, open, and launch scoped Coven harness sessions.
+
 ## What it does
 
 comux creates a tmux pane for each task. Every work pane gets its own git worktree and branch so agents work in complete isolation. When a task is done, open the pane menu with `m` and choose Merge to bring it back into your main branch, or Create GitHub PR to push the branch and file a pull request.
@@ -96,7 +103,7 @@ When focus is inside a work pane, tmux receives your keys instead of comux. Use 
 - tmux 3.0+
 - Node.js 18+
 - Git 2.20+
-- At least one supported agent CLI (for example [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [OpenCode](https://github.com/opencode-ai/opencode), [Cline CLI](https://docs.cline.bot/cline-cli/getting-started), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Qwen CLI](https://github.com/QwenLM/qwen-code), [Amp CLI](https://ampcode.com/manual), [pi CLI](https://www.npmjs.com/package/@mariozechner/pi-coding-agent), [Cursor CLI](https://docs.cursor.com/en/cli/overview), [Copilot CLI](https://github.com/github/copilot-cli), [Crush CLI](https://github.com/charmbracelet/crush))
+- At least one supported agent CLI for agent panes (for example [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex), [OpenCode](https://github.com/opencode-ai/opencode), [Cline CLI](https://docs.cline.bot/cline-cli/getting-started), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Qwen CLI](https://github.com/QwenLM/qwen-code), [Amp CLI](https://ampcode.com/manual), [pi CLI](https://www.npmjs.com/package/@mariozechner/pi-coding-agent), [Cursor CLI](https://docs.cursor.com/en/cli/overview), [Copilot CLI](https://github.com/github/copilot-cli), [Crush CLI](https://github.com/charmbracelet/crush)). Plain terminal panes work without an agent CLI.
 - [OpenRouter API key](https://openrouter.ai/) (optional, for AI branch names, status analysis, and commit messages)
 
 ## Coven and OpenCoven

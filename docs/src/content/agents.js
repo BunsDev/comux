@@ -6,6 +6,7 @@ export function render() {
     <p class="lead">comux supports 11 AI coding agents. Each agent is automatically detected if its CLI is installed and available in your PATH.</p>
 
     <h2>Agent Detection</h2>
+    <p>Run <code>comux doctor</code> to see whether this shell can find a supported agent CLI. comux can still create plain terminal panes when none are installed; install at least one supported CLI when you want prompt-launched agent panes.</p>
     <p>comux automatically detects installed agents by searching:</p>
     <ol>
       <li>Your shell's command path (<code>command -v</code>)</li>
