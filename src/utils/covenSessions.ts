@@ -288,6 +288,7 @@ function isExecFileTimeoutError(error: unknown): boolean {
   return error.killed === true;
 }
 
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
