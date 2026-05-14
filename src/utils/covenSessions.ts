@@ -114,6 +114,9 @@ async function listCovenSessionsJson(
     if (isCommandMissing(error)) {
       throw error;
     }
+    if (isExecFileTimeoutError(error)) {
+      throw error;
+    }
   }
 
   return {
@@ -277,6 +280,12 @@ function describeCovenUnavailable(error: unknown): string {
 
 function isCommandMissing(error: unknown): boolean {
   return isRecord(error) && stringValue(error.code) === 'ENOENT';
+}
+
+function isExecFileTimeoutError(error: unknown): boolean {
+  if (!isRecord(error)) return false;
+  if (stringValue(error.code) === 'ETIMEDOUT') return true;
+  return error.killed === true;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
