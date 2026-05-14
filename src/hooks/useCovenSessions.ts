@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SidebarProject } from '../types.js';
 import {
   filterCovenSessionsForProjectRoots,
+  listCovenSessionsFromDaemon,
   listCovenSessionsFromCli,
   type CovenSessionsLoadState,
 } from '../utils/covenSessions.js';
@@ -41,7 +42,9 @@ export function useCovenSessions(
 
     let cancelled = false;
     const load = async () => {
-      const result = await listCovenSessionsFromCli({ command: options.command });
+      const result = options.command
+        ? await listCovenSessionsFromCli({ command: options.command })
+        : await listCovenSessionsFromDaemon();
       if (cancelled) return;
 
       if (result.status === 'unavailable') {
