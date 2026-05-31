@@ -22,9 +22,11 @@
  * MCP path and the Ink TUI path share state and don't fork.
  */
 
+import { execFileSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { listPanes } from '../daemon/panes.js';
+import { capturePaneSync, listPanes } from '../daemon/panes.js';
 import type { PaneSummary } from '../daemon/protocol.js';
+import { getBuiltInRituals, listProjectRituals } from '../utils/rituals.js';
 
 const PROTOCOL_VERSION = '2025-06-18';
 const SERVER_NAME = 'comux';
@@ -163,6 +165,114 @@ const TOOLS: ToolDef[] = [
       throw new Error(
         'comux_kill_pane is not yet wired — coming in the next MCP commit. Use the comux TUI for now.',
       );
+    },
+  },
+  {
+    name: 'comux_get_pane_output',
+    description:
+      "Capture the current visible buffer plus scrollback of a comux pane. Returns ANSI-escaped text — strip codes on the caller if you just want the plain content. Use this to read what a running agent has produced so far without attaching.",
+    inputSchema: {
+      type: 'object',
+      required: ['pane_id'],
+      properties: {
+        pane_id: { type: 'string', description: 'tmux pane id (e.g. `%3`) returned by `comux_list_panes`.' },
+        strip_ansi: {
+          type: 'boolean',
+          description: 'When true, strip ANSI escape sequences before returning. Default false (preserves colour for terminal renderers).',
+        },
+      },
+    },
+    handler: async (args) => {
+      const paneId = String(args.pane_id ?? '').trim();
+      if (!paneId) {
+        throw Object.assign(new Error('comux_get_pane_output requires `pane_id`'), { code: ERR_INVALID_PARAMS });
+      }
+      const buf = capturePaneSync(paneId);
+      let text = buf.toString('utf8');
+      if (args.strip_ansi === true) {
+        // OSC, CSI, and standalone ESC sequences. Same surface as `strip-ansi`
+        // npm but avoids the runtime dep.
+        text = text.replace(/\x1B\][^\x07]*\x07/g, '').replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '');
+      }
+      return { pane_id: paneId, bytes: buf.length, content: text };
+    },
+  },
+  {
+    name: 'comux_list_rituals',
+    description:
+      "List every ritual available to the active project — both comux built-ins (Start Coding, Terminal First, Review Stack, Release Check, Fix OpenClaw, …) and project-saved rituals from `<projectRoot>/.comux/rituals/`. Each entry includes its id, name, scope (`builtin`|`project`), description, and pane spec.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_root: { type: 'string' },
+      },
+    },
+    handler: async (args) => {
+      const projectRoot = resolveProjectRoot(args);
+      const builtin = getBuiltInRituals().map((r) => ({ ...r, scope: 'builtin' as const }));
+      const project = listProjectRituals(projectRoot).map((r) => ({ ...r, scope: 'project' as const }));
+      return {
+        project_root: projectRoot,
+        builtin,
+        project,
+        count: builtin.length + project.length,
+      };
+    },
+  },
+  {
+    name: 'comux_list_worktrees',
+    description:
+      "List every git worktree associated with the active project's repository, including the path, branch, current HEAD sha, and whether it is the main worktree. Useful when you need to know which branches are already checked out before suggesting a new pane.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_root: { type: 'string' },
+      },
+    },
+    handler: async (args) => {
+      const projectRoot = resolveProjectRoot(args);
+      let raw: string;
+      try {
+        raw = execFileSync('git', ['-C', projectRoot, 'worktree', 'list', '--porcelain'], {
+          encoding: 'utf8',
+          timeout: 5000,
+        });
+      } catch (err) {
+        throw Object.assign(
+          new Error(`git worktree list failed: ${err instanceof Error ? err.message : String(err)}`),
+          { code: ERR_INTERNAL },
+        );
+      }
+
+      const worktrees: Array<{
+        path: string;
+        head?: string;
+        branch?: string;
+        bare?: boolean;
+        detached?: boolean;
+        locked?: boolean;
+      }> = [];
+
+      let current: (typeof worktrees)[number] | null = null;
+      for (const line of raw.split('\n')) {
+        if (line.startsWith('worktree ')) {
+          if (current) worktrees.push(current);
+          current = { path: line.slice('worktree '.length) };
+        } else if (current && line.startsWith('HEAD ')) {
+          current.head = line.slice('HEAD '.length);
+        } else if (current && line.startsWith('branch ')) {
+          current.branch = line.slice('branch '.length);
+        } else if (current && line === 'bare') {
+          current.bare = true;
+        } else if (current && line === 'detached') {
+          current.detached = true;
+        } else if (current && line.startsWith('locked')) {
+          current.locked = true;
+        }
+      }
+      if (current) worktrees.push(current);
+
+      return { project_root: projectRoot, count: worktrees.length, worktrees };
     },
   },
 ];
