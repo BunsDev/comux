@@ -20,6 +20,7 @@ export const AGENT_IDS = [
   'cursor',
   'copilot',
   'crush',
+  'coven-code',
 ] as const;
 
 export type AgentName = typeof AGENT_IDS[number];
@@ -311,6 +312,30 @@ export const AGENT_REGISTRY: Readonly<Record<AgentName, AgentRegistryEntry>> = {
       bypassPermissions: '--yolo',
     },
     defaultEnabled: false,
+  },
+  'coven-code': {
+    id: 'coven-code',
+    name: 'Coven Code',
+    shortLabel: 'cv',
+    description: 'OpenCoven coding harness — Claurst-based TUI with familiar personas',
+    slugSuffix: 'coven-code',
+    installTestCommand: 'command -v coven-code 2>/dev/null || which coven-code 2>/dev/null',
+    commonPaths: [
+      ...homePath('.local/bin/coven-code'),
+      '/opt/homebrew/bin/coven-code',
+      '/usr/local/bin/coven-code',
+      ...homePath('bin/coven-code'),
+      ...homePath('.npm-global/bin/coven-code'),
+    ],
+    promptCommand: 'coven-code',
+    promptTransport: 'positional',
+    permissionFlags: {
+      plan: '--permission-mode plan',
+      acceptEdits: '--permission-mode accept-edits',
+      bypassPermissions: '--permission-mode bypass-permissions',
+    },
+    defaultEnabled: true,
+    resumeCommandTemplate: 'coven-code --resume{permissions}',
   },
 };
 
