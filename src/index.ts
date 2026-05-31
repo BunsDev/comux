@@ -1590,6 +1590,15 @@ class Comux {
     return;
   }
 
+  if (process.argv[2] === 'mcp') {
+    // stdio MCP server — exposes comux's pane/ritual/worktree surface to
+    // MCP-capable clients (coven-code, Claude Code, OpenCode, etc.).
+    // Lives in src/mcp/server.ts; reuses src/daemon primitives for state.
+    const { runMcpServer } = await import('./mcp/server.js');
+    await runMcpServer();
+    return;
+  }
+
   const remotePaneActionArg = getArgValue('--remote-pane-action');
   if (remotePaneActionArg) {
     process.exit(await handleRemotePaneActionCli(remotePaneActionArg));
